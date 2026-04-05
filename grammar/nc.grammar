@@ -1,0 +1,136 @@
+# NC Formal Grammar (v1.0)
+# Like CPython's Grammar/python.gram
+
+# ── Program ────────────────────────────────────────────────
+program: (declaration | NEWLINE)*
+
+declaration:
+    | service_decl
+    | version_decl
+    | model_decl
+    | author_decl
+    | description_decl
+    | import_decl
+    | configure_block
+    | define_block
+    | behavior_block
+    | api_block
+    | event_block
+    | schedule_block
+
+# ── Declarations ───────────────────────────────────────────
+service_decl:     'service' STRING
+version_decl:     'version' STRING
+model_decl:       'model' STRING
+author_decl:      'author' STRING
+description_decl: 'description' STRING
+import_decl:      'import' STRING ('as' IDENTIFIER)?
+
+# ── Configure ──────────────────────────────────────────────
+configure_block:  'configure' ':' NEWLINE INDENT kv_pair+ DEDENT
+kv_pair:          IDENTIFIER ':' value NEWLINE
+value:            STRING | NUMBER | BOOLEAN | IDENTIFIER | list_value | nested_kv
+list_value:       '[' (value (',' value)*)? ']'
+nested_kv:        NEWLINE INDENT kv_pair+ DEDENT
+
+# ── Define (types) ─────────────────────────────────────────
+define_block:     'define' IDENTIFIER 'as' ':' NEWLINE INDENT field+ DEDENT
+field:            IDENTIFIER 'is' type_name ('optional')? NEWLINE
+type_name:        'text' | 'number' | 'yesno' | 'list' | 'record' | IDENTIFIER
+
+# ── Behavior (functions) ──────────────────────────────────
+behavior_block:   'to' phrase (':' | 'with' param_list ':') NEWLINE INDENT
+                  purpose_line?
+                  needs_line?
+                  statement+
+                  DEDENT
+
+phrase:           IDENTIFIER+
+param_list:       IDENTIFIER ('and' IDENTIFIER | ',' IDENTIFIER)*
+purpose_line:     'purpose' ':' STRING NEWLINE
+needs_line:       'needs' 'approval' ('when' expression)? NEWLINE
+
+# ── Statements ─────────────────────────────────────────────
+statement:
+    | gather_stmt
+    | ask_ai_stmt
+    | set_stmt
+    | respond_stmt
+    | if_stmt
+    | repeat_stmt
+    | match_stmt
+    | run_stmt
+    | log_stmt
+    | show_stmt
+    | notify_stmt
+    | wait_stmt
+    | store_stmt
+    | emit_stmt
+    | apply_stmt
+    | check_stmt
+    | try_stmt
+    | stop_stmt
+    | skip_stmt
+    | expression_stmt
+
+gather_stmt:      'gather' IDENTIFIER 'from' IDENTIFIER (':' NEWLINE INDENT kv_pair+ DEDENT)?
+                  | 'gather' IDENTIFIER 'from' IDENTIFIER 'where' kv_inline
+ask_ai_stmt:      'ask' 'AI' 'to' (STRING | phrase) ('using' id_list)? (':' NEWLINE INDENT kv_pair+ DEDENT)?
+set_stmt:         'set' IDENTIFIER 'to' expression
+respond_stmt:     'respond' 'with' expression
+if_stmt:          'if' expression ':' NEWLINE INDENT statement+ DEDENT
+                  ('otherwise' ':' NEWLINE INDENT statement+ DEDENT)?
+repeat_stmt:      'repeat' 'for' 'each' IDENTIFIER 'in' expression ':' NEWLINE INDENT statement+ DEDENT
+match_stmt:       'match' expression ':' NEWLINE INDENT when_clause+ otherwise_clause? DEDENT
+when_clause:      'when' expression ':' NEWLINE INDENT statement+ DEDENT
+otherwise_clause: 'otherwise' ':' NEWLINE INDENT statement+ DEDENT
+run_stmt:         'run' IDENTIFIER ('with' expression_list)?
+log_stmt:         'log' expression
+show_stmt:        'show' expression
+notify_stmt:      'notify' expression (STRING | TEMPLATE)?
+wait_stmt:        'wait' NUMBER time_unit
+store_stmt:       'store' expression 'into' (STRING | IDENTIFIER)
+emit_stmt:        'emit' STRING ('with' expression)?
+apply_stmt:       'apply' phrase ('using' IDENTIFIER)? (':' NEWLINE INDENT kv_pair+ DEDENT)?
+check_stmt:       'check' 'if' phrase ('using' IDENTIFIER)? ('save' 'as' IDENTIFIER)?
+try_stmt:         'try' ':' NEWLINE INDENT statement+ DEDENT
+                  ('on' 'error' ':' NEWLINE INDENT statement+ DEDENT)?
+                  ('finally' ':' NEWLINE INDENT statement+ DEDENT)?
+stop_stmt:        'stop'
+skip_stmt:        'skip'
+
+# ── API Routes ─────────────────────────────────────────────
+api_block:        'api' ':' NEWLINE INDENT route+ DEDENT
+route:            http_method path 'runs' IDENTIFIER NEWLINE
+http_method:      'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH'
+path:             ('/' IDENTIFIER | '/' ':' IDENTIFIER)+
+
+# ── Events and Schedules ──────────────────────────────────
+event_block:      'on' 'event' STRING ':' NEWLINE INDENT statement+ DEDENT
+schedule_block:   'every' NUMBER time_unit ':' NEWLINE INDENT statement+ DEDENT
+time_unit:        'seconds' | 'minutes' | 'hours' | 'days'
+
+# ── Expressions ───────────────────────────────────────────
+expression:       or_expr
+or_expr:          and_expr ('or' and_expr)*
+and_expr:         comparison ('and' comparison)*
+comparison:       addition (comparison_op addition)?
+comparison_op:    'is' ('not')? ('above' | 'below' | 'equal' 'to'? | 'at' ('least' | 'most'))
+addition:         multiplication (('+' | '-') multiplication)*
+multiplication:   unary (('*' | '/') unary)*
+unary:            ('not' | '-')? postfix
+postfix:          primary ('.' IDENTIFIER | '[' expression ']' | '(' arg_list? ')')*
+primary:          NUMBER | STRING | BOOLEAN | NONE | TEMPLATE | IDENTIFIER
+                  | '[' expression_list? ']'
+                  | '(' expression ')'
+
+# ── Tokens ─────────────────────────────────────────────────
+STRING:           '"' (char | escape)* '"'
+NUMBER:           digit+ ('.' digit+)?
+BOOLEAN:          'true' | 'false' | 'yes' | 'no'
+NONE:             'nothing' | 'none'
+TEMPLATE:         '{{' expression '}}'
+IDENTIFIER:       letter (letter | digit | '_')*
+NEWLINE:          '\n'
+INDENT:           increase in leading whitespace
+DEDENT:           decrease in leading whitespace

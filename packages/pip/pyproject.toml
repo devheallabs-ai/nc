@@ -1,0 +1,60 @@
+﻿[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nc-lang"
+version = "1.0.0"
+description = "NC â€” The AI Programming Language. Build AI-powered APIs in plain English."
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.8"
+authors = [
+    { name = "DevHeal Labs AI", email = "hello@devheallabs.in" },
+]
+keywords = [
+    "nc",
+    "ai",
+    "programming-language",
+    "api",
+    "natural-language",
+    "notation-as-code",
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Other",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Compilers",
+    "Topic :: Software Development :: Interpreters",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "requests>=2.20.0",
+]
+
+[project.urls]
+Homepage = "https://nc.devheallabs.in"
+Documentation = "https://nc.devheallabs.in/docs"
+Repository = "https://github.com/DevHealLabs/nc-lang"
+Issues = "https://github.com/DevHealLabs/nc-lang/issues"
+Changelog = "https://github.com/DevHealLabs/nc-lang/blob/main/CHANGELOG.md"
+
+[project.scripts]
+nc = "nc_lang.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["nc_lang*"]
+
+[tool.setuptools.package-data]
+nc_lang = ["py.typed"]
+

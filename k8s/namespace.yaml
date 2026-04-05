@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nc-lang
+  labels:
+    app: nc
+    managed-by: devheallabs

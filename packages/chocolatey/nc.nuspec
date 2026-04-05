@@ -1,0 +1,41 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
+  <metadata>
+    <id>nc</id>
+    <version>1.0.0</version>
+    <title>NC â€” The AI Language</title>
+    <authors>Nuckala Sai Narender</authors>
+    <owners>sainarender2222</owners>
+    <projectUrl>https://github.com/DevHealLabs/nc-lang</projectUrl>
+    <licenseUrl>https://github.com/DevHealLabs/nc-lang/blob/main/LICENSE</licenseUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>NC (Notation-as-Code) â€” Write AI-powered APIs in plain English.
+
+NC is a new programming language designed for building AI services with zero boilerplate.
+Instead of complex frameworks, write readable English-like code that compiles to a fast native binary.
+
+Features:
+- Plain English syntax (no brackets, no semicolons)
+- Built-in AI integration (OpenAI, Anthropic, Ollama, any API)
+- HTTP server with routing, middleware, CORS
+- JSON, WebSocket, database support built-in
+- Single ~400KB binary, zero runtime dependencies
+- 10x less code than Python/Node.js equivalents
+
+Usage:
+  nc version              Show version
+  nc "show 42 + 8"        Run inline code
+  nc run service.nc       Run a .nc file
+  nc serve service.nc     Start HTTP server
+    </description>
+    <summary>The AI Language â€” write AI APIs in plain English</summary>
+    <tags>nc ai llm openai anthropic programming-language plain-english api-server workflow</tags>
+    <packageSourceUrl>https://github.com/DevHealLabs/nc-lang</packageSourceUrl>
+    <docsUrl>https://github.com/DevHealLabs/nc-lang/blob/main/docs/NC_USER_MANUAL.md</docsUrl>
+    <bugTrackerUrl>https://github.com/DevHealLabs/nc-lang/issues</bugTrackerUrl>
+  </metadata>
+  <files>
+    <file src="tools\**" target="tools" />
+  </files>
+</package>
+

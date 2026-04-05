@@ -1,0 +1,144 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "nc.fullname" . }}
+  labels:
+    {{- include "nc.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "nc.selectorLabels" . | nindent 6 }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  template:
+    metadata:
+      annotations:
+        {{- toYaml .Values.podAnnotations | nindent 8 }}
+      labels:
+        {{- include "nc.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "nc.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["nc", "serve", "{{ .Values.nc.serviceFile }}"]
+          ports:
+            - name: http
+              containerPort: {{ .Values.nc.port }}
+              protocol: TCP
+          env:
+            - name: NC_PORT
+              value: {{ .Values.nc.port | quote }}
+            - name: NC_LOG_FORMAT
+              value: {{ .Values.nc.logFormat | quote }}
+            - name: NC_LOG_LEVEL
+              value: {{ .Values.nc.logLevel | quote }}
+            - name: NC_MAX_WORKERS
+              value: {{ .Values.nc.maxWorkers | quote }}
+            - name: NC_MAX_REQUEST_SIZE
+              value: {{ .Values.nc.maxRequestSize | quote }}
+            - name: NC_MAX_RESPONSE_SIZE
+              value: {{ .Values.nc.maxResponseSize | quote }}
+            {{- if .Values.nc.auth.enabled }}
+            {{- if .Values.nc.auth.jwtSecretExistingSecret }}
+            - name: NC_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.nc.auth.jwtSecretExistingSecret }}
+                  key: jwt-secret
+            {{- end }}
+            {{- if .Values.nc.auth.oidcIssuer }}
+            - name: NC_OIDC_ISSUER
+              value: {{ .Values.nc.auth.oidcIssuer | quote }}
+            - name: NC_OIDC_CLIENT_ID
+              value: {{ .Values.nc.auth.oidcClientId | quote }}
+            {{- end }}
+            {{- end }}
+            {{- if .Values.nc.rateLimit.enabled }}
+            - name: NC_RATE_LIMIT_RPM
+              value: {{ .Values.nc.rateLimit.rpm | quote }}
+            - name: NC_RATE_LIMIT_WINDOW
+              value: {{ .Values.nc.rateLimit.window | quote }}
+            {{- end }}
+            {{- if .Values.nc.ai.existingSecret }}
+            - name: NC_AI_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.nc.ai.existingSecret }}
+                  key: ai-key
+            {{- end }}
+            {{- if .Values.nc.ai.url }}
+            - name: NC_AI_URL
+              value: {{ .Values.nc.ai.url | quote }}
+            {{- end }}
+            {{- if .Values.nc.ai.model }}
+            - name: NC_AI_MODEL
+              value: {{ .Values.nc.ai.model | quote }}
+            {{- end }}
+            {{- if .Values.nc.observability.otelEndpoint }}
+            - name: NC_OTEL_ENDPOINT
+              value: {{ .Values.nc.observability.otelEndpoint | quote }}
+            {{- end }}
+            - name: NC_LISTEN_BACKLOG
+              value: {{ .Values.nc.listenBacklog | quote }}
+            - name: NC_REQUEST_QUEUE_SIZE
+              value: {{ .Values.nc.requestQueueSize | quote }}
+            - name: NC_KEEPALIVE_MAX
+              value: {{ .Values.nc.keepaliveMax | quote }}
+            - name: NC_KEEPALIVE_TIMEOUT
+              value: {{ .Values.nc.keepaliveTimeout | quote }}
+            - name: NC_QUEUE_TIMEOUT
+              value: {{ .Values.nc.queueTimeout | quote }}
+            - name: NC_DRAIN_TIMEOUT
+              value: {{ .Values.nc.drainTimeout | quote }}
+            - name: NC_AUDIT_FORMAT
+              value: {{ .Values.nc.observability.auditFormat | quote }}
+            - name: NC_AUDIT_FILE
+              value: {{ .Values.nc.observability.auditFile | quote }}
+          livenessProbe:
+            {{- toYaml .Values.livenessProbe | nindent 12 }}
+          readinessProbe:
+            {{- toYaml .Values.readinessProbe | nindent 12 }}
+          startupProbe:
+            {{- toYaml .Values.startupProbe | nindent 12 }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          {{- with .Values.volumeMounts }}
+          volumeMounts:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      {{- with .Values.volumes }}
+      volumes:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

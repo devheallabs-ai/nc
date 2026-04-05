@@ -1,0 +1,49 @@
+page "Products Catalog" theme "light":
+    meta title "Products — NC Demo"
+    meta description "Product catalog dashboard powered by NC Lang"
+
+nav brand "Products Catalog":
+    link "Browse" to "#browse"
+    link "Add Product" to "#add"
+    link "Health" to "#health"
+
+hero title "Product Catalog" subtitle "Full CRUD demo with NC backend on port 8001":
+    button "Browse Products" to "#browse" style "primary"
+    button "Add a Product" to "#add" style "secondary"
+
+section browse id "browse":
+    heading "Product Inventory"
+    text "Live data served by the products-api backend at http://localhost:8001"
+    fetch "/products" as "product_data"
+    grid columns 3 gap "1rem":
+        card icon "box":
+            heading "All Products"
+            text "GET /products — list every product in the catalog"
+        card icon "search":
+            heading "Single Product"
+            text "GET /products/:id — fetch one product by ID"
+        card icon "tag":
+            heading "Categories"
+            text "Filter products by electronics, clothing, home, accessories"
+
+section add id "add":
+    heading "Add a Product"
+    text "Submit the form below to POST a new product to the running backend."
+    form action "http://localhost:8001/products" method "POST":
+        input "Product Name" type "text" placeholder "Wireless Headphones"
+        input "Category" type "text" placeholder "electronics"
+        input "Price" type "text" placeholder "79.99"
+        input "In Stock" type "text" placeholder "true"
+        button "Create Product" style "primary"
+
+section health id "health":
+    heading "Service Health"
+    text "Verify the products-api backend is running."
+    row:
+        button "Check Health" to "http://localhost:8001/health" style "secondary"
+
+footer:
+    text "Built with NC UI — products-api on port 8001"
+    text "Run: nc serve service.nc  then  nc ui build app.ncui"
+    links:
+        link "NC Lang" to "https://github.com"

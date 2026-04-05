@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nc-config
+  namespace: nc-lang
+data:
+  ai_url: "http://ollama:11434/v1/chat/completions"
+  ai_model: "llama3"

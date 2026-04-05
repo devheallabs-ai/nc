@@ -1,0 +1,153 @@
+﻿{
+  "name": "nc-lang",
+  "displayName": "NC Language",
+  "description": "Full language support for NC (Notation-as-Code) â€” write AI workflows, API services, and automation in plain English.",
+  "version": "1.0.0",
+  "publisher": "devheal-labs-ai",
+  "license": "Apache-2.0",
+  "engines": { "vscode": "^1.80.0" },
+  "categories": [
+    "Programming Languages",
+    "Snippets",
+    "Formatters",
+    "Machine Learning",
+    "Other"
+  ],
+  "keywords": [
+    "nc",
+    "notation-as-code",
+    "ai",
+    "workflow",
+    "llm",
+    "plain-english",
+    "orchestration",
+    "ai-workflow",
+    "low-code",
+    "automation"
+  ],
+  "galleryBanner": {
+    "color": "#1e1e2e",
+    "theme": "dark"
+  },
+  "icon": "icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/devheallabs-ai/nc-lang"
+  },
+  "homepage": "https://github.com/devheallabs-ai/nc-lang",
+  "bugs": {
+    "url": "https://github.com/devheallabs-ai/nc-lang/issues"
+  },
+  "activationEvents": ["onLanguage:nc"],
+  "main": "./extension.js",
+  "contributes": {
+    "languages": [{
+      "id": "nc",
+      "aliases": ["Notation-as-Code", "NC", "nc"],
+      "extensions": [".nc"],
+      "configuration": "./language-configuration.json",
+      "icon": {
+        "light": "./icon.png",
+        "dark": "./icon.png"
+      }
+    }],
+    "grammars": [{
+      "language": "nc",
+      "scopeName": "source.nc",
+      "path": "./syntaxes/nc.tmLanguage.json"
+    }],
+    "snippets": [{
+      "language": "nc",
+      "path": "./snippets/nc.json"
+    }],
+    "commands": [
+      { "command": "nc.run", "title": "NC: Run Current File", "icon": "$(play)" },
+      { "command": "nc.serve", "title": "NC: Serve Current File", "icon": "$(server)" },
+      { "command": "nc.validate", "title": "NC: Validate Current File", "icon": "$(check)" },
+      { "command": "nc.repl", "title": "NC: Open REPL", "icon": "$(terminal)" },
+      { "command": "nc.ai.chat", "title": "NC AI: Open Chat", "icon": "$(comment-discussion)" },
+      { "command": "nc.ai.review", "title": "NC AI: Review Current File", "icon": "$(shield)" },
+      { "command": "nc.ai.explain", "title": "NC AI: Explain Selection", "icon": "$(lightbulb)" },
+      { "command": "nc.ai.ask", "title": "NC AI: Ask a Question", "icon": "$(question)" },
+      { "command": "nc.ai.generate", "title": "NC AI: Generate Code", "icon": "$(sparkle)" }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "nc-ai",
+          "title": "NC AI",
+          "icon": "$(hubot)"
+        }
+      ]
+    },
+    "views": {
+      "nc-ai": [
+        {
+          "type": "webview",
+          "id": "nc.ai.panel",
+          "name": "NC AI Chat"
+        }
+      ]
+    },
+    "keybindings": [
+      { "command": "nc.run", "key": "ctrl+shift+r", "mac": "cmd+shift+r", "when": "editorLangId == nc" },
+      { "command": "nc.serve", "key": "ctrl+shift+s", "mac": "cmd+shift+s", "when": "editorLangId == nc" },
+      { "command": "nc.validate", "key": "ctrl+shift+v", "mac": "cmd+shift+v", "when": "editorLangId == nc" },
+      { "command": "nc.ai.chat", "key": "ctrl+shift+a", "mac": "cmd+shift+a" },
+      { "command": "nc.ai.explain", "key": "ctrl+shift+e", "mac": "cmd+shift+e", "when": "editorHasSelection" },
+      { "command": "nc.ai.review", "key": "ctrl+shift+w", "mac": "cmd+shift+w" }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "nc.run",
+          "when": "editorLangId == nc",
+          "group": "navigation"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "nc.run",
+          "when": "editorLangId == nc",
+          "group": "nc@1"
+        },
+        {
+          "command": "nc.serve",
+          "when": "editorLangId == nc",
+          "group": "nc@2"
+        },
+        {
+          "command": "nc.validate",
+          "when": "editorLangId == nc",
+          "group": "nc@3"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "NC",
+      "properties": {
+        "nc.path": {
+          "type": "string",
+          "default": "nc",
+          "description": "Path to the nc binary"
+        },
+        "nc.enableLSP": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Language Server for diagnostics and completions"
+        },
+        "nc.showStatusBar": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show NC version in the status bar"
+        },
+        "nc.autoValidateOnSave": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically validate .nc files on save"
+        }
+      }
+    }
+  }
+}
+

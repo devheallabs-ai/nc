@@ -1,0 +1,95 @@
+# Native build artifacts
+nc/build/
+**/build/
+*.o
+*.obj
+*.ll
+*.a
+*.so
+*.dylib
+*.dll
+*.exe
+*.out
+
+# Coverage and profiling output
+*.gcda
+*.gcno
+*.gcov
+*.profraw
+*.profdata
+*.prof
+coverage/
+coverage.*
+*.trace
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+*.egg-info/
+dist/
+.venv/
+venv/
+
+# Node / VS Code extension artifacts
+node_modules/
+editor/vscode/node_modules/
+editor/vscode/*.vsix
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# NC package/runtime artifacts
+.nc_packages/
+.nc_cache/
+*.ncpkg
+nc.pkg.lock
+
+# IDE
+.cursor/
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*~
+.history/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.p12
+*.secret
+*.token
+
+# Test reports
+nc_*_report.json
+
+# Dev-only files (not for public repo)
+CONTINUE_PROMPT.md
+
+# Proprietary / Internal / Marketing files
+_private/
+
+# Patent documents (confidential — do NOT commit)
+patent/
+
+# AI model binary files (too large for Git — retrain locally)
+engine/nova_model.bin
+engine/nc_ai_model.bin
+engine/nc_ai_model_prod.bin
+*.bin
+
+# NOVA runtime plugin (private — never commit to public repo)
+nc_nova_runtime.dll
+libncnovaruntime.so
+libncnovaruntime.dylib
+

@@ -1,0 +1,116 @@
+groups:
+  - name: nc-alerts
+    rules:
+      # ── Availability ─────────────────────────────────────
+      - alert: NCServiceDown
+        expr: up{job="nc"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "NC service is down"
+          description: "NC service {{ $labels.instance }} has been unreachable for 1 minute."
+
+      - alert: NCHighErrorRate
+        expr: rate(nc_errors_total[5m]) / rate(nc_requests_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "NC error rate above 5%"
+          description: "Error rate is {{ $value | humanizePercentage }} for the last 5 minutes."
+
+      # ── Latency ──────────────────────────────────────────
+      - alert: NCHighLatencyP99
+        expr: histogram_quantile(0.99, rate(nc_request_duration_seconds_bucket[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "NC P99 latency above 2 seconds"
+          description: "P99 latency is {{ $value }}s."
+
+      # ── Saturation ───────────────────────────────────────
+      - alert: NCHighConnectionCount
+        expr: nc_active_connections > 100
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "NC has high active connections"
+          description: "{{ $value }} active connections."
+
+      - alert: NCAllWorkerssBusy
+        expr: nc_active_connections >= nc_max_workers
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "NC all worker threads are busy"
+          description: "All {{ $value }} workers are occupied. New requests will get 503."
+
+      # ── Request Queue ──────────────────────────────────────
+      - alert: NCRequestQueueHigh
+        expr: nc_queue_depth > 1000
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Request queue depth is high"
+          description: "Queue depth is {{ $value }}. Consider scaling up replicas."
+
+      - alert: NCRequestQueueFull
+        expr: rate(nc_queue_full_rejects_total[5m]) > 1
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Requests are being rejected due to full queue"
+          description: "{{ $value }} requests/sec are being rejected with 503. Scale up immediately."
+
+      # ── Keep-Alive ───────────────────────────────────────
+      - alert: NCLowKeepaliveReuse
+        expr: rate(nc_keepalive_reuse_total[5m]) / rate(nc_requests_total[5m]) < 0.1
+        for: 10m
+        labels:
+          severity: info
+        annotations:
+          summary: "Low keep-alive connection reuse rate"
+          description: "Only {{ $value | humanizePercentage }} of requests reuse connections. Check client configuration."
+
+      # ── Rate Limiting ────────────────────────────────────
+      - alert: NCHighRateLimitRate
+        expr: rate(nc_rate_limited_total[5m]) > 10
+        for: 5m
+        labels:
+          severity: info
+        annotations:
+          summary: "High rate of rate-limited requests"
+          description: "{{ $value }} requests/sec are being rate limited."
+
+      # ── Latency (Mean) ──────────────────────────────────
+      - alert: NCHighMeanLatency
+        expr: nc_requests_latency_sum / nc_requests_total > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Mean request latency above 1 second"
+          description: "Average latency is {{ $value }}s."
+
+      # ── Resource Usage ───────────────────────────────────
+      - alert: NCHighCPU
+        expr: process_cpu_seconds_total > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "NC high CPU usage"
+
+      - alert: NCHighMemory
+        expr: process_resident_memory_bytes > 512 * 1024 * 1024
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "NC memory usage above 512MB"

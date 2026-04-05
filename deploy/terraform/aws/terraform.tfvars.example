@@ -1,0 +1,29 @@
+# NC Terraform Variables — Copy to terraform.tfvars and customize
+
+aws_region  = "us-east-1"
+environment = "dev"
+
+# Container
+container_image = "your-registry.example.com/nc:latest"
+
+# ECS sizing
+ecs_cpu           = 512
+ecs_memory        = 1024
+ecs_desired_count = 2
+ecs_min_count     = 2
+ecs_max_count     = 10
+
+# Application
+log_level   = "info"
+max_workers = 16
+cors_origin = "https://myapp.example.com"
+
+# Secrets (create these in AWS Secrets Manager first)
+# ai_key_secret_arn = "arn:aws:secretsmanager:us-east-1:123456789:secret:nc/dev/ai-key"
+# jwt_secret_arn    = "arn:aws:secretsmanager:us-east-1:123456789:secret:nc/dev/jwt-secret"
+
+# TLS (create ACM certificate first)
+# certificate_arn = "arn:aws:acm:us-east-1:123456789:certificate/abc-123"
+
+# Logging
+log_retention_days = 30

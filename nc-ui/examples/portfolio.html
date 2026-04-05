@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>John Doe — Portfolio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth;-webkit-font-smoothing:antialiased}
+body{font-family:'Inter',system-ui,sans-serif;background:#0a0a0f;color:#f0f0f5;line-height:1.7;overflow-x:hidden}
+
+/* Container */
+.ncui-container{max-width:1200px;margin:0 auto;padding:0 24px}
+
+/* ─ Navigation ─ */
+.ncui-nav{position:fixed;top:0;left:0;right:0;z-index:1000;padding:16px 0;transition:all .3s;backdrop-filter:blur(20px);background:rgba(10,10,15,0.8);border-bottom:1px solid rgba(255,255,255,0.08)}
+.ncui-nav-inner{display:flex;align-items:center;justify-content:space-between}
+.ncui-brand{font-weight:700;font-size:1.25rem;color:#f0f0f5;text-decoration:none;letter-spacing:-0.02em}
+.ncui-nav-links{display:flex;gap:32px;align-items:center}
+.ncui-nav-links .ncui-link{font-size:.9rem;font-weight:500}
+.ncui-nav-toggle{display:none;background:none;border:none;color:#f0f0f5;cursor:pointer;width:28px;height:28px}
+.ncui-nav-toggle svg{width:24px;height:24px}
+@media(max-width:768px){
+  .ncui-nav-links{display:none;position:absolute;top:100%;left:0;right:0;flex-direction:column;padding:24px;gap:16px;background:rgba(10,10,15,0.95);border-bottom:1px solid rgba(255,255,255,0.08);backdrop-filter:blur(20px)}
+  .ncui-nav-inner.open .ncui-nav-links{display:flex}
+  .ncui-nav-toggle{display:block}
+}
+
+/* ─ Sections ─ */
+.ncui-section{padding:100px 0;position:relative}
+.ncui-hero{min-height:100vh;display:flex;align-items:center;padding-top:80px}
+.ncui-hero .ncui-container{width:100%}
+.ncui-centered{text-align:center}
+.ncui-centered .ncui-row{justify-content:center}
+.ncui-section-img{position:relative}
+.ncui-section-img::before{content:'';position:absolute;inset:0;background:var(--bg-img) center/cover no-repeat;opacity:0.15;z-index:0}
+.ncui-section-img .ncui-container{position:relative;z-index:1}
+
+/* ─ Typography ─ */
+.ncui-heading{font-size:clamp(2rem,5vw,3.5rem);font-weight:800;letter-spacing:-0.03em;line-height:1.15;margin-bottom:16px}
+.ncui-gradient-text{background:linear-gradient(135deg,#00d4ff,#2b00ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.ncui-sub{font-size:clamp(1.1rem,2.5vw,1.5rem);color:rgba(255,255,255,0.65);font-weight:400;margin-bottom:12px}
+.ncui-text{color:rgba(255,255,255,0.65);font-size:1.05rem;max-width:640px;margin-bottom:16px;line-height:1.8}
+.ncui-centered .ncui-text{margin-left:auto;margin-right:auto}
+
+/* ─ Buttons ─ */
+.ncui-btn{display:inline-flex;align-items:center;gap:8px;padding:14px 32px;border-radius:12px;font-size:.95rem;font-weight:600;text-decoration:none;border:none;cursor:pointer;transition:all .3s cubic-bezier(.4,0,.2,1);font-family:inherit}
+.ncui-btn-primary{background:linear-gradient(135deg,#00d4ff,#002aff);color:#fff;box-shadow:0 4px 24px #00d4ff44}
+.ncui-btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 32px #00d4ff66}
+.ncui-btn-outline{background:transparent;color:#00d4ff;border:1.5px solid #00d4ff;backdrop-filter:blur(8px)}
+.ncui-btn-outline:hover{background:#00d4ff18;transform:translateY(-2px)}
+.ncui-btn-glass{background:rgba(255,255,255,0.08);color:#f0f0f5;border:1px solid rgba(255,255,255,0.08);backdrop-filter:blur(12px)}
+.ncui-btn-glass:hover{background:rgba(255,255,255,0.14);transform:translateY(-2px)}
+.ncui-btn-gradient{background:linear-gradient(135deg,#00d4ff,#ff00d4);color:#fff;box-shadow:0 4px 24px #00d4ff44}
+.ncui-btn-gradient:hover{transform:translateY(-2px);box-shadow:0 8px 32px #00d4ff66}
+
+/* ─ Row ─ */
+.ncui-row{display:flex;flex-wrap:wrap;gap:16px;margin:24px 0;align-items:center}
+
+/* ─ Grid ─ */
+.ncui-grid{display:grid;gap:24px;margin:40px 0}
+.ncui-grid-2{grid-template-columns:repeat(2,1fr)}
+.ncui-grid-3{grid-template-columns:repeat(3,1fr)}
+.ncui-grid-4{grid-template-columns:repeat(4,1fr)}
+@media(max-width:900px){.ncui-grid-3,.ncui-grid-4{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:600px){.ncui-grid{grid-template-columns:1fr !important}}
+
+/* ─ Cards ─ */
+.ncui-card{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:20px;padding:36px 28px;transition:all .4s cubic-bezier(.4,0,.2,1);position:relative;overflow:hidden}
+.ncui-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,#00d4ff,transparent);opacity:0;transition:opacity .4s}
+.ncui-card:hover{transform:translateY(-6px);background:rgba(255,255,255,0.08);border-color:#00d4ff33;box-shadow:0 20px 60px rgba(0,0,0,0.4)}
+.ncui-card:hover::before{opacity:1}
+.ncui-card-icon{width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,#00d4ff22,#00d4ff08);display:flex;align-items:center;justify-content:center;margin-bottom:20px;color:#00d4ff}
+.ncui-card-icon svg{width:26px;height:26px}
+.ncui-card .ncui-heading{font-size:1.25rem;margin-bottom:8px}
+.ncui-card .ncui-text{font-size:.95rem;margin-bottom:0}
+
+/* ─ Links ─ */
+.ncui-link{color:rgba(255,255,255,0.65);text-decoration:none;transition:color .2s;font-weight:500}
+.ncui-link:hover{color:#00d4ff}
+
+/* ─ Lists ─ */
+.ncui-list{list-style:none;margin:20px 0}
+.ncui-list-item{display:flex;align-items:center;gap:12px;padding:10px 0;color:rgba(255,255,255,0.65);font-size:1.05rem}
+.ncui-check{width:22px;height:22px;border-radius:50%;background:#00d4ff18;color:#00d4ff;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ncui-check svg{width:14px;height:14px}
+
+/* ─ Images ─ */
+.ncui-img{width:100%;border-radius:16px;margin:20px 0}
+
+/* ─ Forms ─ */
+.ncui-form{max-width:520px;margin:32px 0;display:flex;flex-direction:column;gap:20px}
+.ncui-centered .ncui-form{margin-left:auto;margin-right:auto}
+.ncui-field{display:flex;flex-direction:column;gap:6px}
+.ncui-field label{font-size:.85rem;font-weight:600;color:rgba(255,255,255,0.65);text-transform:uppercase;letter-spacing:0.05em}
+.ncui-field input,.ncui-field textarea{background:rgba(255,255,255,0.06);border:1.5px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px 18px;color:#f0f0f5;font-size:1rem;font-family:inherit;transition:all .3s;outline:none}
+.ncui-field input:focus,.ncui-field textarea:focus{border-color:#00d4ff;box-shadow:0 0 0 3px #00d4ff22}
+.ncui-field input::placeholder,.ncui-field textarea::placeholder{color:rgba(255,255,255,0.4)}
+.ncui-form .ncui-btn{align-self:flex-start;margin-top:8px}
+
+/* ─ Stats ─ */
+.ncui-stat{text-align:center;padding:20px}
+.ncui-stat-val{display:block;font-size:2.5rem;font-weight:800;letter-spacing:-0.03em;background:linear-gradient(135deg,#00d4ff,#2b00ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.ncui-stat-label{display:block;font-size:.9rem;color:rgba(255,255,255,0.4);margin-top:4px;font-weight:500}
+
+/* ─ Badge ─ */
+.ncui-badge{display:inline-block;padding:6px 16px;border-radius:100px;font-size:.8rem;font-weight:600;background:#00d4ff18;color:#00d4ff;letter-spacing:0.03em}
+
+/* ─ Progress ─ */
+.ncui-progress{margin:12px 0}
+.ncui-progress-label{font-size:.85rem;font-weight:600;color:rgba(255,255,255,0.65);margin-bottom:6px;display:block}
+.ncui-progress-bar{height:8px;border-radius:4px;background:rgba(255,255,255,0.06);overflow:hidden}
+.ncui-progress-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,#00d4ff,#2b00ff);transition:width 1s cubic-bezier(.4,0,.2,1)}
+
+/* ─ Divider ─ */
+.ncui-divider{border:none;height:1px;background:rgba(255,255,255,0.08);margin:40px 0}
+
+/* ─ Spacer ─ */
+.ncui-spacer{height:60px}
+
+/* ─ Footer ─ */
+.ncui-footer{padding:60px 0;border-top:1px solid rgba(255,255,255,0.08);text-align:center}
+.ncui-footer .ncui-text{color:rgba(255,255,255,0.4);font-size:.9rem}
+.ncui-footer .ncui-row{justify-content:center}
+.ncui-footer .ncui-link{font-size:.9rem}
+
+/* ─── Animations ─── */
+.ncui-anim-fade-up .ncui-container>*{opacity:0;transform:translateY(30px);transition:all .7s cubic-bezier(.4,0,.2,1)}
+.ncui-anim-fade-up .ncui-container>.ncui-visible{opacity:1;transform:translateY(0)}
+
+.ncui-anim-fade-in .ncui-container>*{opacity:0;transition:opacity .7s cubic-bezier(.4,0,.2,1)}
+.ncui-anim-fade-in .ncui-container>.ncui-visible{opacity:1}
+
+.ncui-anim-slide-left .ncui-container>*{opacity:0;transform:translateX(-40px);transition:all .7s cubic-bezier(.4,0,.2,1)}
+.ncui-anim-slide-left .ncui-container>.ncui-visible{opacity:1;transform:translateX(0)}
+
+.ncui-anim-slide-right .ncui-container>*{opacity:0;transform:translateX(40px);transition:all .7s cubic-bezier(.4,0,.2,1)}
+.ncui-anim-slide-right .ncui-container>.ncui-visible{opacity:1;transform:translateX(0)}
+
+.ncui-anim-zoom .ncui-container>*{opacity:0;transform:scale(0.9);transition:all .7s cubic-bezier(.4,0,.2,1)}
+.ncui-anim-zoom .ncui-container>.ncui-visible{opacity:1;transform:scale(1)}
+
+.ncui-anim-stagger .ncui-container>*{opacity:0;transform:translateY(30px);transition:all .7s cubic-bezier(.4,0,.2,1)}
+.ncui-anim-stagger .ncui-container>.ncui-visible{opacity:1;transform:translateY(0)}
+
+/* Stagger children inside grids */
+.ncui-anim-stagger .ncui-grid>.ncui-card{opacity:0;transform:translateY(30px);transition:all .6s cubic-bezier(.4,0,.2,1)}
+.ncui-anim-stagger .ncui-grid>.ncui-card.ncui-visible{opacity:1;transform:translateY(0)}
+
+/* ─── Background Glow ─── */
+body::before{content:'';position:fixed;top:-50%;left:-50%;width:200%;height:200%;background:radial-gradient(circle at 30% 20%,#00d4ff08 0%,transparent 50%),radial-gradient(circle at 70% 80%,#ff00d406 0%,transparent 50%);pointer-events:none;z-index:-1}
+
+/* ─── Scrollbar ─── */
+::-webkit-scrollbar{width:8px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.08);border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:#00d4ff44}
+
+/* ─── Selection ─── */
+::selection{background:#00d4ff33;color:#f0f0f5}
+</style>
+</head>
+<body>
+<nav class="ncui-nav"><div class="ncui-container ncui-nav-inner"><button class="ncui-nav-toggle" onclick="this.parentElement.classList.toggle('open')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></nav>
+<section id="hero" class="ncui-section ncui-centered ncui-hero">
+<div class="ncui-container">
+
+</div>
+</section>
+<section id="work" class="ncui-section ncui-centered">
+<div class="ncui-container">
+
+</div>
+</section>
+<section id="about" class="ncui-section ncui-section-img" style="--bg-img:url('photo.jpg')">
+<div class="ncui-container">
+
+</div>
+</section>
+<section id="contact" class="ncui-section ncui-centered">
+<div class="ncui-container">
+
+</div>
+</section>
+<footer class="ncui-footer"><div class="ncui-container">
+
+</div></footer>
+<script>
+(function(){
+  // Scroll-driven animations via IntersectionObserver
+  const obs = new IntersectionObserver(function(entries){
+    entries.forEach(function(entry){
+      if(entry.isIntersecting){
+        // Stagger children
+        const parent = entry.target.closest('[class*=ncui-anim-stagger]');
+        if(parent){
+          const siblings = Array.from(entry.target.parentElement.children);
+          const idx = siblings.indexOf(entry.target);
+          entry.target.style.transitionDelay = (idx * 0.1) + 's';
+        }
+        entry.target.classList.add('ncui-visible');
+      }
+    });
+  },{threshold:0.1,rootMargin:'0px 0px -40px 0px'});
+
+  // Observe all section direct children and grid children
+  document.querySelectorAll('[class*=ncui-anim-] .ncui-container > *, [class*=ncui-anim-] .ncui-grid > .ncui-card').forEach(function(el){
+    obs.observe(el);
+  });
+
+  // Smooth nav background
+  var nav = document.querySelector('.ncui-nav');
+  if(nav){
+    window.addEventListener('scroll',function(){
+      if(window.scrollY > 50) nav.style.padding = '10px 0';
+      else nav.style.padding = '16px 0';
+    },{passive:true});
+  }
+
+  // Form submission handler
+  document.querySelectorAll('.ncui-form').forEach(function(form){
+    form.addEventListener('submit',function(e){
+      e.preventDefault();
+      var btn = form.querySelector('.ncui-btn');
+      if(btn){
+        var orig = btn.textContent;
+        btn.textContent = 'Sent!';
+        btn.style.pointerEvents = 'none';
+        setTimeout(function(){btn.textContent = orig; btn.style.pointerEvents='auto';},2000);
+      }
+    });
+  });
+})();
+</script>
+</body>
+</html>
