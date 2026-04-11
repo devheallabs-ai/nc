@@ -1,0 +1,71 @@
+// Orders dashboard -- runnable demo for frontend generation validation
+
+page "Orders"
+theme "light"
+accent "#2563eb"
+background "#ffffff"
+foreground "#1e293b"
+
+nav:
+    brand "Orders Demo"
+    links:
+        link "Overview" to "#overview"
+        link "Metrics" to "#metrics"
+        link "Create" to "#create"
+
+section hero centered id "overview":
+    heading "Orders Demo" style "gradient"
+    subheading "Backend and UI generated as separate NC artifacts"
+    text "Use this page with the orders service to validate the split full-stack workflow."
+    row:
+        button "View Metrics" to "#metrics" style "primary"
+        button "Create Order" to "#create" style "secondary"
+
+section metrics id "metrics":
+    heading "Operational Snapshot"
+    grid columns 3 gap "1rem":
+        stat-card:
+            label "Open Orders"
+            value "128"
+            trend "+9%"
+        stat-card:
+            label "Fulfilled Today"
+            value "54"
+            trend "+14%"
+        stat-card:
+            label "Failed Payments"
+            value "3"
+            trend "-2%"
+
+section orders id "orders":
+    heading "All Orders"
+    text "Live data from the orders-api backend at http://localhost:8000"
+    fetch "/orders" as "orders_data"
+    grid columns 2 gap "1rem":
+        card icon "list":
+            heading "Order List"
+            text "GET /orders — returns all stored orders as JSON"
+        card icon "search":
+            heading "Single Order"
+            text "GET /orders/:id — fetch one order by ID"
+
+section create id "create":
+    heading "Create a Demo Order"
+    text "Submit this form to POST /orders on the running backend."
+    form action "http://localhost:8000/orders" method "POST":
+        input "Customer Name" type "text" placeholder "Ava Patel"
+        input "Email" type "email" placeholder "ava@example.com"
+        input "Amount" type "text" placeholder "149.00"
+        button "Submit Order" style "primary"
+
+section health id "health":
+    heading "Service Health"
+    text "Hit GET /health on the backend to verify it is up."
+    row:
+        button "Check Health" to "http://localhost:8000/health" style "secondary"
+
+footer:
+    text "Built with NC UI — talking to orders-api on port 8000"
+    text "Run: nc serve service.nc  then  nc ui build app.ncui"
+    links:
+        link "NC Lang" to "https://github.com"

@@ -1,0 +1,203 @@
+page "HiveANT — Autonomous Incident Response"
+theme "dark"
+accent "#f59e0b"
+font "Inter"
+
+nav:
+    brand "HiveANT"
+    links:
+        link "Live Incidents" to "#incidents"
+        link "Agents" to "#agents"
+        link "Investigations" to "#investigations"
+        link "Learning" to "#learning"
+        link "Settings" to "#settings"
+
+section incidents:
+    heading "Live Incident Feed"
+    text "12 AI agents autonomously monitoring, investigating, and resolving production incidents"
+
+    grid 4 columns:
+        card icon "shield":
+            heading "Active Incidents"
+            stat "3" "Currently investigating"
+        card icon "rocket":
+            heading "Resolved Today"
+            stat "14" "Auto-healed"
+        card icon "clock":
+            heading "MTTR"
+            stat "4m 12s" "Mean time to resolve"
+        card icon "users":
+            heading "Agent Uptime"
+            stat "99.98%" "All 12 agents running"
+    animate "stagger"
+
+    grid 2 columns:
+        card:
+            heading "Critical — In Progress"
+            list:
+                item "INC-4421: API latency spike (p99=2800ms) — Root cause found"
+                item "INC-4419: Memory leak in auth-service — Patch being generated"
+                item "INC-4417: Database connection pool exhausted — Fix deploying"
+            button "View All Critical" style "primary"
+        card:
+            heading "Recently Resolved"
+            list:
+                item "INC-4416: CPU spike in worker-3 — Auto-scaled (2m ago)"
+                item "INC-4415: Redis cache miss rate 94% — Config updated (12m ago)"
+                item "INC-4414: 502 errors gateway-east — Rerouted traffic (31m ago)"
+                item "INC-4412: Disk 95% full analytics-db — Cleaned + expanded (1h ago)"
+            button "View History" style "secondary"
+    animate "fade-up"
+
+section agents:
+    heading "Swarm Agent Status"
+    text "12 specialized AI agents working in parallel — inspired by ant colony intelligence"
+
+    grid 3 columns:
+        card icon "globe":
+            heading "Detection Agent"
+            stat "Active" "Watching 847 metrics"
+            text "Last alert: 4m ago"
+        card icon "shield":
+            heading "Investigation Agent"
+            stat "Active" "3 parallel investigations"
+            text "Analyzing INC-4421 now"
+        card icon "rocket":
+            heading "Root Cause Agent"
+            stat "Active" "Confidence: 94%"
+            text "API latency: DB slow query"
+        card icon "users":
+            heading "Fix Generation Agent"
+            stat "Active" "2 patches ready"
+            text "Generating patch for auth-service"
+        card icon "clock":
+            heading "Validation Agent"
+            stat "Active" "Tests: 847 passing"
+            text "Pre-deployment check running"
+        card icon "chart":
+            heading "Deployment Agent"
+            stat "Standby" "Awaiting approval"
+            text "Ready to deploy INC-4421 fix"
+        card icon "globe":
+            heading "Learning Agent"
+            stat "Active" "Updating knowledge base"
+            text "Learned 3 new patterns today"
+        card icon "shield":
+            heading "Prediction Agent"
+            stat "Active" "12 future risks detected"
+            text "Next: disk space in 6 days"
+        card icon "rocket":
+            heading "Architect Agent"
+            stat "Active" "Reviewing system design"
+            text "Flagged: single point of failure"
+        card icon "users":
+            heading "Developer Agent"
+            stat "Active" "Writing fix code"
+            text "auth-service memory patch"
+        card icon "clock":
+            heading "Testing Agent"
+            stat "Active" "Running test suite"
+            text "847/847 tests passing"
+        card icon "chart":
+            heading "Reviewer Agent"
+            stat "Active" "Code review: approved"
+            text "Patch ready for deployment"
+    animate "stagger"
+
+section investigations:
+    heading "Active Investigations"
+    text "AI-generated root cause analysis with confidence scores"
+
+    card:
+        heading "INC-4421 — API Latency Spike"
+        text "Detected: p99 latency jumped from 180ms to 2800ms at 14:32 UTC"
+        grid 2 columns:
+            card:
+                heading "Root Cause Analysis"
+                list:
+                    item "Root cause: Unindexed query in orders table (confidence: 94%)"
+                    item "Trigger: New deployment v2.4.1 missing migration"
+                    item "Impact: 12,000 requests affected, 0.3% error rate"
+                    item "Blast radius: orders-service, checkout-service"
+            card:
+                heading "AI Fix Plan"
+                list:
+                    item "Step 1: Add index on orders.user_id (immediate)"
+                    item "Step 2: Run migration script orders_v2_4_1_fix.sql"
+                    item "Step 3: Validate query plans post-migration"
+                    item "Step 4: Monitor p99 for 15 minutes"
+        button "Approve & Deploy Fix" style "primary"
+        button "View Full Timeline" style "secondary"
+    animate "fade-up"
+
+    grid 2 columns:
+        card:
+            heading "Correlation Graph"
+            text "Metrics correlated with the incident:"
+            list:
+                item "orders_service.query_time: +1500% (causation)"
+                item "orders.user_id_index: missing (root cause)"
+                item "api_gateway.p99_latency: +1460% (effect)"
+                item "checkout.conversion_rate: -42% (business impact)"
+        card:
+            heading "Similar Past Incidents"
+            text "HiveANT found 2 similar incidents:"
+            list:
+                item "INC-3821 (6 months ago): Same pattern, resolved in 8min"
+                item "INC-2114 (1 year ago): Same root cause, fixed by migration"
+            text "Learning applied: auto-check index coverage on deployments"
+    animate "stagger"
+
+section learning:
+    heading "Continuous Learning"
+    text "HiveANT gets smarter with every incident"
+
+    grid 3 columns:
+        card icon "rocket":
+            heading "Knowledge Base"
+            stat "1,847" "Incident patterns learned"
+        card icon "shield":
+            heading "Prediction Accuracy"
+            stat "87.3%" "Correct root cause ID"
+        card icon "clock":
+            heading "Self-Improvements"
+            stat "142" "Auto-improvements this month"
+    animate "stagger"
+
+    card:
+        heading "What HiveANT Learned Today"
+        list:
+            item "New pattern: Memory leak signature in Node.js heap allocations"
+            item "Updated: Database slow query detection threshold lowered to 200ms"
+            item "Improved: Redis cache miss rate prediction model"
+            item "Added: Correlation between deployment time and p99 spikes"
+        button "View Full Learning Log" style "secondary"
+    animate "fade-up"
+
+section settings:
+    heading "Configuration"
+    text "Manage HiveANT behavior and integrations"
+
+    grid 2 columns:
+        card:
+            heading "Notification Settings"
+            form action "/api/settings/notifications":
+                input "PagerDuty API Key"
+                input "Slack Webhook URL"
+                input "Email (critical alerts)"
+                button "Save Notification Settings" style "primary"
+        card:
+            heading "Auto-Healing Settings"
+            form action "/api/settings/healing":
+                input "Max Auto-Deploy Level (1-3)"
+                input "Approval Required Above Level"
+                input "Rollback Timeout (minutes)"
+                button "Save Healing Settings" style "primary"
+    animate "stagger"
+
+footer:
+    text "HiveANT — Autonomous Incident Response powered by NC Language"
+    row:
+        link "API Docs" to "/api/docs"
+        link "NC Language" to "https://nc.devheallabs.in"
+        link "DevHeal Labs" to "https://devheallabs.in"

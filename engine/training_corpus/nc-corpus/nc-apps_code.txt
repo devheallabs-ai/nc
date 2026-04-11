@@ -1,0 +1,970 @@
+=== FILE: /Users/NuckalaSai.Narender4/Documents/nc-main/nc-apps/stock-market/backend/stock_service.nc ===
+// ═══════════════════════════════════════════════════════════
+//  NeuralEdge Stock Service — Written in NC Language
+//
+//  Full stock market intelligence backend — AI-powered
+//  technical analysis, price predictions, portfolio management.
+//
+//  All in NC. No Python. No Node. No Java. Just NC.
+//
+//  Start: nc nc-apps/stock-market/backend/stock_service.nc
+//  Port:  8000
+// ═══════════════════════════════════════════════════════════
+
+service "neuraledge-stock"
+version "1.0.0"
+
+configure:
+    ai_model is "default"
+    port is 8000
+    ai_system_prompt is "You are NeuralEdge AI, a financial analysis assistant. Provide accurate, data-driven analysis of stocks. Always include specific numbers and technical indicators. Format responses as JSON when requested."
+
+let config = {
+    provider:       env("MARKET_DATA_PROVIDER", "yahoo"),
+    api_key:        env("MARKET_DATA_API_KEY", ""),
+    cache_ttl:      300,
+    horizon_days:   7,
+    model:          env("OLLAMA_MODEL", "llama3"),
+    ollama_host:    env("OLLAMA_HOST", "http://localhost:11434")
+}
+
+// ── Health ─────────────────────────────────────────────────
+
+to health:
+    respond with {
+        "status":    "ok",
+        "service":   "NeuralEdge",
+        "version":   "1.0.0",
+        "ai_model":  config.model,
+        "timestamp": now()
+    }
+
+// ── Market Data ────────────────────────────────────────────
+
+to get_quote with symbol:
+    purpose: "Get current stock price and day data"
+    set sym to upper(symbol)
+
+    // In production: fetch from config.provider API
+    // For demo: AI generates realistic quote data
+    ask AI to "Generate realistic current stock data for {{sym}}. Return JSON: {symbol, price (number), change (number), change_pct (number), volume (number), market_cap (string), pe_ratio (number), week_52_high (number), week_52_low (number)}" save as quote_data
+
+    respond with quote_data
+
+to get_history with symbol, period:
+    purpose: "Get historical OHLCV price data"
+    set sym to upper(symbol)
+    set days to 30
+    if period is equal "1w":
+        set days to 7
+    if period is equal "3m":
+        set days to 90
+    if period is equal "1y":
+        set days to 365
+
+    ask AI to "Generate realistic historical OHLCV data for {{sym}} for the last {{days}} days. Return JSON array of {date, open, high, low, close, volume} objects. Use realistic price ranges." save as history
+
+    respond with {"symbol": sym, "period": period, "data": history}
+
+to get_sector_performance:
+    purpose: "Get performance by market sector"
+    ask AI to "Return current US stock sector performance. JSON: [{sector, performance_pct, top_stock, description}] for: Technology, Healthcare, Finance, Energy, Consumer, Industrial, Materials, Utilities, Real Estate, Communication" save as sectors
+
+    respond with sectors
+
+// ── Technical Analysis ─────────────────────────────────────
+
+to analyze with symbol:
+    purpose: "Full technical analysis: RSI, MACD, Bollinger, moving averages"
+    set sym to upper(symbol)
+
+    ask AI to "Perform comprehensive technical analysis for {{sym}}. Return JSON: {symbol, rsi_14 (number 0-100), macd_signal (bullish/bearish/neutral), macd_value (number), macd_histogram (number), sma_20 (number), sma_50 (number), sma_200 (number), bollinger_upper (number), bollinger_lower (number), bollinger_mid (number), volume_sma_20 (number), atr_14 (number), support_level (number), resistance_level (number), trend (uptrend/downtrend/sideways), overall_signal (strong_buy/buy/hold/sell/strong_sell), confidence (0-100)}" save as analysis
+
+    respond with analysis
+
+to rsi with symbol, period:
+    purpose: "Calculate RSI for a stock"
+    set sym to upper(symbol)
+    set p to 14
+    if period is not equal nil:
+        set p to period
+
+    ask AI to "Calculate RSI({{p}}) for {{sym}}. Return JSON: {symbol, rsi, interpretation (overbought/neutral/oversold), signal (sell/hold/buy)}" save as rsi_data
+    respond with rsi_data
+
+to macd with symbol:
+    purpose: "MACD signal and histogram"
+    set sym to upper(symbol)
+    ask AI to "Calculate MACD(12,26,9) for {{sym}}. Return JSON: {symbol, macd_line, signal_line, histogram, crossover (bullish/bearish/none), trend_strength (strong/moderate/weak)}" save as macd_data
+    respond with macd_data
+
+to bollinger with symbol:
+    purpose: "Bollinger Bands analysis"
+    set sym to upper(symbol)
+    ask AI to "Calculate Bollinger Bands(20,2) for {{sym}}. Return JSON: {symbol, upper_band, middle_band, lower_band, current_price, bandwidth_pct, position (above_upper/near_upper/middle/near_lower/below_lower), squeeze (boolean)}" save as bb_data
+    respond with bb_data
+
+// ── AI Predictions ─────────────────────────────────────────
+
+to predict with symbol:
+    purpose: "AI price prediction for next 7 days"
+    set sym to upper(symbol)
+
+    // Get technical context first
+    run analyze with sym
+    set ta to result
+
+    ask AI to "Based on this technical analysis for {{sym}}, predict the price for the next {{config.horizon_days}} days. Context: {{ta}}\n\nReturn JSON: {symbol, current_price, predictions: [{day, date, predicted_price, low_estimate, high_estimate, confidence}], overall_direction (bullish/bearish/neutral), key_levels: {support, resistance, target_1, target_2, stop_loss}, risk_factors: [string], catalysts: [string], recommendation (strong_buy/buy/hold/sell/strong_sell), position_size_suggestion (string)}" save as prediction
+
+    respond with prediction
+
+to predict_batch with symbols:
+    purpose: "Batch predictions for multiple symbols"
+    set results to []
+    repeat for each sym in symbols:
+        run predict with sym
+        append result to results
+    respond with results
+
+// ── Sentiment Analysis ─────────────────────────────────────
+
+to sentiment with symbol:
+    purpose: "AI news and social sentiment analysis"
+    set sym to upper(symbol)
+
+    ask AI to "Analyze market sentiment for {{sym}} based on recent news, analyst reports, and social media. Return JSON: {symbol, overall_sentiment (very_bullish/bullish/neutral/bearish/very_bearish), sentiment_score (-100 to 100), news_sentiment (string), analyst_consensus (string), retail_sentiment (string), institutional_activity (string), recent_news: [{headline, sentiment, impact}], risk_events: [string]}" save as sentiment_data
+
+    respond with sentiment_data
+
+// ── Portfolio Management ───────────────────────────────────
+
+to analyze_portfolio with holdings:
+    purpose: "Analyze portfolio risk, diversification, and recommendations"
+    ask AI to "Analyze this stock portfolio and provide recommendations. Holdings: {{holdings}}\n\nReturn JSON: {total_value, day_pnl, total_return_pct, beta, sharpe_ratio, diversification_score (0-100), risk_level (low/moderate/high/very_high), sector_breakdown: {}, concentration_risk: [string], recommendations: [string], rebalancing_suggestions: [{action, symbol, reason}]}" save as portfolio_analysis
+
+    respond with portfolio_analysis
+
+to suggest_rebalance with holdings, target_allocation:
+    purpose: "Suggest portfolio rebalancing to hit target allocation"
+    ask AI to "Suggest rebalancing trades to move from current holdings to target allocation.\n\nCurrent: {{holdings}}\nTarget: {{target_allocation}}\n\nReturn JSON: [{action (buy/sell), symbol, quantity, estimated_value, reason}]" save as rebalance
+
+    respond with rebalance
+
+// ── Screener ───────────────────────────────────────────────
+
+to screen with criteria:
+    purpose: "Screen stocks matching criteria"
+    ask AI to "Find stocks matching these criteria: {{criteria}}. Return JSON: [{symbol, name, price, match_score (0-100), why_matches: [string]}] — top 10 matches." save as matches
+    respond with matches
+
+// ── Watchlist ──────────────────────────────────────────────
+
+to watchlist_summary with symbols:
+    purpose: "Quick summary of a watchlist"
+    set summaries to []
+    repeat for each sym in symbols:
+        run get_quote with sym
+        append result to summaries
+    respond with summaries
+
+// ── Lifecycle ──────────────────────────────────────────────
+
+on start {
+    log("NeuralEdge AI Stock Service starting on port " + string(config.port))
+    log("Provider: " + config.provider)
+    log("AI Model: " + config.model)
+    log("Powered by NC Language — DevHeal Labs AI")
+}
+
+// ── API ────────────────────────────────────────────────────
+
+api:
+    GET  /health                    runs health
+    GET  /api/v1/quote/:symbol      runs get_quote
+    GET  /api/v1/history/:symbol    runs get_history
+    GET  /api/v1/sectors            runs get_sector_performance
+    POST /api/v1/analyze/:symbol    runs analyze
+    GET  /api/v1/rsi/:symbol        runs rsi
+    GET  /api/v1/macd/:symbol       runs macd
+    GET  /api/v1/bollinger/:symbol  runs bollinger
+    POST /api/v1/predict/:symbol    runs predict
+    POST /api/v1/predict/batch      runs predict_batch
+    POST /api/v1/sentiment/:symbol  runs sentiment
+    POST /api/v1/portfolio/analyze  runs analyze_portfolio
+    POST /api/v1/portfolio/rebalance runs suggest_rebalance
+    POST /api/v1/screen             runs screen
+    POST /api/v1/watchlist          runs watchlist_summary
+
+=== END ===
+
+
+// ─── NC Apps UI Dashboards ───
+// ─── hiveant_dashboard.ncui ───
+page "HiveANT — Autonomous Incident Response"
+theme "dark"
+accent "#f59e0b"
+font "Inter"
+
+nav:
+    brand "HiveANT"
+    links:
+        link "Live Incidents" to "#incidents"
+        link "Agents" to "#agents"
+        link "Investigations" to "#investigations"
+        link "Learning" to "#learning"
+        link "Settings" to "#settings"
+
+section incidents:
+    heading "Live Incident Feed"
+    text "12 AI agents autonomously monitoring, investigating, and resolving production incidents"
+
+    grid 4 columns:
+        card icon "shield":
+            heading "Active Incidents"
+            stat "3" "Currently investigating"
+        card icon "rocket":
+            heading "Resolved Today"
+            stat "14" "Auto-healed"
+        card icon "clock":
+            heading "MTTR"
+            stat "4m 12s" "Mean time to resolve"
+        card icon "users":
+            heading "Agent Uptime"
+            stat "99.98%" "All 12 agents running"
+    animate "stagger"
+
+    grid 2 columns:
+        card:
+            heading "Critical — In Progress"
+            list:
+                item "INC-4421: API latency spike (p99=2800ms) — Root cause found"
+                item "INC-4419: Memory leak in auth-service — Patch being generated"
+                item "INC-4417: Database connection pool exhausted — Fix deploying"
+            button "View All Critical" style "primary"
+        card:
+            heading "Recently Resolved"
+            list:
+                item "INC-4416: CPU spike in worker-3 — Auto-scaled (2m ago)"
+                item "INC-4415: Redis cache miss rate 94% — Config updated (12m ago)"
+                item "INC-4414: 502 errors gateway-east — Rerouted traffic (31m ago)"
+                item "INC-4412: Disk 95% full analytics-db — Cleaned + expanded (1h ago)"
+            button "View History" style "secondary"
+    animate "fade-up"
+
+section agents:
+    heading "Swarm Agent Status"
+    text "12 specialized AI agents working in parallel — inspired by ant colony intelligence"
+
+    grid 3 columns:
+        card icon "globe":
+            heading "Detection Agent"
+            stat "Active" "Watching 847 metrics"
+            text "Last alert: 4m ago"
+        card icon "shield":
+            heading "Investigation Agent"
+            stat "Active" "3 parallel investigations"
+            text "Analyzing INC-4421 now"
+        card icon "rocket":
+            heading "Root Cause Agent"
+            stat "Active" "Confidence: 94%"
+            text "API latency: DB slow query"
+        card icon "users":
+            heading "Fix Generation Agent"
+            stat "Active" "2 patches ready"
+            text "Generating patch for auth-service"
+        card icon "clock":
+            heading "Validation Agent"
+            stat "Active" "Tests: 847 passing"
+            text "Pre-deployment check running"
+        card icon "chart":
+            heading "Deployment Agent"
+            stat "Standby" "Awaiting approval"
+            text "Ready to deploy INC-4421 fix"
+        card icon "globe":
+            heading "Learning Agent"
+            stat "Active" "Updating knowledge base"
+            text "Learned 3 new patterns today"
+        card icon "shield":
+            heading "Prediction Agent"
+            stat "Active" "12 future risks detected"
+            text "Next: disk space in 6 days"
+        card icon "rocket":
+            heading "Architect Agent"
+            stat "Active" "Reviewing system design"
+            text "Flagged: single point of failure"
+        card icon "users":
+            heading "Developer Agent"
+            stat "Active" "Writing fix code"
+            text "auth-service memory patch"
+        card icon "clock":
+            heading "Testing Agent"
+            stat "Active" "Running test suite"
+            text "847/847 tests passing"
+        card icon "chart":
+            heading "Reviewer Agent"
+            stat "Active" "Code review: approved"
+            text "Patch ready for deployment"
+    animate "stagger"
+
+section investigations:
+    heading "Active Investigations"
+    text "AI-generated root cause analysis with confidence scores"
+
+    card:
+        heading "INC-4421 — API Latency Spike"
+        text "Detected: p99 latency jumped from 180ms to 2800ms at 14:32 UTC"
+        grid 2 columns:
+            card:
+                heading "Root Cause Analysis"
+                list:
+                    item "Root cause: Unindexed query in orders table (confidence: 94%)"
+                    item "Trigger: New deployment v2.4.1 missing migration"
+                    item "Impact: 12,000 requests affected, 0.3% error rate"
+                    item "Blast radius: orders-service, checkout-service"
+            card:
+                heading "AI Fix Plan"
+                list:
+                    item "Step 1: Add index on orders.user_id (immediate)"
+                    item "Step 2: Run migration script orders_v2_4_1_fix.sql"
+                    item "Step 3: Validate query plans post-migration"
+                    item "Step 4: Monitor p99 for 15 minutes"
+        button "Approve & Deploy Fix" style "primary"
+        button "View Full Timeline" style "secondary"
+    animate "fade-up"
+
+    grid 2 columns:
+        card:
+            heading "Correlation Graph"
+            text "Metrics correlated with the incident:"
+            list:
+                item "orders_service.query_time: +1500% (causation)"
+                item "orders.user_id_index: missing (root cause)"
+                item "api_gateway.p99_latency: +1460% (effect)"
+                item "checkout.conversion_rate: -42% (business impact)"
+        card:
+            heading "Similar Past Incidents"
+            text "HiveANT found 2 similar incidents:"
+            list:
+                item "INC-3821 (6 months ago): Same pattern, resolved in 8min"
+                item "INC-2114 (1 year ago): Same root cause, fixed by migration"
+            text "Learning applied: auto-check index coverage on deployments"
+    animate "stagger"
+
+section learning:
+    heading "Continuous Learning"
+    text "HiveANT gets smarter with every incident"
+
+    grid 3 columns:
+        card icon "rocket":
+            heading "Knowledge Base"
+            stat "1,847" "Incident patterns learned"
+        card icon "shield":
+            heading "Prediction Accuracy"
+            stat "87.3%" "Correct root cause ID"
+        card icon "clock":
+            heading "Self-Improvements"
+            stat "142" "Auto-improvements this month"
+    animate "stagger"
+
+    card:
+        heading "What HiveANT Learned Today"
+        list:
+            item "New pattern: Memory leak signature in Node.js heap allocations"
+            item "Updated: Database slow query detection threshold lowered to 200ms"
+            item "Improved: Redis cache miss rate prediction model"
+            item "Added: Correlation between deployment time and p99 spikes"
+        button "View Full Learning Log" style "secondary"
+    animate "fade-up"
+
+section settings:
+    heading "Configuration"
+    text "Manage HiveANT behavior and integrations"
+
+    grid 2 columns:
+        card:
+            heading "Notification Settings"
+            form action "/api/settings/notifications":
+                input "PagerDuty API Key"
+                input "Slack Webhook URL"
+                input "Email (critical alerts)"
+                button "Save Notification Settings" style "primary"
+        card:
+            heading "Auto-Healing Settings"
+            form action "/api/settings/healing":
+                input "Max Auto-Deploy Level (1-3)"
+                input "Approval Required Above Level"
+                input "Rollback Timeout (minutes)"
+                button "Save Healing Settings" style "primary"
+    animate "stagger"
+
+footer:
+    text "HiveANT — Autonomous Incident Response powered by NC Language"
+    row:
+        link "API Docs" to "/api/docs"
+        link "NC Language" to "https://nc.devheallabs.in"
+        link "DevHeal Labs" to "https://devheallabs.in"
+
+// ─── swarmops_dashboard.ncui ───
+page "SwarmOps — AI Operations Intelligence"
+theme "dark"
+accent "#8b5cf6"
+font "Inter"
+
+nav:
+    brand "SwarmOps"
+    links:
+        link "Operations" to "#operations"
+        link "Infrastructure" to "#infrastructure"
+        link "Deployments" to "#deployments"
+        link "Analytics" to "#analytics"
+        link "Runbooks" to "#runbooks"
+
+section operations:
+    heading "Operations Command Center"
+    text "AI-powered incident investigation and self-healing operations"
+
+    grid 4 columns:
+        card icon "shield":
+            heading "System Health"
+            stat "94.2%" "Overall health score"
+        card icon "rocket":
+            heading "Active Agents"
+            stat "8/8" "All agents running"
+        card icon "clock":
+            heading "Open Issues"
+            stat "5" "Being investigated"
+        card icon "chart":
+            heading "Auto-Resolved"
+            stat "23" "Issues fixed today"
+    animate "stagger"
+
+    grid 3 columns:
+        card icon "users":
+            heading "Kubernetes Clusters"
+            stat "3 clusters" "847 pods running"
+            text "All clusters healthy"
+        card icon "globe":
+            heading "Microservices"
+            stat "47 services" "3 degraded"
+            text "swarmops investigating"
+        card icon "clock":
+            heading "Response Time"
+            stat "142ms" "p50 API latency"
+            text "Within SLA targets"
+    animate "fade-up"
+
+section infrastructure:
+    heading "Infrastructure Overview"
+    text "Real-time infrastructure metrics collected by SwarmOps agents"
+
+    grid 2 columns:
+        card:
+            heading "Kubernetes Health"
+            progress "api-cluster (us-east)" 96%
+            progress "worker-cluster (us-west)" 88%
+            progress "data-cluster (eu-west)" 92%
+            progress "edge-cluster (ap-south)" 79%
+        card:
+            heading "Service Reliability"
+            progress "auth-service" 99%
+            progress "orders-service" 94%
+            progress "payments-service" 100%
+            progress "notifications-service" 87%
+    animate "fade-up"
+
+    grid 4 columns:
+        card:
+            heading "CPU Usage"
+            stat "67%" "Cluster average"
+            text "3 nodes above 90%"
+        card:
+            heading "Memory"
+            stat "74%" "Cluster average"
+            text "2 potential leaks detected"
+        card:
+            heading "Disk I/O"
+            stat "42%" "Utilization"
+            text "Normal range"
+        card:
+            heading "Network"
+            stat "1.4 Gbps" "Throughput"
+            text "No anomalies"
+    animate "stagger"
+
+section deployments:
+    heading "Deployment Intelligence"
+    text "AI monitors every deployment for anomalies and auto-rolls back if needed"
+
+    grid 2 columns:
+        card:
+            heading "Recent Deployments"
+            list:
+                item "v2.4.2 orders-service — deployed 12m ago (healthy)"
+                item "v1.8.1 auth-service — deployed 2h ago (healthy)"
+                item "v3.1.0 notifications — deployed 4h ago (monitoring)"
+                item "v2.4.1 orders-service — ROLLED BACK (latency spike)"
+            button "View Deploy History" style "secondary"
+        card:
+            heading "AI Deployment Analysis"
+            list:
+                item "v3.1.0 notifications: Memory up 23% — watching"
+                item "Error rate stable across all recent deploys"
+                item "Latency within baseline for 4/5 recent deploys"
+                item "AI recommendation: hold v3.1.0 24h before promoting"
+            button "View Full Analysis" style "primary"
+    animate "stagger"
+
+    card:
+        heading "Deployment Risk Score"
+        text "AI predicts deployment risk before you deploy"
+        form action "/api/analyze/deployment":
+            input "Service Name" required
+            input "Version / Tag" required
+            input "Diff Summary or Change Log"
+            button "Analyze Deployment Risk" style "primary"
+    animate "fade-up"
+
+section analytics:
+    heading "Operations Analytics"
+    text "Trends, patterns, and AI insights from your operations data"
+
+    grid 3 columns:
+        card icon "chart":
+            heading "MTTR Trend"
+            stat "4m 12s" "Down from 18m (30 days ago)"
+            text "78% improvement with AI"
+        card icon "shield":
+            heading "Incident Volume"
+            stat "-34%" "vs last month"
+            text "Prediction catching issues early"
+        card icon "rocket":
+            heading "Auto-Resolution Rate"
+            stat "71%" "Of incidents auto-healed"
+            text "Target: 80% by Q2"
+    animate "stagger"
+
+    grid 2 columns:
+        card:
+            heading "Top Incident Categories"
+            progress "Database performance" 28%
+            progress "Memory/CPU resource" 22%
+            progress "Network connectivity" 18%
+            progress "Deployment regressions" 17%
+            progress "External API failures" 15%
+        card:
+            heading "Resolution Methods"
+            progress "AI auto-heal" 71%
+            progress "AI-guided manual" 19%
+            progress "Manual only" 10%
+    animate "fade-up"
+
+section runbooks:
+    heading "AI-Generated Runbooks"
+    text "SwarmOps auto-generates runbooks from incident history — no manual writing needed"
+
+    grid 2 columns:
+        card:
+            heading "Available Runbooks"
+            list:
+                item "Database slow query — auto-generated (94% confidence)"
+                item "Kubernetes pod crash loop — auto-generated"
+                item "Redis memory exhaustion — auto-generated"
+                item "API gateway 5xx spike — auto-generated"
+                item "Memory leak detection — auto-generated"
+            button "Browse All 47 Runbooks" style "secondary"
+        card:
+            heading "Generate New Runbook"
+            form action "/api/runbooks/generate":
+                input "Incident Type or Description" required
+                input "Services Involved"
+                input "Severity Level (P1/P2/P3)"
+                button "Generate AI Runbook" style "primary"
+    animate "stagger"
+
+footer:
+    text "SwarmOps — AI Operations Intelligence powered by NC Language"
+    row:
+        link "API Docs" to "/api/docs"
+        link "NC Language" to "https://nc.devheallabs.in"
+        link "DevHeal Labs" to "https://devheallabs.in"
+
+// ─── stock_dashboard.ncui ───
+page "NeuralEdge — AI Stock Intelligence"
+theme "dark"
+accent "#10b981"
+font "Inter"
+
+nav:
+    brand "NeuralEdge"
+    links:
+        link "Dashboard" to "#dashboard"
+        link "Analysis" to "#analysis"
+        link "Predictions" to "#predictions"
+        link "Portfolio" to "#portfolio"
+        link "Alerts" to "#alerts"
+
+section dashboard:
+    heading "Market Intelligence"
+    text "AI-powered stock analysis and predictions — built entirely with NC"
+
+    grid 4 columns:
+        card icon "chart":
+            heading "AAPL"
+            stat "$189.42" "+2.4% today"
+            text "AI Signal: Strong Buy"
+        card icon "chart":
+            heading "MSFT"
+            stat "$421.17" "+1.8% today"
+            text "AI Signal: Buy"
+        card icon "chart":
+            heading "GOOGL"
+            stat "$175.23" "-0.6% today"
+            text "AI Signal: Hold"
+        card icon "chart":
+            heading "NVDA"
+            stat "$875.64" "+4.2% today"
+            text "AI Signal: Strong Buy"
+    animate "stagger"
+
+    grid 3 columns:
+        card icon "globe":
+            heading "Market Overview"
+            stat "S&P 500" "+0.8% today"
+            text "Bull market momentum continues"
+        card icon "shield":
+            heading "Portfolio Health"
+            stat "92/100" "Risk Score"
+            text "Well diversified across sectors"
+        card icon "rocket":
+            heading "AI Accuracy"
+            stat "84.7%" "7-day prediction accuracy"
+            text "Better than market average"
+    animate "fade-up"
+
+section analysis:
+    heading "Technical Analysis"
+    text "AI-computed indicators across all 30 tracked stocks"
+
+    grid 2 columns:
+        card:
+            heading "Top Performers"
+            list:
+                item "NVDA — RSI 68, MACD Bullish, Volume +42%"
+                item "AAPL — RSI 61, Golden Cross forming"
+                item "META — RSI 57, Breaking resistance"
+                item "TSLA — RSI 72, Overbought caution"
+                item "AMZN — RSI 54, Accumulation phase"
+        card:
+            heading "Risk Alerts"
+            list:
+                item "TSLA: High volatility — RSI overbought (72)"
+                item "BIDU: Geopolitical risk detected"
+                item "GME: Social sentiment spike (monitor closely)"
+                item "RIVN: Cash burn rate above threshold"
+    animate "fade-up"
+
+    grid 3 columns:
+        card:
+            heading "RSI Analysis"
+            progress "Overbought (>70)" 12%
+            progress "Neutral (30-70)" 76%
+            progress "Oversold (<30)" 12%
+        card:
+            heading "Trend Direction"
+            progress "Bullish" 61%
+            progress "Sideways" 24%
+            progress "Bearish" 15%
+        card:
+            heading "Volume Signal"
+            progress "High Volume" 38%
+            progress "Average Volume" 47%
+            progress "Low Volume" 15%
+    animate "stagger"
+
+section predictions:
+    heading "AI Price Predictions"
+    text "7-day forward price predictions powered by NC AI transformer model"
+
+    grid 2 columns:
+        card icon "rocket":
+            heading "Bullish Predictions"
+            stat "12 stocks" "Expected upside >5%"
+            list:
+                item "NVDA: $940 target (+7.4%)"
+                item "AAPL: $198 target (+4.5%)"
+                item "MSFT: $445 target (+5.7%)"
+                item "META: $540 target (+8.2%)"
+            button "View Full Analysis" style "primary"
+        card icon "shield":
+            heading "Risk Warnings"
+            stat "3 stocks" "Expected downside >5%"
+            list:
+                item "TSLA: $185 target (-6.8%) overbought"
+                item "COIN: $215 target (-5.1%) crypto exposure"
+                item "SNAP: $12 target (-8.9%) earnings risk"
+            button "View Risk Report" style "secondary"
+    animate "stagger"
+
+    card:
+        heading "AI Prediction Methodology"
+        text "The NC AI analyzes 47 technical indicators, earnings data, news sentiment, and macroeconomic signals. Model trained on 20 years of market data using the NC AI native transformer — written entirely in NC language."
+        button "Learn More About NC AI" style "secondary"
+    animate "fade-up"
+
+section portfolio:
+    heading "Portfolio Manager"
+    text "Track and optimize your holdings with AI recommendations"
+
+    grid 4 columns:
+        card icon "users":
+            heading "Total Value"
+            stat "$142,856" "All positions"
+        card icon "chart":
+            heading "Day P&L"
+            stat "+$2,341" "+1.67% today"
+        card icon "rocket":
+            heading "Total Return"
+            stat "+$31,200" "+28.0% all time"
+        card icon "globe":
+            heading "Risk Level"
+            stat "Moderate" "Score: 62/100"
+    animate "stagger"
+
+    form action "/api/v1/portfolio/analyze":
+        input "Stock Symbol (e.g. AAPL)" required
+        input "Number of Shares" type "number" required
+        input "Purchase Price" type "number"
+        button "Add to Portfolio" style "primary"
+    animate "fade-up"
+
+section alerts:
+    heading "Smart Alerts"
+    text "AI-generated alerts based on your portfolio and watchlist"
+
+    grid 2 columns:
+        card:
+            heading "Active Alerts"
+            list:
+                item "NVDA crossed $875 resistance level"
+                item "AAPL earnings report in 3 days"
+                item "Portfolio beta exceeded 1.2 threshold"
+                item "MSFT analyst upgrade: Morgan Stanley"
+        card:
+            heading "Set New Alert"
+            form action "/api/v1/alerts/create":
+                input "Stock Symbol" required
+                input "Price Target" type "number" required
+                input "Alert Condition (above/below)"
+                button "Create Alert" style "primary"
+    animate "fade-up"
+
+footer:
+    text "NeuralEdge — AI Stock Intelligence powered by NC Language"
+    row:
+        link "API Docs" to "/api/docs"
+        link "NC AI" to "#predictions"
+        link "DevHeal Labs" to "https://devheallabs.in"
+        link "GitHub" to "#"
+
+// ─── portal.ncui ───
+page "DevHeal Labs AI — Developer Portal"
+theme "dark"
+accent "#6366f1"
+font "Inter"
+
+nav:
+    brand "DevHeal Labs AI"
+    links:
+        link "Products" to "#products"
+        link "NC Language" to "#nc-language"
+        link "NC AI" to "#nc-ai"
+        link "Docs" to "#docs"
+        link "Try NC" to "#playground"
+
+section products:
+    heading "AI-Driven Development Platform"
+    text "Build backends, frontends, and AI services with plain English. No boilerplate. No frameworks. Just NC."
+
+    grid 3 columns:
+        card icon "rocket":
+            heading "NC Language"
+            stat "Backend" "Plain English → APIs"
+            text "Write server-side logic in natural English. Deploy in seconds."
+            button "Try NC" style "primary"
+        card icon "globe":
+            heading "NC UI"
+            stat "Frontend" "Plain English → Web Apps"
+            text "Build beautiful web interfaces with plain text. No HTML/CSS expertise needed."
+            button "Try NC UI" style "primary"
+        card icon "shield":
+            heading "NC AI"
+            stat "Intelligence" "Natural Language → AI Services"
+            text "Add AI to any service with one line. Built-in LLM bridge, training, inference."
+            button "Try NC AI" style "primary"
+    animate "stagger"
+
+    grid 2 columns:
+        card icon "users":
+            heading "HiveANT"
+            stat "Autonomous Incident Response"
+            text "12 AI agents that automatically detect, investigate, and fix production incidents."
+            button "Learn More" style "secondary"
+        card icon "chart":
+            heading "SwarmOps"
+            stat "AI Operations Intelligence"
+            text "Self-healing operations platform. AI monitors, investigates, and resolves issues."
+            button "Learn More" style "secondary"
+    animate "fade-up"
+
+section nc-language:
+    heading "NC Language"
+    text "The world's first AI-native programming language. Write code in plain English."
+
+    grid 3 columns:
+        card icon "rocket":
+            heading "Simple"
+            text "Write 'ask AI to classify this' and it works. No SDK, no config, no boilerplate."
+        card icon "shield":
+            heading "Powerful"
+            text "Built-in HTTP, WebSockets, databases, authentication, and AI — all native features."
+        card icon "clock":
+            heading "Fast"
+            text "570KB binary, zero dependencies, C11 runtime. Compiles to optimized bytecode."
+    animate "stagger"
+
+    card:
+        heading "Write This Instead of 50 Lines of Python"
+        text "Traditional Python: 50+ lines. Flask setup, OpenAI SDK, JSON parsing, error handling..."
+        text "NC Language — 8 lines:"
+        list:
+            item "service \"classifier\" / version \"1.0.0\""
+            item "configure: ai_model is \"default\""
+            item "to classify with text:"
+            item "    ask AI to \"classify sentiment\" using text save as label"
+            item "    respond with {\"label\": label}"
+            item "api: POST /classify runs classify"
+        button "See Full Comparison" style "secondary"
+    animate "fade-up"
+
+    grid 4 columns:
+        card:
+            heading "Languages Replaced"
+            stat "Python / Node / Go" "For AI services"
+        card:
+            heading "Code Reduction"
+            stat "80-90%" "Less code to write"
+        card:
+            heading "Binary Size"
+            stat "570 KB" "Zero dependencies"
+        card:
+            heading "Startup Time"
+            stat "<50ms" "Cold start"
+    animate "stagger"
+
+section nc-ai:
+    heading "NC AI — AI Written in NC"
+    text "The NC AI model itself is written in NC — not C, not Python. NC all the way down."
+
+    grid 3 columns:
+        card icon "rocket":
+            heading "NC Transformer"
+            stat "Written in NC" "Decoder-only transformer"
+            text "Model architecture defined in NC. Engine handles math."
+        card icon "shield":
+            heading "NC Tokenizer"
+            stat "Written in NC" "BPE tokenization"
+            text "NC-specific vocabulary. Encodes/decodes NC source code."
+        card icon "clock":
+            heading "NC Optimizer"
+            stat "Written in NC" "Adam optimizer"
+            text "Training loop, gradient clipping, LR scheduling — all NC."
+    animate "stagger"
+
+    card:
+        heading "Architecture Philosophy"
+        text "Engine (C) handles: VM, compiler, tensor math — like CPython handles Python."
+        text "NC handles: model logic, training, inference, APIs, tests, scripts — everything else."
+        text "Just like PyTorch: Python defines the model, C++ handles the math. NC defines the model, the C engine handles the math."
+        button "View NC AI Source" style "primary"
+        button "Start Training" style "secondary"
+    animate "fade-up"
+
+section docs:
+    heading "Get Started in 60 Seconds"
+    text "Install NC and write your first AI service immediately"
+
+    grid 3 columns:
+        card:
+            heading "1. Install NC"
+            list:
+                item "macOS: curl -fsSL install.nc.devheallabs.in | bash"
+                item "Windows: Download nc.exe from releases"
+                item "Linux: curl -fsSL install.nc.devheallabs.in | bash"
+        card:
+            heading "2. Write your service"
+            list:
+                item "Create hello.nc"
+                item "service \"hello\" / version \"1.0.0\""
+                item "to greet:"
+                item "    respond with \"Hello NC!\""
+                item "api: GET /hello runs greet"
+        card:
+            heading "3. Run it"
+            list:
+                item "nc serve hello.nc"
+                item "Open http://localhost:8000/hello"
+                item "See: Hello NC!"
+                item "That's it — zero config needed"
+    animate "stagger"
+
+    grid 2 columns:
+        card:
+            heading "Documentation"
+            list:
+                item "NC Language Reference"
+                item "NC UI Components Guide"
+                item "NC AI Integration Guide"
+                item "HiveANT Setup Guide"
+                item "SwarmOps Configuration"
+            button "View All Docs" style "secondary"
+        card:
+            heading "Examples"
+            list:
+                item "Hello World Service"
+                item "REST CRUD API"
+                item "AI Classifier"
+                item "Chat Assistant with Memory"
+                item "Stock Market Dashboard"
+            button "Browse Examples" style "primary"
+    animate "fade-up"
+
+section playground:
+    heading "Try NC Right Now"
+    text "Generate NC code from plain English — no install required"
+
+    form action "/api/generate":
+        input "Describe what you want to build..." required
+        button "Generate NC Code" style "primary"
+    animate "fade-up"
+
+    card:
+        heading "Example Prompts"
+        list:
+            item "create a REST API for a todo list"
+            item "build an AI sentiment analysis service"
+            item "make a chat assistant with memory"
+            item "create a stock price monitoring service"
+            item "build a content moderation API"
+    animate "fade-up"
+
+footer:
+    text "DevHeal Labs AI — Building the future of AI-native development"
+    row:
+        link "NC Language" to "https://nc.devheallabs.in"
+        link "NC UI" to "https://ncui.devheallabs.in"
+        link "NC AI" to "https://ncai.devheallabs.in"
+        link "HiveANT" to "https://hiveant.devheallabs.in"
+        link "SwarmOps" to "https://swarmops.devheallabs.in"
+        link "GitHub" to "#"
+        link "Contact" to "#"
+

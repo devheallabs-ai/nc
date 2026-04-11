@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nc-lang"
+version = "1.0.0"
+description = "NC — The AI Language. Write AI APIs in plain English."
+readme = "README.md"
+license = {text = "Apache-2.0"}
+requires-python = ">=3.8"
+authors = [
+    {name = "DevHeal Labs AI", email = "support@devheallabs.in"},
+]
+keywords = ["nc", "ai", "workflow", "llm", "plain-english", "orchestration", "devheallabs"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+
+[project.urls]
+Homepage = "https://github.com/devheallabs-ai/nc"
+Documentation = "https://github.com/devheallabs-ai/nc/blob/main/docs/NC_USER_MANUAL.md"
+Source = "https://github.com/devheallabs-ai/nc"
+Issues = "https://github.com/devheallabs-ai/nc/issues"
+
+[project.scripts]
+nc = "nc_lang.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["nc_lang*"]
+

@@ -1,0 +1,45 @@
+{
+    "_comment": "NC AI adapter presets. NC's C code has ZERO knowledge of any API. It just fills templates and extracts by path. This file defines ALL format knowledge. Edit this, not C code.",
+    "_default": "chat",
+
+    "chat": {
+        "url": "https://api.openai.com/v1/chat/completions",
+        "request_template": "{\"model\":\"{{model}}\",\"messages\":[{\"role\":\"system\",\"content\":\"{{system_prompt}}\"},{\"role\":\"user\",\"content\":\"{{prompt}}{{context}}\"}],\"temperature\":{{temperature|0.7}}{{max_tokens_clause}}}",
+        "response_paths": "choices.0.message.content",
+        "auth_header": "Authorization",
+        "auth_format": "Bearer {{key}}"
+    },
+
+    "messages": {
+        "url": "https://api.anthropic.com/v1/messages",
+        "request_template": "{\"model\":\"{{model}}\",\"max_tokens\":{{max_tokens|1024}},\"system\":\"{{system_prompt}}\",\"messages\":[{\"role\":\"user\",\"content\":\"{{prompt}}{{context}}\"}],\"temperature\":{{temperature|0.7}}}",
+        "response_paths": "content.0.text",
+        "auth_header": "x-api-key",
+        "auth_format": "{{key}}"
+    },
+
+    "generate": {
+        "url": "http://localhost:11434/api/generate",
+        "request_template": "{\"model\":\"{{model}}\",\"prompt\":\"{{system_prompt}}{{prompt}}{{context}}\",\"stream\":false,\"options\":{\"temperature\":{{temperature|0.7}}}}",
+        "response_paths": "response",
+        "auth_header": "Authorization",
+        "auth_format": "Bearer {{key}}"
+    },
+
+    "gemini": {
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/{{model}}:generateContent",
+        "request_template": "{\"contents\":[{\"parts\":[{\"text\":\"{{prompt}}{{context}}\"}]}],\"generationConfig\":{\"temperature\":{{temperature|0.7}},\"maxOutputTokens\":{{max_tokens|1024}}}}",
+        "response_paths": "candidates.0.content.parts.0.text",
+        "auth_header": "Authorization",
+        "auth_format": "Bearer {{key}}"
+    },
+
+    "custom_example": {
+        "_comment": "Template for any new API. Copy this, change the fields, and set NC_AI_ADAPTER=your_name",
+        "url": "https://your-api.example.com/v1/generate",
+        "request_template": "{\"input\":\"{{prompt}}\",\"model\":\"{{model}}\",\"params\":{\"temp\":{{temperature|0.7}}}}",
+        "response_paths": "output.text,result.content,generated_text",
+        "auth_header": "Authorization",
+        "auth_format": "Bearer {{key}}"
+    }
+}

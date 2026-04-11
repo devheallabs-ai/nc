@@ -1,0 +1,636 @@
+// ═══════════════════════════════════════════════════════════
+//  NC UI v2 Enterprise — Admin Dashboard
+//
+//  Demonstrates ALL enterprise NC UI features:
+//    - Auth + RBAC (role-based visibility)
+//    - Route guards (authenticated + admin-only)
+//    - Lifecycle hooks (mount/unmount)
+//    - Computed state
+//    - Real-time data via fetch with auth headers
+//    - Form validation
+//    - Error boundaries
+//    - Multi-page SPA routing
+//    - Responsive design
+//    - Dark/light theme toggle
+//    - Loading skeletons
+//    - Data tables with sort/filter
+//    - Notifications
+//    - Audit log viewer
+//
+//  This is ONE file. No HTML. No CSS. No JS.
+//  Pure NC language — plain English UI.
+// ═══════════════════════════════════════════════════════════
+
+app "DevHeal Admin"
+version "2.0.0"
+description "NC AI Platform — Enterprise Admin Dashboard"
+
+// ── Auth ───────────────────────────────────────────────────
+
+auth:
+    type is "bearer"
+    login endpoint is "/api/auth/login"
+    logout endpoint is "/api/auth/logout"
+    refresh endpoint is "/api/auth/refresh"
+    token store is "session"
+    session timeout is 3600
+    mfa enabled is true
+    on login success navigate to "/dashboard"
+    on logout navigate to "/login"
+
+// ── RBAC ───────────────────────────────────────────────────
+
+roles:
+    "superadmin" can do "*"
+    "admin" can do ["read:*", "write:users", "delete:users", "read:audit", "write:settings"]
+    "manager" can do ["read:*", "write:reports", "write:teams"]
+    "user" can do ["read:dashboard", "read:profile", "write:profile"]
+
+// ── Guards ─────────────────────────────────────────────────
+
+guard "authenticated":
+    require auth
+    redirect to "/login" when unauthenticated
+
+guard "admin-only":
+    require role "admin"
+    redirect to "/403" when unauthorized
+
+guard "manager-plus":
+    require any role ["admin", "superadmin", "manager"]
+    redirect to "/403" when unauthorized
+
+// ── Routes ─────────────────────────────────────────────────
+
+routes:
+    "/login" shows page "login" publicly
+    "/403" shows page "forbidden" publicly
+    "/dashboard" shows page "dashboard" with guard "authenticated"
+    "/users" shows page "users" with guard "admin-only"
+    "/teams" shows page "teams" with guard "manager-plus"
+    "/analytics" shows page "analytics" with guard "authenticated"
+    "/settings" shows page "settings" with guard "admin-only"
+    "/audit" shows page "audit" with guard "admin-only"
+    "/profile" shows page "profile" with guard "authenticated"
+    "*" shows page "not-found" publicly
+
+// ── Theme ──────────────────────────────────────────────────
+
+theme "dark":
+    primary is "#6366f1"
+    secondary is "#8b5cf6"
+    success is "#10b981"
+    warning is "#f59e0b"
+    error is "#ef4444"
+    background is "#0a0a0a"
+    surface is "#111111"
+    surface-alt is "#1a1a2e"
+    border is "#2a2a2a"
+    text is "#ffffff"
+    text-muted is "#888888"
+    font is "Inter"
+
+theme "light":
+    primary is "#4f46e5"
+    secondary is "#7c3aed"
+    background is "#f8fafc"
+    surface is "#ffffff"
+    surface-alt is "#f1f5f9"
+    border is "#e2e8f0"
+    text is "#0f172a"
+    text-muted is "#64748b"
+
+// ── Global State ───────────────────────────────────────────
+
+state:
+    user is {} with type "User"
+    notifications is [] with type "Notification[]" persistent true
+    theme is "dark" with type "string" persistent true
+    sidebar_open is true with type "boolean" persistent true
+    global_loading is false with type "boolean"
+
+// ── Shared Layout Component ────────────────────────────────
+
+component "AppLayout" with title:
+    render:
+        nav class "ncui-nav":
+            brand "DevHeal Admin"
+            row:
+                nav-link "Dashboard" to "/dashboard" icon "chart"
+                    show always
+                nav-link "Users" to "/users" icon "users"
+                    show for role "admin"
+                nav-link "Teams" to "/teams" icon "globe"
+                    show for role "manager"
+                nav-link "Analytics" to "/analytics" icon "rocket"
+                    show always
+                nav-link "Settings" to "/settings" icon "shield"
+                    show for role "admin"
+            row class "nav-right":
+                button "" icon "theme-toggle" style "ghost" on click toggles theme
+                badge state.notifications.length type "warning" show when state.notifications.length is above 0
+                button state.user.name or "User" icon "avatar" style "ghost" on click shows dropdown "user-menu"
+
+        dropdown "user-menu":
+            item "My Profile" on click navigates to "/profile"
+            item "Audit Log" on click navigates to "/audit" show for role "admin"
+            divider
+            item "Sign Out" on click runs handleLogout type "danger"
+
+// ═══════════════════════════════════════════════════════════
+//  DASHBOARD PAGE
+// ═══════════════════════════════════════════════════════════
+
+page "dashboard" title "Dashboard":
+    guard "authenticated"
+    layout "AppLayout" with title "Dashboard"
+
+    state:
+        metrics is {} with type "DashboardMetrics"
+        activity is [] with type "Activity[]"
+        loading is true
+
+    computed total_users:
+        result state.metrics.users or 0
+
+    computed active_rate:
+        result if state.metrics.users then string(round(state.metrics.active / state.metrics.users * 100)) + "%" otherwise "—"
+
+    on mount:
+        set loading to true
+        try:
+            fetch "/api/dashboard/metrics" with auth
+            save as state.metrics
+            fetch "/api/dashboard/activity" with auth save as state.activity
+        on failure as err:
+            alert "Failed to load dashboard: " + err.message type "error"
+        always:
+            set loading to false
+
+    on unmount:
+        cleanup timers
+
+    render:
+        section "metrics":
+            row between:
+                heading "Dashboard"
+                subheading "Welcome back, " + state.user.name or "there"
+
+            if state.loading:
+                skeleton grid 4 columns count 4 height "120px"
+            otherwise:
+                grid 4 columns:
+                    card icon "users" data-ncui-anim "stagger":
+                        heading "Total Users"
+                        stat computed.total_users "registered accounts"
+                        badge "+" + state.metrics.users_this_week + " this week" type "success"
+                    card icon "rocket" data-ncui-anim "stagger":
+                        heading "Active Users"
+                        stat state.metrics.active "in last 30 days"
+                        text computed.active_rate + " activation rate"
+                    card icon "chart" data-ncui-anim "stagger":
+                        heading "API Calls"
+                        stat state.metrics.api_calls "this month"
+                        badge state.metrics.api_trend type "primary"
+                    card icon "shield" data-ncui-anim "stagger":
+                        heading "Security Score"
+                        stat state.metrics.security_score + "/100" "compliance score"
+                        badge "OWASP Compliant" type "success"
+
+        section "activity":
+            heading "Recent Activity"
+
+            table columns ["Time", "User", "Action", "Status"]:
+                data state.activity
+                sortable by "time"
+                filterable
+                on row click shows detail
+
+// ═══════════════════════════════════════════════════════════
+//  USERS PAGE (Admin only)
+// ═══════════════════════════════════════════════════════════
+
+page "users" title "User Management":
+    guard "admin-only"
+    layout "AppLayout" with title "Users"
+
+    state:
+        users is [] with type "User[]"
+        search is "" with type "string"
+        filter_role is "all" with type "string"
+        selected_user is nil
+        show_create_modal is false
+        loading is true
+
+    computed filtered_users:
+        filter state.users by search on name, email
+        filter by role when filter_role is not "all"
+
+    on mount:
+        fetch "/api/users" with auth save as state.users
+        set loading to false
+
+    render:
+        section:
+            row between:
+                heading "User Management"
+                button "Add User" style "primary" icon "plus" on click shows modal "create-user"
+
+            row:
+                input "" placeholder "Search by name or email..." bind search
+                    debounce 300ms
+                select bind filter_role:
+                    option "All Roles" value "all"
+                    option "Admin" value "admin"
+                    option "Manager" value "manager"
+                    option "User" value "user"
+                    option "Guest" value "guest"
+
+            if state.loading:
+                skeleton height "400px"
+            otherwise:
+                table columns ["Name", "Email", "Role", "Status", "Last Login", "Actions"]:
+                    data computed.filtered_users
+                    sortable
+                    on each row:
+                        cell name:
+                            row:
+                                avatar state.user.name size "sm"
+                                text state.user.name
+                        cell role:
+                            badge state.user.role type if state.user.role is "admin" then "primary" otherwise "default"
+                        cell status:
+                            badge state.user.active then "Active" otherwise "Inactive"
+                                type if state.user.active then "success" otherwise "error"
+                        cell actions:
+                            button "Edit" style "ghost" size "sm"
+                                show for role "admin"
+                                on click shows modal "edit-user" with state.user
+                            button "Delete" style "ghost" size "sm" type "danger"
+                                show for role "admin"
+                                require permission "delete:users"
+                                on click runs confirmDelete with state.user
+
+    modal "create-user" title "Create New User":
+        form "create-user" action "/api/users" method "POST":
+            on submit runs handleCreateUser
+
+            grid 2 columns:
+                input "First Name" bind new_first_name validate required
+                input "Last Name" bind new_last_name validate required
+            input "Work Email" type "email" bind new_email validate email required
+            select "Role" bind new_role:
+                option "User" value "user"
+                option "Manager" value "manager"
+                option "Admin" value "admin"
+            row:
+                button "Cancel" style "secondary" on click closes modal
+                button "Create User" type "submit" style "primary" loading state.creating
+
+action handleCreateUser with form_data:
+    set creating to true
+    try:
+        post "/api/users" with auth with form_data
+        fetch "/api/users" with auth save as state.users
+        close modal "create-user"
+        notify "User created successfully" type "success"
+    on failure as err:
+        notify err.message type "error"
+    always:
+        set creating to false
+
+action confirmDelete with user:
+    confirm "Delete " + user.name + "? This cannot be undone.":
+        on confirm:
+            delete "/api/users/" + user.id with auth
+            set state.users to filter state.users by id is not user.id
+            notify "User deleted" type "success"
+
+// ═══════════════════════════════════════════════════════════
+//  ANALYTICS PAGE
+// ═══════════════════════════════════════════════════════════
+
+page "analytics" title "Analytics":
+    guard "authenticated"
+    layout "AppLayout" with title "Analytics"
+
+    state:
+        period is "30d"
+        analytics is {}
+        loading is true
+
+    on mount:
+        run loadAnalytics
+
+    watch state.period:
+        run loadAnalytics
+
+    render:
+        section:
+            row between:
+                heading "Analytics"
+                select bind period:
+                    option "Last 7 days" value "7d"
+                    option "Last 30 days" value "30d"
+                    option "Last 90 days" value "90d"
+                    option "This year" value "1y"
+
+            if state.loading:
+                skeleton height "300px"
+            otherwise:
+                grid 2 columns:
+                    card:
+                        heading "User Growth"
+                        chart type "line" data state.analytics.user_growth
+                    card:
+                        heading "API Usage"
+                        chart type "bar" data state.analytics.api_usage
+
+                grid 3 columns:
+                    card icon "chart":
+                        heading "Page Views"
+                        stat state.analytics.page_views "total"
+                        text state.analytics.page_views_trend
+                    card icon "users":
+                        heading "New Users"
+                        stat state.analytics.new_users "registered"
+                        text "vs previous period"
+                    card icon "rocket":
+                        heading "API Success Rate"
+                        stat state.analytics.api_success_rate
+                        progress state.analytics.api_success_rate_num
+
+action loadAnalytics:
+    set loading to true
+    try:
+        fetch "/api/analytics?period=" + state.period with auth save as state.analytics
+    always:
+        set loading to false
+
+// ═══════════════════════════════════════════════════════════
+//  SETTINGS PAGE (Admin only)
+// ═══════════════════════════════════════════════════════════
+
+page "settings" title "Settings":
+    guard "admin-only"
+    layout "AppLayout" with title "Settings"
+
+    state:
+        settings is {}
+        loading is true
+        saving is false
+        saved is false
+
+    on mount:
+        fetch "/api/settings" with auth save as state.settings
+        set loading to false
+
+    render:
+        section:
+            heading "Platform Settings"
+
+            tabs:
+                tab "General":
+                    form "general-settings" action "/api/settings" method "PUT":
+                        on submit runs saveSettings
+
+                        input "Platform Name" bind settings.platform_name validate required
+                        input "Support Email" type "email" bind settings.support_email validate email
+                        input "Max Users" type "number" bind settings.max_users validate number min 1
+
+                        row:
+                            button "Save Changes" type "submit" style "primary" loading state.saving
+                            text "All changes are logged" class "text-muted" if state.saved
+
+                tab "Security":
+                    form "security-settings" action "/api/settings/security" method "PUT":
+                        on submit runs saveSecuritySettings
+
+                        checkbox "Require MFA for all users" bind settings.mfa_required
+                        checkbox "Allow OAuth login" bind settings.oauth_enabled
+                        input "Session timeout (seconds)" type "number" bind settings.session_timeout
+                            validate number min 300 max 86400
+                        input "Max login attempts" type "number" bind settings.max_login_attempts
+                            validate number min 3 max 20
+                        input "Lockout duration (minutes)" type "number" bind settings.lockout_minutes
+                            validate number min 5
+
+                        row:
+                            button "Save Security Settings" type "submit" style "primary" loading state.saving
+
+                tab "Integrations":
+                    card:
+                        heading "API Keys"
+                        text "Manage external service integrations"
+                        button "Generate New API Key" style "secondary" on click runs generateApiKey
+                    card:
+                        heading "Webhooks"
+                        text "Configure outbound webhooks for events"
+                        button "Add Webhook" style "secondary" on click shows modal "add-webhook"
+
+action saveSettings with form_data:
+    set saving to true
+    try:
+        put "/api/settings" with auth with form_data
+        set saved to true
+        notify "Settings saved" type "success"
+        wait 3000
+        set saved to false
+    on failure as err:
+        notify "Failed to save: " + err.message type "error"
+    always:
+        set saving to false
+
+// ═══════════════════════════════════════════════════════════
+//  AUDIT LOG PAGE (Admin only)
+// ═══════════════════════════════════════════════════════════
+
+page "audit" title "Audit Log":
+    guard "admin-only"
+    layout "AppLayout" with title "Audit Log"
+
+    state:
+        audit_entries is []
+        loading is true
+        filter_event is "all"
+        date_from is ""
+        date_to is ""
+
+    on mount:
+        run loadAudit
+
+    render:
+        section:
+            heading "Security Audit Log"
+            text "Complete record of all authentication, authorization, and data access events"
+
+            row:
+                select bind filter_event on change runs loadAudit:
+                    option "All Events" value "all"
+                    option "Login" value "auth:login"
+                    option "Logout" value "auth:logout"
+                    option "Failed Login" value "auth:login_failure"
+                    option "Permission Denied" value "guard:unauthorized"
+                    option "Data Access" value "data:access"
+                    option "Settings Changed" value "settings:change"
+                input "From" type "date" bind date_from on change runs loadAudit
+                input "To" type "date" bind date_to on change runs loadAudit
+                button "Export CSV" style "secondary" on click runs exportAudit
+
+            if state.loading:
+                skeleton height "400px"
+            otherwise:
+                table columns ["Timestamp", "Event", "User", "IP", "Details", "Status"]:
+                    data state.audit_entries
+                    sortable by "timestamp" default descending
+                    on each row:
+                        cell status:
+                            badge state.entry.status
+                                type if state.entry.status is "success" then "success" otherwise "error"
+
+action loadAudit:
+    set loading to true
+    set params to "event=" + state.filter_event
+    if state.date_from:
+        set params to params + "&from=" + state.date_from
+    if state.date_to:
+        set params to params + "&to=" + state.date_to
+    fetch "/api/audit?" + params with auth save as state.audit_entries
+    set loading to false
+
+action exportAudit:
+    fetch "/api/audit/export" with auth
+    download as "audit-log-" + today + ".csv"
+
+// ═══════════════════════════════════════════════════════════
+//  PROFILE PAGE
+// ═══════════════════════════════════════════════════════════
+
+page "profile" title "My Profile":
+    guard "authenticated"
+    layout "AppLayout" with title "Profile"
+
+    state:
+        profile is {}
+        saving is false
+        changing_password is false
+        mfa_enabled is false
+
+    on mount:
+        fetch "/api/profile" with auth save as state.profile
+        set mfa_enabled to state.profile.mfa_enabled
+
+    render:
+        section:
+            grid 3 columns:
+                card class "col-span-1":
+                    section centered:
+                        avatar state.profile.name size "xl"
+                        heading state.profile.name
+                        text state.profile.email
+                        badge state.profile.role type "primary"
+                        text "Member since " + state.profile.created_at
+                        button "Change Avatar" style "secondary" full-width
+
+                card class "col-span-2":
+                    tabs:
+                        tab "Account Info":
+                            form "profile" action "/api/profile" method "PUT":
+                                on submit runs saveProfile
+
+                                grid 2 columns:
+                                    input "First Name" bind profile.first_name validate required
+                                    input "Last Name" bind profile.last_name validate required
+                                input "Email" type "email" bind profile.email validate email required
+                                input "Job Title" bind profile.title
+                                input "Company" bind profile.company
+                                input "Phone" type "tel" bind profile.phone validate phone
+
+                                button "Save Profile" type "submit" style "primary" loading state.saving
+
+                        tab "Security":
+                            form "change-password" action "/api/profile/password" method "PUT":
+                                on submit runs changePassword
+
+                                input "Current Password" type "password" bind current_password validate required
+                                input "New Password" type "password" bind new_password
+                                    validate required strong-password strength-indicator
+                                input "Confirm New Password" type "password" bind confirm_password
+                                    validate required matches new_password
+
+                                button "Change Password" type "submit" style "primary"
+                                    loading state.changing_password
+
+                            divider
+
+                            card:
+                                heading "Two-Factor Authentication"
+                                text if state.mfa_enabled then "MFA is enabled on your account" otherwise "Add extra security with MFA"
+                                badge if state.mfa_enabled then "Enabled" otherwise "Disabled"
+                                    type if state.mfa_enabled then "success" otherwise "warning"
+                                if state.mfa_enabled:
+                                    button "Disable MFA" style "danger" on click runs disableMFA
+                                otherwise:
+                                    button "Enable MFA" style "primary" on click runs enableMFA
+
+action saveProfile with form_data:
+    set saving to true
+    try:
+        put "/api/profile" with auth with form_data
+        notify "Profile saved" type "success"
+    on failure as err:
+        notify err.message type "error"
+    always:
+        set saving to false
+
+action changePassword with form_data:
+    set changing_password to true
+    try:
+        put "/api/profile/password" with auth with {
+            current: state.current_password,
+            new: state.new_password
+        }
+        notify "Password changed successfully" type "success"
+        set current_password to ""
+        set new_password to ""
+        set confirm_password to ""
+    on failure as err:
+        notify err.message type "error"
+    always:
+        set changing_password to false
+
+action handleLogout:
+    logout
+
+// ═══════════════════════════════════════════════════════════
+//  FORBIDDEN PAGE
+// ═══════════════════════════════════════════════════════════
+
+page "forbidden" title "Access Denied":
+
+    section centered:
+        heading "403 — Access Denied"
+        text "You don't have permission to access this page."
+        text "Contact your administrator if you believe this is an error."
+        row centered:
+            button "Go to Dashboard" style "primary" on click navigates to "/dashboard"
+            button "Sign Out" style "secondary" on click runs handleLogout
+
+// ═══════════════════════════════════════════════════════════
+//  NOT FOUND PAGE
+// ═══════════════════════════════════════════════════════════
+
+page "not-found" title "Page Not Found":
+
+    section centered:
+        heading "404 — Not Found"
+        text "The page you're looking for doesn't exist."
+        button "Return to Dashboard" style "primary" on click navigates to "/dashboard"
+
+footer:
+    text "DevHeal Labs AI Enterprise Admin — Powered by NC UI v2.0"
+    text "All actions are logged and audited for compliance"
+    row:
+        link "Security Policy" to "/security"
+        link "Audit Log" to "/audit" show for role "admin"
+        link "Support" to "/support"

@@ -1,0 +1,97 @@
+# ═══════════════════════════════════════════════════════════
+#  NC Service — Docker Compose (Enterprise)
+#
+#  Usage:
+#    docker compose up                    # dev mode
+#    docker compose --profile monitoring up  # with monitoring
+#
+#  This runs your NC service just like you'd run a Python
+#  Flask/FastAPI app — but in plain English.
+# ═══════════════════════════════════════════════════════════
+
+services:
+  nc:
+    build: .
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./examples/real_world:/app
+      - nc-audit-logs:/var/log/nc
+    environment:
+      - NC_PORT=8080
+      - NC_MAX_WORKERS=${NC_MAX_WORKERS:-64}
+      - NC_LISTEN_BACKLOG=${NC_LISTEN_BACKLOG:-512}
+      - NC_REQUEST_QUEUE_SIZE=${NC_REQUEST_QUEUE_SIZE:-4096}
+      - NC_KEEPALIVE_MAX=${NC_KEEPALIVE_MAX:-100}
+      - NC_KEEPALIVE_TIMEOUT=${NC_KEEPALIVE_TIMEOUT:-30}
+      - NC_QUEUE_TIMEOUT=${NC_QUEUE_TIMEOUT:-5000}
+      - NC_DRAIN_TIMEOUT=${NC_DRAIN_TIMEOUT:-30}
+      - NC_AI_URL=${NC_AI_URL:-}
+      - NC_AI_KEY=${NC_AI_KEY:-}
+      - NC_AI_MODEL=${NC_AI_MODEL:-}
+      - NC_STORE_URL=${NC_STORE_URL:-}
+      - NC_LOG_FORMAT=${NC_LOG_FORMAT:-json}
+      - NC_LOG_LEVEL=${NC_LOG_LEVEL:-info}
+      - NC_AUDIT_FORMAT=json
+      - NC_AUDIT_FILE=/var/log/nc/audit.jsonl
+      - NC_CORS_ORIGIN=${NC_CORS_ORIGIN:-}
+      - NC_JWT_SECRET=${NC_JWT_SECRET:-}
+      - NC_OIDC_ISSUER=${NC_OIDC_ISSUER:-}
+      - NC_OIDC_CLIENT_ID=${NC_OIDC_CLIENT_ID:-}
+      - NC_OTEL_ENDPOINT=${NC_OTEL_ENDPOINT:-}
+      - NC_API_VERSIONS=${NC_API_VERSIONS:-v1}
+    command: ["serve", "/app/01_chat_assistant.nc"]
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+    healthcheck:
+      test: ["CMD", "nc", "version"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+
+  # ── Monitoring Stack (optional profile) ─────────────────
+  prometheus:
+    image: prom/prometheus:latest
+    profiles: ["monitoring"]
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./deploy/monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./deploy/monitoring/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus-data:/prometheus
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    profiles: ["monitoring"]
+    ports:
+      - "3000:3000"
+    environment:
+      # ⚠️  CHANGE THIS for production — set GRAFANA_PASSWORD env var before deploying
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - ./deploy/monitoring/grafana/nc-dashboard.json:/var/lib/grafana/dashboards/nc-dashboard.json:ro
+      - ./deploy/monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+volumes:
+  nc-audit-logs:
+  prometheus-data:
+  grafana-data:

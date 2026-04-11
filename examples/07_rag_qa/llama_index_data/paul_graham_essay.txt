@@ -1,0 +1,22 @@
+What I Worked On (Sample Document for RAG Testing)
+
+This is a sample document used to test Retrieval Augmented Generation (RAG)
+in NC. In a real application, you would replace this with your own documents,
+knowledge base articles, or documentation.
+
+The key insight behind RAG is simple: instead of asking an AI model to answer
+from memory alone, you first retrieve relevant passages from your own data,
+then include those passages as context in your prompt. This grounds the AI's
+response in your actual content rather than its training data.
+
+RAG works well for:
+- Internal knowledge bases and documentation
+- Customer support FAQ systems
+- Legal document analysis
+- Research paper summarization
+- Product catalog search
+
+To build a RAG system in NC, you use the gather statement to load documents,
+then pass relevant excerpts to the AI via the ask AI to instruction.
+
+This approach gives you accurate, grounded answers without fine-tuning a model.

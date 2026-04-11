@@ -1,0 +1,41 @@
+# NC (Notation-as-Code) — Debian Slim Variant
+# Use when Alpine compatibility is an issue
+#
+#   docker build -f Dockerfile.slim -t nc:slim .
+
+FROM debian:bookworm-slim AS builder
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc libc6-dev make libcurl4-openssl-dev ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /build/nc
+COPY engine/src/       src/
+COPY engine/include/   include/
+COPY engine/Makefile   Makefile
+
+RUN make clean && make LDFLAGS="-lm -lcurl -lpthread -ldl" CFLAGS="-Wall -Wextra -O2 -std=c11 -I include -Wno-unused-function -Wno-unused-variable -fomit-frame-pointer -DNDEBUG -D_GNU_SOURCE -DNC_NO_REPL"
+
+FROM debian:bookworm-slim
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libcurl4 ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN groupadd -r nc && useradd -r -g nc nc
+
+COPY --from=builder /build/nc/build/nc /usr/local/bin/nc
+
+RUN mkdir -p /app /nc/lib
+COPY lib/ /nc/lib/
+
+ENV NC_LIB_PATH=/nc/lib
+
+WORKDIR /app
+
+USER nc
+
+HEALTHCHECK --interval=30s --timeout=5s CMD nc version || exit 1
+
+ENTRYPOINT ["nc"]
+CMD ["version"]

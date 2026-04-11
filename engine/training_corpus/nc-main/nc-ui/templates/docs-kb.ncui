@@ -1,0 +1,44 @@
+app "Docs Knowledge Base"
+description "Documentation portal with search, onboarding, and article collections."
+theme "light"
+accent "#0891b2"
+font "Source Sans 3"
+
+state articles is []
+state updates is []
+
+on mount:
+    fetch "/api/docs/articles" save as articles
+    fetch "/api/docs/updates" save as updates
+
+routes:
+    "/" shows home public
+    "/articles" shows articles_page public
+    "/updates" shows updates_page public
+
+component home:
+    section hero centered:
+        heading "Find Answers Faster" style "gradient"
+        text "Search guides, architecture notes, and release updates."
+        form action "/api/docs/search" method "POST" save response as articles redirect to "/articles":
+            input "Search docs" bind query
+                validate required min-length 2
+            button "Search" style "primary"
+
+component articles_page:
+    section hero:
+        heading "Popular Articles"
+        text "Browse onboarding, API, and troubleshooting content."
+        table articles:
+            column "Title" shows item.title
+            column "Category" shows item.category
+            column "Updated" shows item.updated_at
+
+component updates_page:
+    section hero:
+        heading "Product Updates"
+        text "Release notes, migrations, and platform changes."
+        table updates:
+            column "Version" shows item.version
+            column "Summary" shows item.summary
+            column "Date" shows item.date

@@ -1,0 +1,610 @@
+// FILE: nc-ai/tests/run_all_tests.nc
+
+// ═══════════════════════════════════════════════════════════
+//  NC AI — Master Test Runner
+//  Runs all test suites for the NC AI system
+//
+//  Run: nc run nc-ai/tests/run_all_tests.nc
+// ═══════════════════════════════════════════════════════════
+
+to __main__:
+    show ""
+    show "  NC AI — Complete Test Suite"
+    show "  ═══════════════════════════"
+    show "  Powered by DevHeal Labs AI"
+    show ""
+
+    set total_passed to 0
+    set total_failed to 0
+
+    // Test Suite 1: Code Generation
+    show "  [1/5] Code Generation Tests"
+    set r1 to run_test_suite("nc-ai/tests/test_ai_generate.nc")
+    set total_passed to total_passed + r1.passed
+    set total_failed to total_failed + r1.failed
+
+    // Test Suite 2: Error Detection & Auto-Fix
+    show "  [2/5] Error-Fix Tests"
+    set r2 to run_test_suite("nc-ai/tests/test_ai_errorfix.nc")
+    set total_passed to total_passed + r2.passed
+    set total_failed to total_failed + r2.failed
+
+    // Test Suite 3: Code Recommendations
+    show "  [3/5] Recommendation Tests"
+    set r3 to run_test_suite("nc-ai/tests/test_ai_recommend.nc")
+    set total_passed to total_passed + r3.passed
+    set total_failed to total_failed + r3.failed
+
+    // Test Suite 4: Distillation & Learning
+    show "  [4/5] Distill & Learn Tests"
+    set r4 to run_test_suite("nc-ai/tests/test_ai_distill.nc")
+    set total_passed to total_passed + r4.passed
+    set total_failed to total_failed + r4.failed
+
+    // Test Suite 5: Package Export
+    show "  [5/5] Export Tests"
+    set r5 to run_test_suite("nc-ai/tests/test_ai_export.nc")
+    set total_passed to total_passed + r5.passed
+    set total_failed to total_failed + r5.failed
+
+    show ""
+    show "  ═══════════════════════════"
+    show "  Total: " + str(total_passed) + " passed, " + str(total_failed) + " failed"
+    show "  ═══════════════════════════"
+
+    if total_failed is 0:
+        show "  All tests passed!"
+    else:
+        show "  Some tests failed — review output above"
+    show ""
+
+
+// FILE: nc-ai/tests/test_ai_distill.nc
+
+// ═══════════════════════════════════════════════════════════
+//  NC AI Test Suite — Knowledge Distillation & Learning
+//  Tests nc ai distill and nc ai learn functionality
+//
+//  Run: nc run nc-ai/tests/test_ai_distill.nc
+// ═══════════════════════════════════════════════════════════
+
+to test_distill_prompts_exist:
+    purpose: "Should have distillation prompts"
+    set prompts to get_distill_prompts()
+    assert length(prompts) >= 20, "Should have at least 20 prompts"
+    respond with "ok"
+
+to test_distill_prompts_diverse:
+    purpose: "Prompts should cover different domains"
+    set prompts to get_distill_prompts()
+    set domains to {api: false, auth: false, dashboard: false, chat: false}
+
+    repeat for each p in prompts:
+        if p contains "api" or p contains "rest":
+            set domains.api to true
+        if p contains "auth" or p contains "login":
+            set domains.auth to true
+        if p contains "dashboard" or p contains "metrics":
+            set domains.dashboard to true
+        if p contains "chat" or p contains "message":
+            set domains.chat to true
+
+    assert domains.api is true, "Should have API prompts"
+    assert domains.auth is true, "Should have auth prompts"
+    assert domains.dashboard is true, "Should have dashboard prompts"
+    assert domains.chat is true, "Should have chat prompts"
+    respond with "ok"
+
+to test_validate_nc_code_valid:
+    purpose: "Valid NC code should pass validation"
+    set code to "service \"test\"\nto hello:\n    set msg to \"hi\"\n    respond with msg\napi:\n    GET / runs hello\n"
+    set valid to validate_nc_code(code)
+    assert valid is true, "Valid NC code should pass"
+    respond with "ok"
+
+to test_validate_nc_code_invalid:
+    purpose: "Gibberish should fail validation"
+    set code to "asdf jkl; random words without any nc keywords"
+    set valid to validate_nc_code(code)
+    assert valid is false, "Gibberish should fail"
+    respond with "ok"
+
+to test_scan_nc_files:
+    purpose: "Should find NC files in directory"
+    set files to scan_nc_files("nc-ai/tests")
+    assert length(files) > 0, "Should find test NC files"
+
+    set found_nc to false
+    repeat for each f in files:
+        if f ends with ".nc":
+            set found_nc to true
+    assert found_nc is true, "Should find .nc files"
+    respond with "ok"
+
+to test_auto_learn_saves_pair:
+    purpose: "Auto-learn should save prompt-code pairs"
+    set test_prompt to "test auto learn prompt"
+    set test_code to "service \"test\"\nto hello:\n    respond with \"world\"\n"
+    auto_learn(test_prompt, test_code)
+
+    set content to read_file("nc-ai/training_data/prompt_pairs.txt")
+    assert content contains test_prompt, "Should save the prompt"
+    respond with "ok"
+
+to test_model_exists:
+    purpose: "Production model should exist"
+    set exists to file_exists("nc_ai_model.bin") or file_exists("nc_ai_model_prod.bin")
+    assert exists is true, "Model file should exist"
+    respond with "ok"
+
+to test_tokenizer_exists:
+    purpose: "Tokenizer should exist"
+    set exists to file_exists("nc_ai_tokenizer.bin")
+    assert exists is true, "Tokenizer file should exist"
+    respond with "ok"
+
+to run_all_tests:
+    log "NC AI Distill & Learn Tests"
+    log "═══════════════════════════"
+
+    set tests to [
+        "test_distill_prompts_exist",
+        "test_distill_prompts_diverse",
+        "test_validate_nc_code_valid",
+        "test_validate_nc_code_invalid",
+        "test_scan_nc_files",
+        "test_auto_learn_saves_pair",
+        "test_model_exists",
+        "test_tokenizer_exists"
+    ]
+
+    set passed to 0
+    set failed to 0
+
+    repeat for each test in tests:
+        log "  Running: " + test
+        set result to call(test)
+        if result is "ok":
+            log "    PASS"
+            set passed to passed + 1
+        else:
+            log "    FAIL: " + str(result)
+            set failed to failed + 1
+
+    log ""
+    log "Results: " + passed + " passed, " + failed + " failed"
+    respond with {passed: passed, failed: failed}
+
+
+// FILE: nc-ai/tests/test_ai_errorfix.nc
+
+// ═══════════════════════════════════════════════════════════
+//  NC AI Test Suite — Error Detection & Auto-Fix
+//  Tests nc ai check and errorfix functionality
+//
+//  Run: nc run nc-ai/tests/test_ai_errorfix.nc
+// ═══════════════════════════════════════════════════════════
+
+to test_detect_missing_service:
+    purpose: "Detect missing service declaration"
+    set code to "to list_items:\n    gather items from \"items\"\n    respond with items\n"
+    set result to validate_service(code)
+    assert result.valid is false, "Should detect missing service"
+    assert length(result.errors) > 0, "Should have errors"
+    respond with "ok"
+
+to test_detect_missing_api:
+    purpose: "Detect missing api block"
+    set code to "service \"test\"\nversion \"1.0.0\"\nto hello:\n    respond with \"hello\"\n"
+    set result to validate_service(code)
+    assert result.errors contains "api", "Should detect missing api block"
+    respond with "ok"
+
+to test_detect_js_syntax:
+    purpose: "Detect JavaScript-style code in NC"
+    set code to "service \"test\"\nfunction greet() {\n    return \"hello\"\n}\n"
+    set result to validate_service(code)
+    assert result.valid is false, "Should flag JS syntax"
+    respond with "ok"
+
+to test_valid_service_passes:
+    purpose: "Valid NC service should pass all checks"
+    set code to "service \"test-api\"\nversion \"1.0.0\"\n\nto list_items:\n    gather items from \"items\"\n    respond with items\n\napi:\n    GET /items runs list_items\n"
+    set result to validate_service(code)
+    assert result.valid is true, "Valid service should pass"
+    assert length(result.errors) is 0, "Should have no errors"
+    respond with "ok"
+
+to test_detect_missing_page:
+    purpose: "Detect missing page declaration in NCUI"
+    set code to "section hero:\n    heading \"Hello\"\n"
+    set result to validate_page(code)
+    assert result.valid is false, "Should detect missing page"
+    respond with "ok"
+
+to test_valid_page_passes:
+    purpose: "Valid NCUI page should pass checks"
+    set code to "page \"Test\"\n\nstyle:\n    background is \"#fff\"\n\nsection hero:\n    heading \"Hello\"\n\nfooter:\n    text \"Built with NC\"\n"
+    set result to validate_page(code)
+    assert result.valid is true, "Valid page should pass"
+    respond with "ok"
+
+to test_auto_fix_service:
+    purpose: "Auto-fix should add missing service declaration"
+    set code to "to hello:\n    respond with \"world\"\n"
+    set result to fix_service(code, "test.nc")
+    assert result.code contains "service \"", "Fix should add service declaration"
+    assert length(result.fixes) > 0, "Should report fixes applied"
+    respond with "ok"
+
+to test_auto_fix_page:
+    purpose: "Auto-fix should add missing page and footer"
+    set code to "section hero:\n    heading \"Hello\"\n"
+    set result to fix_page(code, "test.ncui")
+    assert result.code contains "page \"", "Fix should add page declaration"
+    assert result.code contains "footer", "Fix should add footer"
+    respond with "ok"
+
+to run_all_tests:
+    log "NC AI Error-Fix Tests"
+    log "═════════════════════"
+
+    set tests to [
+        "test_detect_missing_service",
+        "test_detect_missing_api",
+        "test_detect_js_syntax",
+        "test_valid_service_passes",
+        "test_detect_missing_page",
+        "test_valid_page_passes",
+        "test_auto_fix_service",
+        "test_auto_fix_page"
+    ]
+
+    set passed to 0
+    set failed to 0
+
+    repeat for each test in tests:
+        log "  Running: " + test
+        set result to call(test)
+        if result is "ok":
+            log "    PASS"
+            set passed to passed + 1
+        else:
+            log "    FAIL: " + str(result)
+            set failed to failed + 1
+
+    log ""
+    log "Results: " + passed + " passed, " + failed + " failed"
+    respond with {passed: passed, failed: failed}
+
+
+// FILE: nc-ai/tests/test_ai_export.nc
+
+// ═══════════════════════════════════════════════════════════
+//  NC AI Test Suite — Package Export
+//  Tests nc ai export functionality
+//
+//  Run: nc run nc-ai/tests/test_ai_export.nc
+// ═══════════════════════════════════════════════════════════
+
+to test_scan_project:
+    purpose: "Should scan project and find NC files"
+    set project to scan_project("nc-ai/tests")
+    assert project.total_files > 0, "Should find files"
+    assert project.name is not empty, "Should have project name"
+    respond with "ok"
+
+to test_scan_project_categorizes:
+    purpose: "Should categorize service, page, and test files"
+    set dir to "/tmp/test_export_" + str(now())
+    mkdir(dir)
+    write_file(dir + "/service.nc", "service \"test\"\napi:\n    GET / runs hello\n")
+    write_file(dir + "/app.ncui", "page \"Test\"\nsection:\n    heading \"Hi\"\n")
+    write_file(dir + "/test_app.nc", "to test_hello:\n    assert true\n")
+
+    set project to scan_project(dir)
+    assert length(project.services) >= 1, "Should find services"
+    assert length(project.pages) >= 1, "Should find pages"
+    assert length(project.tests) >= 1, "Should find tests"
+
+    remove_dir(dir)
+    respond with "ok"
+
+to test_export_docker_generates:
+    purpose: "Docker export should create Dockerfile"
+    set dir to "/tmp/test_docker_" + str(now())
+    mkdir(dir)
+    write_file(dir + "/service.nc", "service \"test\"\nto hello:\n    respond with \"ok\"\napi:\n    GET / runs hello\n")
+
+    export_docker(dir)
+
+    assert file_exists(dir + "/Dockerfile"), "Should create Dockerfile"
+    assert file_exists(dir + "/docker-compose.yml"), "Should create docker-compose.yml"
+
+    set dockerfile to read_file(dir + "/Dockerfile")
+    assert dockerfile contains "nc-lang", "Dockerfile should reference NC"
+
+    remove_dir(dir)
+    respond with "ok"
+
+to test_export_package_manifest:
+    purpose: "Package export should create package.nc"
+    set dir to "/tmp/test_pkg_" + str(now())
+    mkdir(dir)
+    write_file(dir + "/service.nc", "service \"test\"\n")
+
+    export_package(dir)
+
+    assert file_exists(dir + "/package.nc"), "Should create package.nc"
+    set manifest to read_file(dir + "/package.nc")
+    assert manifest contains "package", "Should have package declaration"
+    assert manifest contains "version", "Should have version"
+
+    remove_dir(dir)
+    respond with "ok"
+
+to test_export_readme_generated:
+    purpose: "ZIP export should generate README"
+    set dir to "/tmp/test_zip_" + str(now())
+    mkdir(dir)
+    write_file(dir + "/service.nc", "service \"test\"\n")
+
+    export_zip(dir)
+
+    assert file_exists(dir + "/README.md"), "Should create README"
+    set readme to read_file(dir + "/README.md")
+    assert readme contains "NC Language", "README should reference NC"
+    assert readme contains "DevHeal Labs AI", "README should credit DevHeal"
+
+    remove_dir(dir)
+    respond with "ok"
+
+to run_all_tests:
+    log "NC AI Export Tests"
+    log "══════════════════"
+
+    set tests to [
+        "test_scan_project",
+        "test_scan_project_categorizes",
+        "test_export_docker_generates",
+        "test_export_package_manifest",
+        "test_export_readme_generated"
+    ]
+
+    set passed to 0
+    set failed to 0
+
+    repeat for each test in tests:
+        log "  Running: " + test
+        set result to call(test)
+        if result is "ok":
+            log "    PASS"
+            set passed to passed + 1
+        else:
+            log "    FAIL: " + str(result)
+            set failed to failed + 1
+
+    log ""
+    log "Results: " + passed + " passed, " + failed + " failed"
+    respond with {passed: passed, failed: failed}
+
+
+// FILE: nc-ai/tests/test_ai_generate.nc
+
+// ═══════════════════════════════════════════════════════════
+//  NC AI Test Suite — Code Generation
+//  Tests nc ai generate and nc ai create functionality
+//
+//  Run: nc run nc-ai/tests/test_ai_generate.nc
+// ═══════════════════════════════════════════════════════════
+
+to test_generate_basic:
+    purpose: "Test basic code generation from prompt"
+    set result to generate_nc("simple rest api")
+    assert result is not empty, "Generate should return code"
+    assert result contains "service", "Should contain service keyword"
+    respond with "ok"
+
+to test_generate_with_features:
+    purpose: "Test feature detection in prompts"
+    set result to generate_nc("todo app with auth and dark mode")
+    assert result is not empty, "Generate should return code"
+    assert result contains "auth" or result contains "login", "Should detect auth feature"
+    respond with "ok"
+
+to test_create_project_structure:
+    purpose: "Test nc ai create generates correct file structure"
+    set dir to "/tmp/test_nc_create_" + str(now())
+    create_project("weather app", dir)
+
+    assert file_exists(dir + "/service.nc"), "Should create service.nc"
+    assert file_exists(dir + "/app.ncui"), "Should create app.ncui"
+    assert file_exists(dir + "/test_app.nc"), "Should create test_app.nc"
+    assert file_exists(dir + "/README.md"), "Should create README.md"
+
+    // Cleanup
+    remove_dir(dir)
+    respond with "ok"
+
+to test_create_service_content:
+    purpose: "Test generated service.nc has valid NC structure"
+    set dir to "/tmp/test_nc_service_" + str(now())
+    create_project("blog app", dir)
+
+    set content to read_file(dir + "/service.nc")
+    assert content contains "service \"", "Should have service declaration"
+    assert content contains "api:", "Should have api routes"
+    assert content contains "to ", "Should have functions"
+    assert content contains "respond with", "Should have respond statements"
+
+    remove_dir(dir)
+    respond with "ok"
+
+to test_create_ncui_content:
+    purpose: "Test generated app.ncui has valid NCUI structure"
+    set dir to "/tmp/test_nc_ncui_" + str(now())
+    create_project("dashboard", dir)
+
+    set content to read_file(dir + "/app.ncui")
+    assert content contains "page \"", "Should have page declaration"
+    assert content contains "section", "Should have sections"
+    assert content contains "style:", "Should have style block"
+
+    remove_dir(dir)
+    respond with "ok"
+
+to test_prompt_pairs_saved:
+    purpose: "Test self-learning saves prompt-code pairs"
+    set pairs_file to "nc-ai/training_data/prompt_pairs.txt"
+    set content to read_file(pairs_file)
+    assert content contains "PROMPT:", "Should have PROMPT: entries"
+    assert content contains "CODE:", "Should have CODE: entries"
+    respond with "ok"
+
+to test_feature_detection_stock:
+    purpose: "Test stock market features are detected"
+    set result to generate_nc("stock market app with charts")
+    assert result contains "stock" or result contains "chart" or result contains "market", "Should detect stock features"
+    respond with "ok"
+
+to test_feature_detection_auth:
+    purpose: "Test authentication features are detected"
+    set result to generate_nc("user management with login")
+    assert result contains "auth" or result contains "login" or result contains "token", "Should detect auth features"
+    respond with "ok"
+
+to run_all_tests:
+    log "NC AI Generate Tests"
+    log "═════════════════════"
+
+    set tests to [
+        "test_generate_basic",
+        "test_generate_with_features",
+        "test_create_project_structure",
+        "test_create_service_content",
+        "test_create_ncui_content",
+        "test_prompt_pairs_saved",
+        "test_feature_detection_stock",
+        "test_feature_detection_auth"
+    ]
+
+    set passed to 0
+    set failed to 0
+
+    repeat for each test in tests:
+        log "  Running: " + test
+        set result to call(test)
+        if result is "ok":
+            log "    PASS"
+            set passed to passed + 1
+        else:
+            log "    FAIL: " + str(result)
+            set failed to failed + 1
+
+    log ""
+    log "Results: " + passed + " passed, " + failed + " failed"
+    respond with {passed: passed, failed: failed}
+
+
+// FILE: nc-ai/tests/test_ai_recommend.nc
+
+// ═══════════════════════════════════════════════════════════
+//  NC AI Test Suite — Code Recommendations
+//  Tests nc ai review functionality
+//
+//  Run: nc run nc-ai/tests/test_ai_recommend.nc
+// ═══════════════════════════════════════════════════════════
+
+to test_recommend_missing_health:
+    purpose: "Should recommend health endpoint"
+    set code to "service \"test\"\nversion \"1.0.0\"\nto list:\n    respond with []\napi:\n    GET /items runs list\n"
+    set recs to analyze_service(code)
+    set found to false
+    repeat for each r in recs:
+        if r.msg contains "health":
+            set found to true
+    assert found is true, "Should recommend health endpoint"
+    respond with "ok"
+
+to test_recommend_middleware:
+    purpose: "Should recommend middleware"
+    set code to "service \"test\"\nversion \"1.0.0\"\nto hello:\n    respond with \"ok\"\napi:\n    GET / runs hello\n"
+    set recs to analyze_service(code)
+    set found to false
+    repeat for each r in recs:
+        if r.msg contains "middleware":
+            set found to true
+    assert found is true, "Should recommend middleware"
+    respond with "ok"
+
+to test_recommend_id_generation:
+    purpose: "Should recommend generate_id for store operations"
+    set code to "service \"test\"\nto create with data:\n    store data into \"items\"\n    respond with data\napi:\n    POST /items runs create\n"
+    set recs to analyze_service(code)
+    set found to false
+    repeat for each r in recs:
+        if r.msg contains "generate_id":
+            set found to true
+    assert found is true, "Should recommend generate_id()"
+    respond with "ok"
+
+to test_recommend_auth_for_users:
+    purpose: "Should recommend auth for user-facing services"
+    set code to "service \"user-api\"\nto list_users:\n    gather items from \"users\"\n    respond with items\napi:\n    GET /users runs list_users\n"
+    set recs to analyze_service(code)
+    set found to false
+    repeat for each r in recs:
+        if r.msg contains "auth":
+            set found to true
+    assert found is true, "Should recommend auth for user service"
+    respond with "ok"
+
+to test_clean_code_high_score:
+    purpose: "Well-written code should get high score"
+    set code to "service \"test-api\"\nversion \"1.0.0\"\n\nconfigure:\n    port is 8000\n\nmiddleware:\n    use cors\n    use log_requests\n\nto list_items:\n    gather items from \"items\"\n    respond with items\n\nto create_item with data:\n    set data.id to generate_id()\n    set data.created_at to now()\n    store data into \"items\"\n    log \"Created: \" + data.id\n    respond with data\n\nto health_check:\n    respond with {status: \"healthy\"}\n\napi:\n    GET /items runs list_items\n    POST /items runs create_item\n    GET /health runs health_check\n"
+    set result to review_code(code)
+    assert result.score >= 85, "Clean code should score 85+"
+    respond with "ok"
+
+to test_ncui_recommendations:
+    purpose: "Should recommend data binding for static pages"
+    set code to "page \"Test\"\n\nsection hero:\n    heading \"Hello\"\n    text \"World\"\n"
+    set recs to analyze_page(code)
+    set found_data to false
+    repeat for each r in recs:
+        if r.msg contains "data":
+            set found_data to true
+    assert found_data is true, "Should recommend data binding"
+    respond with "ok"
+
+to run_all_tests:
+    log "NC AI Recommendation Tests"
+    log "══════════════════════════"
+
+    set tests to [
+        "test_recommend_missing_health",
+        "test_recommend_middleware",
+        "test_recommend_id_generation",
+        "test_recommend_auth_for_users",
+        "test_clean_code_high_score",
+        "test_ncui_recommendations"
+    ]
+
+    set passed to 0
+    set failed to 0
+
+    repeat for each test in tests:
+        log "  Running: " + test
+        set result to call(test)
+        if result is "ok":
+            log "    PASS"
+            set passed to passed + 1
+        else:
+            log "    FAIL: " + str(result)
+            set failed to failed + 1
+
+    log ""
+    log "Results: " + passed + " passed, " + failed + " failed"
+    respond with {passed: passed, failed: failed}
+
+

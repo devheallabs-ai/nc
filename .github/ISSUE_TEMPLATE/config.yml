@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security Vulnerability
+    url: mailto:support@devheallabs.in
+    about: Report security issues privately via email — do not open a public issue.
+  - name: Documentation
+    url: https://nc.devheallabs.in
+    about: Visit the NC documentation site.
+  - name: DevHeal Labs AI
+    url: https://devheallabs.in
+    about: Visit our company website.

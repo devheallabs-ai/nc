@@ -1,0 +1,144 @@
+=== FILE: /Users/NuckalaSai.Narender4/Documents/nc-main/neuraledge/neuraledge.nc ===
+// NeuralEdge — AI-driven financial intelligence engine
+// Main service entry point
+//
+// This is the service skeleton. Each endpoint handler delegates to
+// modules in the full implementation (indicators, predictions, etc.).
+
+service NeuralEdge {
+    port: env("NEURALEDGE_PORT", "8000"),
+    host: env("NEURALEDGE_HOST", "0.0.0.0")
+}
+
+// -- Configuration --
+let config = {
+    data_dir:   env("NEURALEDGE_DATA_DIR", "./data"),
+    log_level:  env("NEURALEDGE_LOG_LEVEL", "info"),
+    provider:   env("MARKET_DATA_PROVIDER", "yahoo"),
+    api_key:    env("MARKET_DATA_API_KEY", ""),
+    cache_ttl:  int(env("CACHE_TTL_SECONDS", "300")),
+    ollama:     env("OLLAMA_HOST", "http://localhost:11434"),
+    model:      env("OLLAMA_MODEL", "llama3"),
+    horizon:    int(env("PREDICTION_HORIZON_DAYS", "7"))
+}
+
+// -- Health & Info Endpoints --
+
+route GET "/health" {
+    respond 200, {
+        status: "ok",
+        service: "NeuralEdge",
+        uptime: uptime(),
+        timestamp: now()
+    }
+}
+
+route GET "/about" {
+    respond 200, {
+        name: "NeuralEdge",
+        version: "0.1.0",
+        description: "AI-driven financial intelligence engine",
+        indicators: 30,
+        ai_backend: config.model
+    }
+}
+
+// -- Market Data Endpoints --
+
+route GET "/api/v1/quote/:symbol" {
+    // TODO: Fetch live quote from config.provider
+    let symbol = params.symbol
+    respond 200, { symbol: symbol, message: "Quote endpoint — implementation pending" }
+}
+
+route GET "/api/v1/history/:symbol" {
+    // TODO: Fetch historical OHLCV data
+    let symbol = params.symbol
+    respond 200, { symbol: symbol, message: "History endpoint — implementation pending" }
+}
+
+// -- Analysis Endpoints --
+
+route POST "/api/v1/analyze/:symbol" {
+    // TODO: Run full technical analysis (RSI, MACD, Bollinger, etc.)
+    let symbol = params.symbol
+    let body = request.json()
+    respond 200, { symbol: symbol, analysis: "Full analysis — implementation pending" }
+}
+
+route POST "/api/v1/predict/:symbol" {
+    // TODO: Run ML prediction ensemble
+    let symbol = params.symbol
+    respond 200, {
+        symbol: symbol,
+        horizon_days: config.horizon,
+        prediction: "Prediction — implementation pending"
+    }
+}
+
+route POST "/api/v1/sentiment/:symbol" {
+    // TODO: AI sentiment analysis via Ollama / OpenAI
+    let symbol = params.symbol
+    respond 200, { symbol: symbol, sentiment: "Sentiment — implementation pending" }
+}
+
+// -- Lifecycle --
+
+on start {
+    log("info", "NeuralEdge starting on " + config.host + ":" + string(config.port))
+    log("info", "Data directory: " + config.data_dir)
+    log("info", "Market data provider: " + config.provider)
+}
+
+=== END ===
+
+=== FILE: /Users/NuckalaSai.Narender4/Documents/nc-main/neuraledge/tests/test_neuraledge.nc ===
+// NeuralEdge — Test Suite
+// Run with: nc test tests/test_neuraledge.nc
+
+test "health endpoint returns 200" {
+    let res = http_get("http://localhost:8000/health")
+    assert_eq(res.status, 200)
+    assert_eq(res.json().status, "ok")
+    assert_eq(res.json().service, "NeuralEdge")
+}
+
+test "about endpoint returns version info" {
+    let res = http_get("http://localhost:8000/about")
+    assert_eq(res.status, 200)
+    assert_eq(res.json().name, "NeuralEdge")
+    assert(res.json().version != "", "version should not be empty")
+    assert(res.json().indicators >= 30, "should report 30+ indicators")
+}
+
+test "configuration loads defaults" {
+    // Verify environment-based config falls back to defaults
+    let port = env("NEURALEDGE_PORT", "8000")
+    assert_eq(port, "8000")
+
+    let provider = env("MARKET_DATA_PROVIDER", "yahoo")
+    assert_eq(provider, "yahoo")
+
+    let log_level = env("NEURALEDGE_LOG_LEVEL", "info")
+    assert_eq(log_level, "info")
+}
+
+test "data directory can be created" {
+    let data_dir = env("NEURALEDGE_DATA_DIR", "./data")
+    mkdir_p(data_dir + "/cache")
+    mkdir_p(data_dir + "/models")
+    mkdir_p(data_dir + "/logs")
+
+    assert(dir_exists(data_dir + "/cache"), "cache dir should exist")
+    assert(dir_exists(data_dir + "/models"), "models dir should exist")
+    assert(dir_exists(data_dir + "/logs"), "logs dir should exist")
+}
+
+test "quote endpoint responds" {
+    let res = http_get("http://localhost:8000/api/v1/quote/AAPL")
+    assert_eq(res.status, 200)
+    assert_eq(res.json().symbol, "AAPL")
+}
+
+=== END ===
+

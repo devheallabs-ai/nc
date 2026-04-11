@@ -1,0 +1,45 @@
+# NC Test Image — builds NC and runs the full Python validation suite on Linux
+#
+# Usage:
+#   docker build -f Dockerfile.test -t nc-test .
+#   docker run --rm nc-test
+
+FROM ubuntu:22.04
+
+RUN apt-get update && apt-get install -y \
+    gcc make libcurl4-openssl-dev python3 \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /nc-project
+
+COPY engine/src/   engine/src/
+COPY engine/include/ engine/include/
+COPY engine/Makefile engine/Makefile
+COPY examples/     examples/
+COPY tests/        tests/
+COPY lib/          lib/
+
+RUN cd engine && make clean && make CFLAGS="-Wall -Wextra -O2 -std=c11 -I include -Wno-unused-function -Wno-unused-variable -fomit-frame-pointer -DNDEBUG -D_GNU_SOURCE -DNC_NO_REPL -D_FORTIFY_SOURCE=0"
+
+RUN echo "" && \
+    echo "══════════════════════════════════════════" && \
+    echo "  NC built successfully on Linux" && \
+    echo "══════════════════════════════════════════" && \
+    engine/build/nc version
+
+CMD ["sh", "-c", "\
+    echo '' && \
+    echo '══════════════════════════════════════════' && \
+    echo '  NC Linux Validation Suite' && \
+    echo '══════════════════════════════════════════' && \
+    echo '' && \
+    echo '--- Basic Validation (67 tests) ---' && \
+    python3 tests/validate_nc.py --nc engine/build/nc && \
+    echo '' && \
+    echo '--- Deep Integration (45 tests) ---' && \
+    python3 tests/validate_nc_deep.py --nc engine/build/nc && \
+    echo '' && \
+    echo '══════════════════════════════════════════' && \
+    echo '  ALL LINUX TESTS COMPLETE' && \
+    echo '══════════════════════════════════════════' \
+"]

@@ -1,0 +1,1886 @@
+// FILE: devheallabs-website/404.html
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>404 — Page Not Found | DevHeal Labs AI</title>
+<meta name="description" content="The page you're looking for doesn't exist.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0a0f;
+  --bg-card:#12121a;
+  --cyan:#00d4ff;
+  --purple:#7c3aed;
+  --text:#e4e4e7;
+  --text-muted:#71717a;
+  --border:#1e1e2e;
+  --gradient:linear-gradient(135deg,var(--cyan),var(--purple));
+}
+html{font-size:16px}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
+  line-height:1.6;
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+  position:relative;
+}
+a{color:var(--cyan);text-decoration:none;transition:opacity .2s}
+a:hover{opacity:.85}
+.gradient-text{background:var(--gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+
+/* Background glow effects */
+body::before{
+  content:'';position:absolute;top:-200px;right:-200px;
+  width:500px;height:500px;
+  background:radial-gradient(circle,rgba(0,212,255,.06) 0%,transparent 70%);
+  pointer-events:none;
+}
+body::after{
+  content:'';position:absolute;bottom:-150px;left:-150px;
+  width:400px;height:400px;
+  background:radial-gradient(circle,rgba(124,58,237,.06) 0%,transparent 70%);
+  pointer-events:none;
+}
+
+.container{
+  text-align:center;
+  position:relative;
+  z-index:1;
+  padding:24px;
+  max-width:560px;
+}
+
+.error-code{
+  font-size:clamp(6rem,15vw,10rem);
+  font-weight:900;
+  letter-spacing:-.05em;
+  line-height:1;
+  margin-bottom:16px;
+}
+
+h1{
+  font-size:clamp(1.4rem,3vw,1.8rem);
+  font-weight:700;
+  margin-bottom:12px;
+  letter-spacing:-.02em;
+}
+
+p{
+  color:var(--text-muted);
+  font-size:1.05rem;
+  margin-bottom:36px;
+  max-width:420px;
+  margin-left:auto;
+  margin-right:auto;
+}
+
+.btn{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:12px 28px;border-radius:8px;
+  font-size:.95rem;font-weight:600;
+  transition:transform .2s,box-shadow .2s;
+  cursor:pointer;border:none;
+  background:var(--gradient);color:#fff;
+}
+.btn:hover{
+  transform:translateY(-2px);
+  box-shadow:0 8px 30px rgba(0,212,255,.25);
+  opacity:1;
+}
+
+.links{
+  margin-top:48px;
+  display:flex;
+  gap:24px;
+  justify-content:center;
+  flex-wrap:wrap;
+}
+.links a{
+  color:var(--text-muted);
+  font-size:.88rem;
+  transition:color .2s;
+}
+.links a:hover{color:var(--text);opacity:1}
+
+.logo{
+  position:absolute;
+  top:24px;
+  left:24px;
+  font-size:1.2rem;
+  font-weight:700;
+  letter-spacing:-.02em;
+}
+.logo span{color:var(--cyan)}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.fade-up{animation:fadeUp .6s ease forwards}
+.d1{animation-delay:.1s;opacity:0}
+.d2{animation-delay:.2s;opacity:0}
+.d3{animation-delay:.3s;opacity:0}
+.d4{animation-delay:.4s;opacity:0}
+</style>
+</head>
+<body>
+
+<div class="logo"><a href="/" style="color:inherit">Dev<span>Heal</span> Labs</a></div>
+
+<div class="container">
+  <div class="error-code gradient-text fade-up">404</div>
+  <h1 class="fade-up d1">Page not found</h1>
+  <p class="fade-up d2">The page you are looking for does not exist or has been moved. Let's get you back on track.</p>
+  <a href="/" class="btn fade-up d3">
+    Back to Homepage
+    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+  </a>
+  <div class="links fade-up d4">
+    <a href="https://nc.devheallabs.in" target="_blank" rel="noopener">NC Language</a>
+    <a href="https://github.com/DevHeal-Labs" target="_blank" rel="noopener">GitHub</a>
+    <a href="mailto:hello@devheallabs.in">Contact</a>
+  </div>
+</div>
+
+</body>
+</html>
+
+
+// FILE: devheallabs-website/README.md
+
+# DevHeal Labs AI - Company Homepage
+
+Official website for **DevHeal Labs AI** — Intelligent Developer Tools & AI-Native Infrastructure.
+
+**Live:** [https://devheallabs.in](https://devheallabs.in)
+**Repo:** [DevHealLabs/devheallabs.github.io](https://github.com/DevHealLabs/devheallabs.github.io)
+
+---
+
+## What This Is
+
+Single-page company homepage for DevHeal Labs AI, showcasing:
+
+- **NC Language** — The AI programming language
+- **HiveANT** — Autonomous incident response
+- **SwarmOps** — Intelligent operations platform
+- **NeuralEdge** — Financial intelligence engine
+
+Built as a zero-dependency static site (pure HTML/CSS/JS, no frameworks).
+
+## Project Structure
+
+```
+devheallabs-website/
+  index.html        # Main homepage (served by GitHub Pages)
+  404.html          # Custom 404 page
+  CNAME             # Custom domain config (devheallabs.in)
+  start.sh          # Local dev & deploy helper script
+  favicon-note.txt  # Favicon requirements
+  README.md         # This file
+  website/          # Mirror copy of deployable assets
+    index.html
+    CNAME
+```
+
+## Preview Locally
+
+```bash
+# Quick start
+./start.sh
+
+# Or manually
+python3 -m http.server 9000
+```
+
+Then open [http://localhost:9000](http://localhost:9000) in your browser.
+
+## Deploy to GitHub Pages
+
+This site is deployed via GitHub Pages from the `DevHealLabs/devheallabs.github.io` repository.
+
+### Steps
+
+1. Clone the deployment repo:
+   ```bash
+   git clone git@github.com:DevHealLabs/devheallabs.github.io.git
+   ```
+
+2. Copy the updated files:
+   ```bash
+   cp index.html 404.html CNAME ../devheallabs.github.io/
+   ```
+
+3. Commit and push:
+   ```bash
+   cd ../devheallabs.github.io
+   git add -A
+   git commit -m "Update website"
+   git push origin main
+   ```
+
+4. GitHub Pages will automatically deploy within a few minutes.
+
+### Custom Domain
+
+The `CNAME` file contains `devheallabs.in`. DNS must have:
+- An `A` record pointing to GitHub Pages IPs (185.199.108-111.153)
+- Or a `CNAME` record pointing to `devheallabs.github.io`
+
+## Update Content
+
+All content lives in `index.html` as a self-contained single file:
+
+- **Text/copy** — Edit the HTML directly
+- **Colors** — Modify CSS variables in the `:root` block
+- **Products** — Add/edit cards in the `#products` section
+- **Links** — Update `href` attributes in nav, footer, and product cards
+
+No build step required. Edit, save, deploy.
+
+---
+
+Built in Hyderabad, India.
+
+
+// FILE: devheallabs-website/favicon-note.txt
+
+Favicon Requirements for devheallabs.in
+========================================
+
+Currently using an inline SVG emoji favicon (lightning bolt).
+To upgrade to a proper favicon, prepare the following files:
+
+1. favicon.ico        — 16x16 and 32x32 (legacy browsers)
+2. favicon-32x32.png  — 32x32 PNG
+3. favicon-16x16.png  — 16x16 PNG
+4. apple-touch-icon.png — 180x180 PNG (iOS home screen)
+5. android-chrome-192x192.png — 192x192 PNG
+6. android-chrome-512x512.png — 512x512 PNG
+7. site.webmanifest   — Web app manifest referencing the above
+
+Recommended design:
+  - Use the DevHeal Labs logo or a stylized "DH" monogram
+  - Colors: cyan (#00d4ff) on dark (#0a0a0f) background
+  - Keep it simple and legible at 16x16
+
+Once files are ready, replace the inline SVG in index.html <head>:
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="manifest" href="/site.webmanifest">
+
+Tools to generate all sizes from a single source image:
+  - https://realfavicongenerator.net
+  - https://favicon.io
+
+
+// FILE: devheallabs-website/index.html
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DevHeal Labs AI — Intelligent Developer Tools & AI-Native Infrastructure</title>
+<meta name="description" content="DevHeal Labs AI builds intelligent developer tools and AI-native infrastructure. Home of NC Language, HiveANT, SwarmOps, and NeuralEdge.">
+<meta name="keywords" content="DevHeal Labs, AI, developer tools, NC language, HiveANT, SwarmOps, NeuralEdge, Hyderabad">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0a0f;--bg2:#0e0e18;--card:#111119;--card-hover:#16162a;
+  --cyan:#00d4ff;--purple:#7c3aed;--orange:#ff6b35;--green:#10b981;--gold:#f59e0b;
+  --text:#e8e8ed;--muted:#71717a;--dim:#3a3a4a;--border:rgba(255,255,255,.06);
+  --grad:linear-gradient(135deg,var(--cyan),var(--purple));
+  --font:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Roboto,sans-serif;
+  --mono:'SF Mono',SFMono-Regular,Consolas,'Liberation Mono',Menlo,monospace;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--font);line-height:1.6;overflow-x:hidden}
+a{color:inherit;text-decoration:none}
+.container{max-width:1200px;margin:0 auto;padding:0 32px}
+
+/* Grid overlay */
+body::before{
+  content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:
+    linear-gradient(rgba(255,255,255,.015) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,.015) 1px,transparent 1px);
+  background-size:60px 60px;
+}
+
+/* Gradient text */
+.gt{background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+
+/* ── NAV ── */
+.nav{
+  position:fixed;top:0;left:0;right:0;z-index:1000;
+  padding:20px 0;transition:all .4s cubic-bezier(.4,0,.2,1);
+}
+.nav.scrolled{
+  padding:12px 0;
+  background:rgba(10,10,15,.75);
+  backdrop-filter:blur(20px) saturate(1.8);
+  -webkit-backdrop-filter:blur(20px) saturate(1.8);
+  border-bottom:1px solid var(--border);
+}
+.nav-inner{display:flex;align-items:center;justify-content:space-between;max-width:1200px;margin:0 auto;padding:0 32px}
+.nav-logo{font-size:1.25rem;font-weight:800;letter-spacing:-.03em;display:flex;align-items:center;gap:10px}
+.nav-logo .logo-icon{
+  width:36px;height:36px;border-radius:10px;
+  background:var(--grad);display:flex;align-items:center;justify-content:center;
+  font-weight:900;font-size:.9rem;color:#fff;
+}
+.nav-logo span{color:var(--cyan)}
+.nav-links{display:flex;align-items:center;gap:36px;list-style:none}
+.nav-links a{color:var(--muted);font-size:.875rem;font-weight:500;transition:color .25s;position:relative}
+.nav-links a:hover{color:var(--text)}
+.nav-links a::after{
+  content:'';position:absolute;bottom:-4px;left:0;width:0;height:2px;
+  background:var(--cyan);transition:width .25s;border-radius:2px;
+}
+.nav-links a:hover::after{width:100%}
+.nav-gh{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:8px 20px;border-radius:8px;font-size:.85rem;font-weight:600;
+  background:rgba(255,255,255,.06);border:1px solid var(--border);
+  color:var(--text);transition:all .25s;
+}
+.nav-gh:hover{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.15)}
+.nav-gh svg{width:18px;height:18px}
+.hamburger{display:none;background:none;border:none;color:var(--text);font-size:1.5rem;cursor:pointer}
+
+/* ── HERO ── */
+.hero{
+  min-height:100vh;display:flex;align-items:center;justify-content:center;
+  text-align:center;position:relative;overflow:hidden;padding:120px 32px 80px;
+}
+.hero-glow{
+  position:absolute;inset:0;pointer-events:none;overflow:hidden;
+}
+.orb{
+  position:absolute;border-radius:50%;filter:blur(80px);opacity:.35;
+  animation:orbFloat 20s ease-in-out infinite;
+}
+.orb-1{width:600px;height:600px;background:var(--cyan);top:-20%;left:-10%;animation-delay:0s}
+.orb-2{width:500px;height:500px;background:var(--purple);bottom:-15%;right:-5%;animation-delay:-7s}
+.orb-3{width:350px;height:350px;background:#ff6b35;top:30%;right:20%;animation-delay:-14s;opacity:.15}
+@keyframes orbFloat{
+  0%,100%{transform:translate(0,0) scale(1)}
+  25%{transform:translate(40px,-30px) scale(1.05)}
+  50%{transform:translate(-20px,40px) scale(.95)}
+  75%{transform:translate(30px,20px) scale(1.02)}
+}
+#heroGlow{
+  position:absolute;width:500px;height:500px;border-radius:50%;
+  background:radial-gradient(circle,rgba(0,212,255,.12) 0%,transparent 70%);
+  pointer-events:none;transform:translate(-50%,-50%);
+  transition:left .15s ease-out,top .15s ease-out;opacity:0;
+}
+.hero-content{position:relative;z-index:2;max-width:850px}
+.hero-badge{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:6px 18px;border-radius:999px;font-size:.75rem;font-weight:600;
+  letter-spacing:.05em;text-transform:uppercase;
+  background:rgba(0,212,255,.08);border:1px solid rgba(0,212,255,.2);
+  color:var(--cyan);margin-bottom:32px;
+}
+.hero-badge .dot{width:6px;height:6px;border-radius:50%;background:var(--cyan);animation:pulse 2s ease infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+.hero h1{
+  font-size:clamp(2.8rem,6.5vw,5rem);font-weight:900;line-height:1.05;
+  letter-spacing:-.04em;margin-bottom:12px;
+}
+.hero h1 .word{display:inline-block;opacity:0;transform:translateY(30px);animation:wordIn .6s ease forwards}
+@keyframes wordIn{to{opacity:1;transform:translateY(0)}}
+
+.hero-rotate{
+  display:block;height:clamp(2.8rem,6.5vw,5rem);overflow:hidden;position:relative;
+}
+.hero-rotate-inner{
+  display:flex;flex-direction:column;
+  animation:rotateWords 8s ease infinite;
+}
+.hero-rotate-inner span{
+  height:clamp(2.8rem,6.5vw,5rem);display:flex;align-items:center;justify-content:center;
+  font-size:clamp(2.8rem,6.5vw,5rem);font-weight:900;letter-spacing:-.04em;
+  flex-shrink:0;
+}
+@keyframes rotateWords{
+  0%,20%{transform:translateY(0)}
+  25%,45%{transform:translateY(-25%)}
+  50%,70%{transform:translateY(-50%)}
+  75%,95%{transform:translateY(-75%)}
+  100%{transform:translateY(-100%)}
+}
+
+.hero-desc{
+  font-size:clamp(1rem,2vw,1.25rem);color:var(--muted);max-width:600px;
+  margin:24px auto 40px;line-height:1.7;opacity:0;animation:wordIn .6s ease .8s forwards;
+}
+.hero-buttons{
+  display:flex;gap:16px;justify-content:center;flex-wrap:wrap;
+  opacity:0;animation:wordIn .6s ease 1s forwards;
+}
+.btn{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:14px 32px;border-radius:12px;font-size:.95rem;font-weight:600;
+  transition:all .3s cubic-bezier(.4,0,.2,1);cursor:pointer;border:none;
+  position:relative;overflow:hidden;
+}
+.btn-primary{background:var(--grad);color:#fff}
+.btn-primary::before{
+  content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.15),transparent);
+  opacity:0;transition:opacity .3s;
+}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 12px 40px rgba(0,212,255,.3)}
+.btn-primary:hover::before{opacity:1}
+.btn-ghost{
+  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);color:var(--text);
+}
+.btn-ghost:hover{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.2);transform:translateY(-2px)}
+
+/* ── SECTION COMMON ── */
+section{padding:120px 0;position:relative;z-index:1}
+.sec-label{
+  font-size:.75rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--cyan);margin-bottom:16px;
+}
+.sec-title{font-size:clamp(2rem,4vw,3rem);font-weight:900;letter-spacing:-.03em;margin-bottom:16px;line-height:1.1}
+.sec-desc{color:var(--muted);font-size:1.1rem;max-width:560px;margin-bottom:56px}
+
+/* Scroll reveal */
+.sr{opacity:0;transform:translateY(40px);transition:opacity .7s cubic-bezier(.4,0,.2,1),transform .7s cubic-bezier(.4,0,.2,1)}
+.sr.vis{opacity:1;transform:translateY(0)}
+.sr.d1{transition-delay:.1s}.sr.d2{transition-delay:.2s}.sr.d3{transition-delay:.3s}.sr.d4{transition-delay:.4s}
+
+/* ── PRODUCTS ── */
+.products-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:24px}
+.p-card{
+  background:var(--card);border:1px solid var(--border);border-radius:20px;
+  padding:40px 36px;position:relative;overflow:hidden;
+  transition:transform .4s cubic-bezier(.4,0,.2,1),box-shadow .4s;
+  transform-style:preserve-3d;perspective:800px;cursor:pointer;
+}
+.p-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  opacity:0;transition:opacity .4s;
+}
+.p-card[data-accent="cyan"]::before{background:var(--cyan)}
+.p-card[data-accent="orange"]::before{background:var(--orange)}
+.p-card[data-accent="green"]::before{background:var(--green)}
+.p-card[data-accent="gold"]::before{background:var(--gold)}
+.p-card:hover::before{opacity:1}
+.p-card:hover{box-shadow:0 24px 64px rgba(0,0,0,.4)}
+.p-card-glow{
+  position:absolute;width:200px;height:200px;border-radius:50%;
+  filter:blur(60px);opacity:0;transition:opacity .5s;pointer-events:none;
+}
+.p-card:hover .p-card-glow{opacity:.08}
+.p-card[data-accent="cyan"] .p-card-glow{background:var(--cyan)}
+.p-card[data-accent="orange"] .p-card-glow{background:var(--orange)}
+.p-card[data-accent="green"] .p-card-glow{background:var(--green)}
+.p-card[data-accent="gold"] .p-card-glow{background:var(--gold)}
+.p-icon{
+  width:52px;height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;
+  font-size:1.3rem;margin-bottom:24px;font-weight:800;font-family:var(--mono);
+}
+.p-card[data-accent="cyan"] .p-icon{background:rgba(0,212,255,.1);color:var(--cyan)}
+.p-card[data-accent="orange"] .p-icon{background:rgba(255,107,53,.1);color:var(--orange)}
+.p-card[data-accent="green"] .p-icon{background:rgba(16,185,129,.1);color:var(--green)}
+.p-card[data-accent="gold"] .p-icon{background:rgba(245,158,11,.1);color:var(--gold)}
+.p-card h3{font-size:1.35rem;font-weight:800;margin-bottom:6px}
+.p-tag{font-size:.8rem;font-weight:600;margin-bottom:14px;display:block}
+.p-card[data-accent="cyan"] .p-tag{color:var(--cyan)}
+.p-card[data-accent="orange"] .p-tag{color:var(--orange)}
+.p-card[data-accent="green"] .p-tag{color:var(--green)}
+.p-card[data-accent="gold"] .p-tag{color:var(--gold)}
+.p-card p{color:var(--muted);font-size:.95rem;line-height:1.7;margin-bottom:24px}
+.p-link{
+  display:inline-flex;align-items:center;gap:6px;font-size:.85rem;font-weight:600;
+  transition:gap .25s;
+}
+.p-card[data-accent="cyan"] .p-link{color:var(--cyan)}
+.p-card[data-accent="orange"] .p-link{color:var(--orange)}
+.p-card[data-accent="green"] .p-link{color:var(--green)}
+.p-card[data-accent="gold"] .p-link{color:var(--gold)}
+.p-card:hover .p-link{gap:12px}
+
+/* ── NC STACK ── */
+.stack-section{background:var(--bg2);border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+.stack-grid{display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:center}
+.stack-visual{position:relative;min-height:400px}
+.stack-center{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:100px;height:100px;border-radius:24px;
+  background:var(--grad);display:flex;align-items:center;justify-content:center;
+  font-size:1.5rem;font-weight:900;color:#fff;font-family:var(--mono);
+  box-shadow:0 0 60px rgba(0,212,255,.3);z-index:2;
+  animation:centerPulse 3s ease infinite;
+}
+@keyframes centerPulse{0%,100%{box-shadow:0 0 60px rgba(0,212,255,.3)}50%{box-shadow:0 0 80px rgba(0,212,255,.5)}}
+.stack-node{
+  position:absolute;padding:14px 22px;border-radius:14px;
+  background:var(--card);border:1px solid var(--border);
+  font-size:.82rem;font-weight:700;white-space:nowrap;z-index:2;
+  transition:transform .3s,box-shadow .3s;
+}
+.stack-node:hover{transform:scale(1.08);box-shadow:0 8px 32px rgba(0,0,0,.4)}
+.stack-node.sn1{top:8%;left:50%;transform:translateX(-50%);color:var(--cyan)}
+.stack-node.sn2{top:50%;right:5%;transform:translateY(-50%);color:var(--orange)}
+.stack-node.sn3{bottom:8%;left:50%;transform:translateX(-50%);color:var(--green)}
+.stack-node.sn4{top:50%;left:5%;transform:translateY(-50%);color:var(--gold)}
+.stack-node.sn1:hover{transform:translateX(-50%) scale(1.08)}
+.stack-node.sn2:hover{transform:translateY(-50%) scale(1.08)}
+.stack-node.sn3:hover{transform:translateX(-50%) scale(1.08)}
+.stack-node.sn4:hover{transform:translateY(-50%) scale(1.08)}
+.stack-line{
+  position:absolute;background:var(--border);z-index:1;
+}
+.stack-line.sl-v1{width:2px;height:calc(50% - 74px);top:calc(8% + 48px);left:50%;transform:translateX(-50%);
+  background:linear-gradient(to bottom,rgba(0,212,255,.3),rgba(0,212,255,.1));animation:linePulse 2s ease infinite}
+.stack-line.sl-v2{width:2px;height:calc(50% - 74px);bottom:calc(8% + 48px);left:50%;transform:translateX(-50%);
+  background:linear-gradient(to top,rgba(16,185,129,.3),rgba(16,185,129,.1));animation:linePulse 2s ease infinite .5s}
+.stack-line.sl-h1{height:2px;width:calc(50% - 90px);top:50%;right:calc(5% + 100px);transform:translateY(-50%);
+  background:linear-gradient(to left,rgba(255,107,53,.3),rgba(255,107,53,.1));animation:linePulse 2s ease infinite 1s}
+.stack-line.sl-h2{height:2px;width:calc(50% - 90px);top:50%;left:calc(5% + 100px);transform:translateY(-50%);
+  background:linear-gradient(to right,rgba(245,158,11,.3),rgba(245,158,11,.1));animation:linePulse 2s ease infinite 1.5s}
+@keyframes linePulse{0%,100%{opacity:.6}50%{opacity:1}}
+
+.stack-code{
+  background:var(--bg);border:1px solid var(--border);border-radius:16px;
+  padding:32px;font-family:var(--mono);font-size:.85rem;line-height:1.9;
+  position:relative;overflow:hidden;
+}
+.stack-code::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:40px;
+  background:rgba(255,255,255,.02);border-bottom:1px solid var(--border);
+}
+.stack-code .dots{position:absolute;top:12px;left:16px;display:flex;gap:6px}
+.stack-code .dots i{width:10px;height:10px;border-radius:50%;display:block}
+.stack-code .dots i:nth-child(1){background:#ff5f57}
+.stack-code .dots i:nth-child(2){background:#febc2e}
+.stack-code .dots i:nth-child(3){background:#28c840}
+.stack-code pre{margin-top:16px;color:var(--muted);overflow-x:auto}
+.kw{color:var(--purple)}.fn{color:var(--cyan)}.st{color:var(--green)}.cm{color:#444}.nu{color:var(--gold)}
+
+.stack-info h3{font-size:1.1rem;font-weight:700;margin-bottom:20px;margin-top:28px}
+.stack-features{list-style:none}
+.stack-features li{
+  padding:10px 0 10px 28px;position:relative;color:var(--muted);font-size:.95rem;
+}
+.stack-features li::before{
+  content:'';position:absolute;left:0;top:18px;width:8px;height:8px;border-radius:50%;
+  background:var(--grad);
+}
+
+/* ── STATS ── */
+.stats-section{overflow:hidden}
+.stats-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:20px}
+.stat{
+  background:var(--card);border:1px solid var(--border);border-radius:20px;
+  padding:40px 24px;text-align:center;position:relative;overflow:hidden;
+  transition:border-color .3s,transform .3s;
+}
+.stat:hover{border-color:rgba(0,212,255,.2);transform:translateY(-4px)}
+.stat-val{
+  font-size:clamp(2rem,3.5vw,2.8rem);font-weight:900;line-height:1.2;margin-bottom:4px;
+}
+.stat-val .gt{display:inline}
+.stat-suffix{font-size:.6em;font-weight:700;opacity:.7}
+.stat-label{font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:600;margin-top:4px}
+
+/* ── OPEN SOURCE ── */
+.oss-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.oss-card{
+  background:var(--card);border:1px solid var(--border);border-radius:16px;
+  padding:28px 28px 24px;transition:border-color .3s,transform .3s;
+}
+.oss-card:hover{border-color:rgba(0,212,255,.2);transform:translateY(-4px)}
+.oss-card-head{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.oss-card-head svg{color:var(--muted);flex-shrink:0}
+.oss-card h4{font-size:1rem;font-weight:700}
+.oss-card p{color:var(--muted);font-size:.88rem;line-height:1.6;margin-bottom:16px}
+.oss-stars{display:flex;align-items:center;gap:6px;font-size:.8rem;color:var(--muted);font-weight:600}
+.oss-stars svg{color:var(--gold)}
+
+/* ── ABOUT ── */
+.about-section{background:var(--bg2);border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+.about-grid{display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:center}
+.about-mission{
+  font-size:clamp(1.4rem,2.5vw,2rem);font-weight:800;line-height:1.3;letter-spacing:-.02em;
+  margin-bottom:24px;
+}
+.about-text{color:var(--muted);font-size:1.05rem;line-height:1.8;margin-bottom:24px}
+.about-loc{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:10px 20px;border-radius:12px;
+  background:rgba(0,212,255,.06);border:1px solid rgba(0,212,255,.15);
+  font-size:.9rem;font-weight:600;color:var(--cyan);
+}
+.about-quote{
+  background:var(--card);border:1px solid var(--border);border-radius:20px;
+  padding:40px 36px;position:relative;
+}
+.about-quote::before{
+  content:'\201C';position:absolute;top:16px;left:28px;
+  font-size:5rem;color:rgba(0,212,255,.1);line-height:1;font-family:Georgia,serif;
+}
+.about-quote p{font-size:1.15rem;line-height:1.8;font-style:italic;color:var(--muted);position:relative;z-index:1}
+.about-quote .aq-attr{margin-top:20px;font-size:.85rem;font-style:normal;color:var(--dim);font-weight:600}
+
+/* ── FOOTER ── */
+footer{border-top:1px solid var(--border);padding:80px 0 40px;position:relative;z-index:1}
+.footer-grid{display:grid;grid-template-columns:2.5fr 1fr 1fr 1fr;gap:48px;margin-bottom:60px}
+.footer-brand .f-logo{font-size:1.2rem;font-weight:800;margin-bottom:12px;letter-spacing:-.02em}
+.footer-brand .f-logo span{color:var(--cyan)}
+.footer-brand p{color:var(--muted);font-size:.88rem;line-height:1.7;max-width:300px}
+.f-col h5{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text);margin-bottom:20px}
+.f-col ul{list-style:none}
+.f-col ul li{margin-bottom:12px}
+.f-col ul a{color:var(--muted);font-size:.88rem;transition:color .2s}
+.f-col ul a:hover{color:var(--text)}
+.footer-bottom{
+  display:flex;justify-content:space-between;align-items:center;
+  padding-top:28px;border-top:1px solid var(--border);font-size:.8rem;color:var(--dim);
+}
+.footer-bottom .socials{display:flex;gap:16px}
+.footer-bottom .socials a{color:var(--muted);transition:color .2s}
+.footer-bottom .socials a:hover{color:var(--text)}
+.nc-badge{
+  display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:6px;
+  background:rgba(0,212,255,.06);border:1px solid rgba(0,212,255,.12);
+  font-size:.72rem;font-weight:700;color:var(--cyan);text-transform:uppercase;letter-spacing:.05em;
+}
+
+/* ── RESPONSIVE ── */
+@media(max-width:1024px){
+  .products-grid{grid-template-columns:1fr 1fr}
+  .stats-grid{grid-template-columns:repeat(3,1fr)}
+}
+@media(max-width:768px){
+  .nav-links{
+    display:none;position:absolute;top:100%;left:0;right:0;
+    background:rgba(10,10,15,.97);backdrop-filter:blur(20px);
+    flex-direction:column;padding:24px 32px;gap:20px;
+    border-bottom:1px solid var(--border);
+  }
+  .nav-links.open{display:flex}
+  .hamburger{display:block}
+  .hero{min-height:auto;padding:160px 24px 100px}
+  .products-grid{grid-template-columns:1fr}
+  .stack-grid,.about-grid{grid-template-columns:1fr}
+  .stack-visual{min-height:320px}
+  .stats-grid{grid-template-columns:repeat(2,1fr)}
+  .oss-grid{grid-template-columns:1fr}
+  .footer-grid{grid-template-columns:1fr 1fr}
+  section{padding:80px 0}
+  .sec-desc{margin-bottom:40px}
+}
+@media(max-width:480px){
+  .hero-buttons{flex-direction:column;align-items:center}
+  .btn{width:100%;justify-content:center}
+  .stats-grid{grid-template-columns:1fr}
+  .footer-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="nav" id="nav">
+  <div class="nav-inner">
+    <a href="#" class="nav-logo"><div class="logo-icon">DH</div> Dev<span>Heal</span> Labs</a>
+    <button class="hamburger" onclick="document.querySelector('.nav-links').classList.toggle('open')" aria-label="Menu">&#9776;</button>
+    <ul class="nav-links">
+      <li><a href="#products">Products</a></li>
+      <li><a href="#technology">Technology</a></li>
+      <li><a href="#open-source">Open Source</a></li>
+      <li><a href="#about">About</a></li>
+      <li><a href="https://github.com/DevHeal-Labs" target="_blank" rel="noopener" class="nav-gh"><svg fill="currentColor" viewBox="0 0 24 24"><path d="M12 .3a12 12 0 00-3.8 23.38c.6.1.82-.26.82-.58v-2.02c-3.34.73-4.04-1.61-4.04-1.61a3.18 3.18 0 00-1.33-1.76c-1.09-.74.08-.73.08-.73a2.52 2.52 0 011.84 1.24 2.56 2.56 0 003.5 1 2.56 2.56 0 01.76-1.6c-2.67-.3-5.47-1.33-5.47-5.93a4.64 4.64 0 011.24-3.22 4.3 4.3 0 01.12-3.18s1-.33 3.3 1.23a11.4 11.4 0 016 0c2.28-1.56 3.29-1.23 3.29-1.23a4.3 4.3 0 01.12 3.18 4.64 4.64 0 011.23 3.22c0 4.61-2.81 5.63-5.48 5.92a2.86 2.86 0 01.82 2.22v3.29c0 .32.21.7.82.58A12 12 0 0012 .3"/></svg>GitHub</a></li>
+    </ul>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero" id="hero">
+  <div class="hero-glow">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+  </div>
+  <div id="heroGlow"></div>
+  <div class="hero-content">
+    <div class="hero-badge"><span class="dot"></span> AI-Native Infrastructure</div>
+    <h1>
+      <span class="word" style="animation-delay:.1s">We</span>
+      <span class="word" style="animation-delay:.2s">build</span>
+      <span class="word" style="animation-delay:.3s">intelligent</span>
+    </h1>
+    <div class="hero-rotate">
+      <div class="hero-rotate-inner">
+        <span class="gt">developer tools</span>
+        <span class="gt">AI infrastructure</span>
+        <span class="gt">autonomous systems</span>
+        <span class="gt">developer tools</span>
+      </div>
+    </div>
+    <p class="hero-desc">DevHeal Labs AI is reimagining how software is written, deployed, and kept alive. Four products. One language. Zero compromises.</p>
+    <div class="hero-buttons">
+      <a href="#products" class="btn btn-primary">Explore Products <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+      <a href="https://github.com/DevHeal-Labs" target="_blank" rel="noopener" class="btn btn-ghost"><svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M12 .3a12 12 0 00-3.8 23.38c.6.1.82-.26.82-.58v-2.02c-3.34.73-4.04-1.61-4.04-1.61a3.18 3.18 0 00-1.33-1.76c-1.09-.74.08-.73.08-.73a2.52 2.52 0 011.84 1.24 2.56 2.56 0 003.5 1 2.56 2.56 0 01.76-1.6c-2.67-.3-5.47-1.33-5.47-5.93a4.64 4.64 0 011.24-3.22 4.3 4.3 0 01.12-3.18s1-.33 3.3 1.23a11.4 11.4 0 016 0c2.28-1.56 3.29-1.23 3.29-1.23a4.3 4.3 0 01.12 3.18 4.64 4.64 0 011.23 3.22c0 4.61-2.81 5.63-5.48 5.92a2.86 2.86 0 01.82 2.22v3.29c0 .32.21.7.82.58A12 12 0 0012 .3"/></svg> Star on GitHub</a>
+    </div>
+  </div>
+</section>
+
+<!-- Products -->
+<section id="products">
+  <div class="container">
+    <div class="sec-label sr">What We Build</div>
+    <h2 class="sec-title sr d1">Five products. One mission.</h2>
+    <p class="sec-desc sr d2">Software that builds itself and heals itself — powered by the NC language, the world's first with a built-in LLM.</p>
+    <div class="products-grid">
+
+      <a href="https://nc.devheallabs.in" target="_blank" rel="noopener" class="p-card sr d1" data-accent="cyan" data-tilt>
+        <div class="p-card-glow"></div>
+        <div class="p-icon">&lt;/&gt;</div>
+        <h3>NC Language</h3>
+        <span class="p-tag">The AI Programming Language</span>
+        <p>Build AI APIs in 12 lines of plain English. World's first language with a built-in LLM. One file, one binary, Metal GPU accelerated.</p>
+        <span class="p-link">nc.devheallabs.in <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></span>
+      </a>
+
+      <a href="https://hiveant.devheallabs.in" target="_blank" rel="noopener" class="p-card sr d2" data-accent="orange" data-tilt>
+        <div class="p-card-glow"></div>
+        <div class="p-icon">&#x2B21;</div>
+        <h3>HiveANT</h3>
+        <span class="p-tag">Autonomous Incident Response</span>
+        <p>12 AI agents that heal your infrastructure before you wake up. Detect, triage, and remediate incidents at machine speed.</p>
+        <span class="p-link">hiveant.devheallabs.in <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></span>
+      </a>
+
+      <a href="https://swarmops.devheallabs.in" target="_blank" rel="noopener" class="p-card sr d3" data-accent="green" data-tilt>
+        <div class="p-card-glow"></div>
+        <div class="p-icon">&#x25C8;</div>
+        <h3>SwarmOps</h3>
+        <span class="p-tag">Intelligent Operations</span>
+        <p>Detect, investigate, remediate — automatically. Swarm intelligence applied to DevOps, turning chaos into calm.</p>
+        <span class="p-link">swarmops.devheallabs.in <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></span>
+      </a>
+
+      <a href="https://ncai.devheallabs.in" target="_blank" rel="noopener" class="p-card sr d4" data-accent="cyan" data-tilt>
+        <div class="p-card-glow"></div>
+        <div class="p-icon">&#x2726;</div>
+        <h3>NC AI</h3>
+        <span class="p-tag">Built-in LLM — English to Applications</span>
+        <p>The first programming language with its own transformer model. Describe what you want, get a complete NC application. Metal GPU accelerated.</p>
+        <span class="p-link">ncai.devheallabs.in <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></span>
+      </a>
+
+      <a href="https://neuraledge.devheallabs.in" target="_blank" rel="noopener" class="p-card sr d5" data-accent="gold" data-tilt>
+        <div class="p-card-glow"></div>
+        <div class="p-icon">&#x25B2;</div>
+        <h3>NeuralEdge</h3>
+        <span class="p-tag">Financial Intelligence</span>
+        <p>30+ indicators, AI predictions, real-time data. Institutional-grade financial intelligence, accessible to everyone.</p>
+        <span class="p-link">neuraledge.devheallabs.in <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></span>
+      </a>
+
+    </div>
+  </div>
+</section>
+
+<!-- The NC Stack -->
+<section id="technology" class="stack-section">
+  <div class="container">
+    <div class="sec-label sr">The Foundation</div>
+    <h2 class="sec-title sr d1">The NC Stack</h2>
+    <p class="sec-desc sr d2">Every product we build runs on NC. One language powers the entire ecosystem.</p>
+    <div class="stack-grid">
+      <div class="stack-visual sr">
+        <div class="stack-line sl-v1"></div>
+        <div class="stack-line sl-v2"></div>
+        <div class="stack-line sl-h1"></div>
+        <div class="stack-line sl-h2"></div>
+        <div class="stack-center">NC</div>
+        <div class="stack-node sn1">NC Language</div>
+        <div class="stack-node sn2">HiveANT</div>
+        <div class="stack-node sn3">SwarmOps</div>
+        <div class="stack-node sn4">NeuralEdge</div>
+      </div>
+      <div class="sr d2">
+        <div class="stack-code">
+          <div class="dots"><i></i><i></i><i></i></div>
+          <pre>
+<span class="cm">// AI sentiment API in NC</span>
+<span class="kw">service</span> <span class="fn">SentimentAPI</span> {
+
+  <span class="kw">route</span> <span class="st">"/analyze"</span> {
+    <span class="kw">input</span>  text: <span class="fn">string</span>
+    <span class="kw">ai</span>    model: <span class="st">"gpt-4"</span>
+    <span class="kw">prompt</span> <span class="st">"Analyze sentiment: {text}"</span>
+    <span class="kw">output</span> json
+  }
+
+  <span class="kw">deploy</span> port: <span class="nu">3000</span>
+}</pre>
+        </div>
+        <div class="stack-info">
+          <h3>Why NC?</h3>
+          <ul class="stack-features">
+            <li>Plain English syntax — no semicolons, no brackets hell</li>
+            <li>AI-native primitives built into the language core</li>
+            <li>Single binary output, zero runtime dependencies</li>
+            <li>570KB compiler — smaller than most npm packages</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- By the Numbers -->
+<section class="stats-section">
+  <div class="container">
+    <div class="sec-label sr">By the Numbers</div>
+    <h2 class="sec-title sr d1">Built different. Measured obsessively.</h2>
+    <p class="sec-desc sr d2">NC is not just another language. The numbers tell the story.</p>
+    <div class="stats-grid">
+      <div class="stat sr d1">
+        <div class="stat-val"><span class="gt counter" data-target="80">0</span><span class="suffix gt">+</span></div>
+        <div class="stat-label">Functions</div>
+      </div>
+      <div class="stat sr d2">
+        <div class="stat-val"><span class="gt counter" data-target="570">0</span><span class="suffix gt">KB</span></div>
+        <div class="stat-label">Binary Size</div>
+      </div>
+      <div class="stat sr d3">
+        <div class="stat-val"><span class="gt counter" data-target="0">0</span></div>
+        <div class="stat-label">Dependencies</div>
+      </div>
+      <div class="stat sr d4">
+        <div class="stat-val"><span class="gt counter" data-target="90">0</span></div>
+        <div class="stat-label">Tests Passing</div>
+      </div>
+      <div class="stat sr">
+        <div class="stat-val"><span class="gt counter" data-target="4">0</span></div>
+        <div class="stat-label">Products on NC</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Open Source -->
+<section id="open-source">
+  <div class="container">
+    <div class="sec-label sr">Open Source</div>
+    <h2 class="sec-title sr d1">Built in the open.</h2>
+    <p class="sec-desc sr d2">We believe the best developer tools are the ones developers can see, fork, and improve.</p>
+    <div class="oss-grid">
+      <a href="https://github.com/DevHeal-Labs/nc" target="_blank" rel="noopener" class="oss-card sr d1">
+        <div class="oss-card-head">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+          <h4>nc</h4>
+        </div>
+        <p>The NC programming language — AI-native, plain-English syntax, single-binary output.</p>
+        <div class="oss-stars"><svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg> Star</div>
+      </a>
+      <a href="https://github.com/DevHeal-Labs/hiveant" target="_blank" rel="noopener" class="oss-card sr d2">
+        <div class="oss-card-head">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+          <h4>hiveant</h4>
+        </div>
+        <p>Autonomous incident response with 12 AI agents. Self-healing infrastructure.</p>
+        <div class="oss-stars"><svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg> Star</div>
+      </a>
+      <a href="https://github.com/DevHeal-Labs/swarmops" target="_blank" rel="noopener" class="oss-card sr d3">
+        <div class="oss-card-head">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+          <h4>swarmops</h4>
+        </div>
+        <p>Intelligent operations platform — detect, investigate, remediate automatically.</p>
+        <div class="oss-stars"><svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg> Star</div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- About -->
+<section id="about" class="about-section">
+  <div class="container">
+    <div class="about-grid">
+      <div class="sr">
+        <div class="sec-label">About</div>
+        <div class="about-mission">Making AI development accessible to everyone.</div>
+        <p class="about-text">DevHeal Labs AI was born from a simple conviction: AI should not require a PhD to use. We build tools that let any developer harness artificial intelligence with plain language, minimal code, and zero friction.</p>
+        <p class="about-text">Every product we ship — from NC to NeuralEdge — is designed to collapse complexity into clarity.</p>
+        <div class="about-loc">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          Built in Hyderabad, India
+        </div>
+      </div>
+      <div class="sr d2">
+        <div class="about-quote">
+          <p>Founded by a developer who believed AI should be simple. That conviction became NC — and NC became a company.</p>
+          <div class="aq-attr">— The Origin Story</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <div class="f-logo">Dev<span>Heal</span> Labs</div>
+        <p>Intelligent developer tools and AI-native infrastructure. Building the future of software, one language at a time.</p>
+        <div class="nc-badge" style="margin-top:16px">
+          <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          Built with NC
+        </div>
+      </div>
+      <div class="f-col">
+        <h5>Products</h5>
+        <ul>
+          <li><a href="https://nc.devheallabs.in" target="_blank">NC Language</a></li>
+          <li><a href="https://hiveant.devheallabs.in" target="_blank">HiveANT</a></li>
+          <li><a href="https://swarmops.devheallabs.in" target="_blank">SwarmOps</a></li>
+          <li><a href="https://neuraledge.devheallabs.in" target="_blank">NeuralEdge</a></li>
+        </ul>
+      </div>
+      <div class="f-col">
+        <h5>Developers</h5>
+        <ul>
+          <li><a href="#">Documentation</a></li>
+          <li><a href="#">NC Playground</a></li>
+          <li><a href="#">API Reference</a></li>
+          <li><a href="#">Examples</a></li>
+        </ul>
+      </div>
+      <div class="f-col">
+        <h5>Company</h5>
+        <ul>
+          <li><a href="#about">About</a></li>
+          <li><a href="https://github.com/DevHeal-Labs" target="_blank">GitHub</a></li>
+          <li><a href="#">Blog</a></li>
+          <li><a href="#">Contact</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>&copy; 2026 DevHeal Labs AI. All rights reserved.</span>
+      <div class="socials">
+        <a href="https://github.com/DevHeal-Labs" target="_blank" aria-label="GitHub"><svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M12 .3a12 12 0 00-3.8 23.38c.6.1.82-.26.82-.58v-2.02c-3.34.73-4.04-1.61-4.04-1.61a3.18 3.18 0 00-1.33-1.76c-1.09-.74.08-.73.08-.73a2.52 2.52 0 011.84 1.24 2.56 2.56 0 003.5 1 2.56 2.56 0 01.76-1.6c-2.67-.3-5.47-1.33-5.47-5.93a4.64 4.64 0 011.24-3.22 4.3 4.3 0 01.12-3.18s1-.33 3.3 1.23a11.4 11.4 0 016 0c2.28-1.56 3.29-1.23 3.29-1.23a4.3 4.3 0 01.12 3.18 4.64 4.64 0 011.23 3.22c0 4.61-2.81 5.63-5.48 5.92a2.86 2.86 0 01.82 2.22v3.29c0 .32.21.7.82.58A12 12 0 0012 .3"/></svg></a>
+        <a href="#" aria-label="Twitter"><svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  'use strict';
+
+  // ── Nav shrink on scroll ──
+  const nav = document.getElementById('nav');
+  let lastScroll = 0;
+  function onScroll(){
+    const y = window.scrollY;
+    nav.classList.toggle('scrolled', y > 40);
+    lastScroll = y;
+  }
+  window.addEventListener('scroll', onScroll, {passive:true});
+
+  // ── Hero mouse glow ──
+  const hero = document.getElementById('hero');
+  const glow = document.getElementById('heroGlow');
+  hero.addEventListener('mousemove', function(e){
+    const r = hero.getBoundingClientRect();
+    glow.style.left = (e.clientX - r.left) + 'px';
+    glow.style.top = (e.clientY - r.top) + 'px';
+    glow.style.opacity = '1';
+  });
+  hero.addEventListener('mouseleave', function(){
+    glow.style.opacity = '0';
+  });
+
+  // ── Scroll reveal (IntersectionObserver) ──
+  const srEls = document.querySelectorAll('.sr');
+  const srObs = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if(e.isIntersecting){
+        e.target.classList.add('vis');
+        srObs.unobserve(e.target);
+      }
+    });
+  }, {threshold:0.15, rootMargin:'0px 0px -40px 0px'});
+  srEls.forEach(function(el){ srObs.observe(el); });
+
+  // ── Animated counters ──
+  const counters = document.querySelectorAll('.counter');
+  const ctrObs = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if(!e.isIntersecting) return;
+      const el = e.target;
+      const target = parseInt(el.dataset.target, 10);
+      if(target === 0){ el.textContent = '0'; ctrObs.unobserve(el); return; }
+      const duration = 1800;
+      const start = performance.now();
+      function tick(now){
+        const p = Math.min((now - start) / duration, 1);
+        const ease = 1 - Math.pow(1 - p, 3);
+        el.textContent = Math.round(target * ease);
+        if(p < 1) requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+      ctrObs.unobserve(el);
+    });
+  }, {threshold:0.5});
+  counters.forEach(function(c){ ctrObs.observe(c); });
+
+  // ── 3D tilt on product cards ──
+  document.querySelectorAll('[data-tilt]').forEach(function(card){
+    card.addEventListener('mousemove', function(e){
+      const r = card.getBoundingClientRect();
+      const x = (e.clientX - r.left) / r.width;
+      const y = (e.clientY - r.top) / r.height;
+      const tiltX = (y - 0.5) * -12;
+      const tiltY = (x - 0.5) * 12;
+      card.style.transform = 'perspective(800px) rotateX('+tiltX+'deg) rotateY('+tiltY+'deg) scale3d(1.02,1.02,1.02)';
+      // Move glow
+      const g = card.querySelector('.p-card-glow');
+      if(g){
+        g.style.left = (e.clientX - r.left - 100) + 'px';
+        g.style.top = (e.clientY - r.top - 100) + 'px';
+      }
+    });
+    card.addEventListener('mouseleave', function(){
+      card.style.transform = 'perspective(800px) rotateX(0) rotateY(0) scale3d(1,1,1)';
+      card.style.transition = 'transform .5s cubic-bezier(.4,0,.2,1), box-shadow .4s';
+    });
+    card.addEventListener('mouseenter', function(){
+      card.style.transition = 'box-shadow .4s';
+    });
+  });
+
+  // ── Close mobile nav on link click ──
+  document.querySelectorAll('.nav-links a').forEach(function(a){
+    a.addEventListener('click', function(){
+      document.querySelector('.nav-links').classList.remove('open');
+    });
+  });
+
+})();
+</script>
+</body>
+</html>
+
+
+// FILE: devheallabs-website/website/index.html
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DevHeal Labs AI — Intelligent Developer Tools & AI-Native Infrastructure</title>
+<meta name="description" content="DevHeal Labs AI builds intelligent developer tools and AI-native infrastructure. Home of NC Language, HiveANT, SwarmOps, and NeuralEdge.">
+<meta name="keywords" content="DevHeal Labs, AI, developer tools, NC language, HiveANT, SwarmOps, NeuralEdge, Hyderabad">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0a0f;--bg2:#0e0e18;--card:#111119;--card-hover:#16162a;
+  --cyan:#00d4ff;--purple:#7c3aed;--orange:#ff6b35;--green:#10b981;--gold:#f59e0b;
+  --text:#e8e8ed;--muted:#71717a;--dim:#3a3a4a;--border:rgba(255,255,255,.06);
+  --grad:linear-gradient(135deg,var(--cyan),var(--purple));
+  --font:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Roboto,sans-serif;
+  --mono:'SF Mono',SFMono-Regular,Consolas,'Liberation Mono',Menlo,monospace;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--font);line-height:1.6;overflow-x:hidden}
+a{color:inherit;text-decoration:none}
+.container{max-width:1200px;margin:0 auto;padding:0 32px}
+
+/* Grid overlay */
+body::before{
+  content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:
+    linear-gradient(rgba(255,255,255,.015) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,.015) 1px,transparent 1px);
+  background-size:60px 60px;
+}
+
+/* Gradient text */
+.gt{background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+
+/* ── NAV ── */
+.nav{
+  position:fixed;top:0;left:0;right:0;z-index:1000;
+  padding:20px 0;transition:all .4s cubic-bezier(.4,0,.2,1);
+}
+.nav.scrolled{
+  padding:12px 0;
+  background:rgba(10,10,15,.75);
+  backdrop-filter:blur(20px) saturate(1.8);
+  -webkit-backdrop-filter:blur(20px) saturate(1.8);
+  border-bottom:1px solid var(--border);
+}
+.nav-inner{display:flex;align-items:center;justify-content:space-between;max-width:1200px;margin:0 auto;padding:0 32px}
+.nav-logo{font-size:1.25rem;font-weight:800;letter-spacing:-.03em;display:flex;align-items:center;gap:10px}
+.nav-logo .logo-icon{
+  width:36px;height:36px;border-radius:10px;
+  background:var(--grad);display:flex;align-items:center;justify-content:center;
+  font-weight:900;font-size:.9rem;color:#fff;
+}
+.nav-logo span{color:var(--cyan)}
+.nav-links{display:flex;align-items:center;gap:36px;list-style:none}
+.nav-links a{color:var(--muted);font-size:.875rem;font-weight:500;transition:color .25s;position:relative}
+.nav-links a:hover{color:var(--text)}
+.nav-links a::after{
+  content:'';position:absolute;bottom:-4px;left:0;width:0;height:2px;
+  background:var(--cyan);transition:width .25s;border-radius:2px;
+}
+.nav-links a:hover::after{width:100%}
+.nav-gh{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:8px 20px;border-radius:8px;font-size:.85rem;font-weight:600;
+  background:rgba(255,255,255,.06);border:1px solid var(--border);
+  color:var(--text);transition:all .25s;
+}
+.nav-gh:hover{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.15)}
+.nav-gh svg{width:18px;height:18px}
+.hamburger{display:none;background:none;border:none;color:var(--text);font-size:1.5rem;cursor:pointer}
+
+/* ── HERO ── */
+.hero{
+  min-height:100vh;display:flex;align-items:center;justify-content:center;
+  text-align:center;position:relative;overflow:hidden;padding:120px 32px 80px;
+}
+.hero-glow{
+  position:absolute;inset:0;pointer-events:none;overflow:hidden;
+}
+.orb{
+  position:absolute;border-radius:50%;filter:blur(80px);opacity:.35;
+  animation:orbFloat 20s ease-in-out infinite;
+}
+.orb-1{width:600px;height:600px;background:var(--cyan);top:-20%;left:-10%;animation-delay:0s}
+.orb-2{width:500px;height:500px;background:var(--purple);bottom:-15%;right:-5%;animation-delay:-7s}
+.orb-3{width:350px;height:350px;background:#ff6b35;top:30%;right:20%;animation-delay:-14s;opacity:.15}
+@keyframes orbFloat{
+  0%,100%{transform:translate(0,0) scale(1)}
+  25%{transform:translate(40px,-30px) scale(1.05)}
+  50%{transform:translate(-20px,40px) scale(.95)}
+  75%{transform:translate(30px,20px) scale(1.02)}
+}
+#heroGlow{
+  position:absolute;width:500px;height:500px;border-radius:50%;
+  background:radial-gradient(circle,rgba(0,212,255,.12) 0%,transparent 70%);
+  pointer-events:none;transform:translate(-50%,-50%);
+  transition:left .15s ease-out,top .15s ease-out;opacity:0;
+}
+.hero-content{position:relative;z-index:2;max-width:850px}
+.hero-badge{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:6px 18px;border-radius:999px;font-size:.75rem;font-weight:600;
+  letter-spacing:.05em;text-transform:uppercase;
+  background:rgba(0,212,255,.08);border:1px solid rgba(0,212,255,.2);
+  color:var(--cyan);margin-bottom:32px;
+}
+.hero-badge .dot{width:6px;height:6px;border-radius:50%;background:var(--cyan);animation:pulse 2s ease infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+.hero h1{
+  font-size:clamp(2.8rem,6.5vw,5rem);font-weight:900;line-height:1.05;
+  letter-spacing:-.04em;margin-bottom:12px;
+}
+.hero h1 .word{display:inline-block;opacity:0;transform:translateY(30px);animation:wordIn .6s ease forwards}
+@keyframes wordIn{to{opacity:1;transform:translateY(0)}}
+
+.hero-rotate{
+  display:block;height:clamp(2.8rem,6.5vw,5rem);overflow:hidden;position:relative;
+}
+.hero-rotate-inner{
+  display:flex;flex-direction:column;
+  animation:rotateWords 8s ease infinite;
+}
+.hero-rotate-inner span{
+  height:clamp(2.8rem,6.5vw,5rem);display:flex;align-items:center;justify-content:center;
+  font-size:clamp(2.8rem,6.5vw,5rem);font-weight:900;letter-spacing:-.04em;
+  flex-shrink:0;
+}
+@keyframes rotateWords{
+  0%,20%{transform:translateY(0)}
+  25%,45%{transform:translateY(-25%)}
+  50%,70%{transform:translateY(-50%)}
+  75%,95%{transform:translateY(-75%)}
+  100%{transform:translateY(-100%)}
+}
+
+.hero-desc{
+  font-size:clamp(1rem,2vw,1.25rem);color:var(--muted);max-width:600px;
+  margin:24px auto 40px;line-height:1.7;opacity:0;animation:wordIn .6s ease .8s forwards;
+}
+.hero-buttons{
+  display:flex;gap:16px;justify-content:center;flex-wrap:wrap;
+  opacity:0;animation:wordIn .6s ease 1s forwards;
+}
+.btn{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:14px 32px;border-radius:12px;font-size:.95rem;font-weight:600;
+  transition:all .3s cubic-bezier(.4,0,.2,1);cursor:pointer;border:none;
+  position:relative;overflow:hidden;
+}
+.btn-primary{background:var(--grad);color:#fff}
+.btn-primary::before{
+  content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.15),transparent);
+  opacity:0;transition:opacity .3s;
+}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 12px 40px rgba(0,212,255,.3)}
+.btn-primary:hover::before{opacity:1}
+.btn-ghost{
+  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);color:var(--text);
+}
+.btn-ghost:hover{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.2);transform:translateY(-2px)}
+
+/* ── SECTION COMMON ── */
+section{padding:120px 0;position:relative;z-index:1}
+.sec-label{
+  font-size:.75rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--cyan);margin-bottom:16px;
+}
+.sec-title{font-size:clamp(2rem,4vw,3rem);font-weight:900;letter-spacing:-.03em;margin-bottom:16px;line-height:1.1}
+.sec-desc{color:var(--muted);font-size:1.1rem;max-width:560px;margin-bottom:56px}
+
+/* Scroll reveal */
+.sr{opacity:0;transform:translateY(40px);transition:opacity .7s cubic-bezier(.4,0,.2,1),transform .7s cubic-bezier(.4,0,.2,1)}
+.sr.vis{opacity:1;transform:translateY(0)}
+.sr.d1{transition-delay:.1s}.sr.d2{transition-delay:.2s}.sr.d3{transition-delay:.3s}.sr.d4{transition-delay:.4s}
+
+/* ── PRODUCTS ── */
+.products-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:24px}
+.p-card{
+  background:var(--card);border:1px solid var(--border);border-radius:20px;
+  padding:40px 36px;position:relative;overflow:hidden;
+  transition:transform .4s cubic-bezier(.4,0,.2,1),box-shadow .4s;
+  transform-style:preserve-3d;perspective:800px;cursor:pointer;
+}
+.p-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  opacity:0;transition:opacity .4s;
+}
+.p-card[data-accent="cyan"]::before{background:var(--cyan)}
+.p-card[data-accent="orange"]::before{background:var(--orange)}
+.p-card[data-accent="green"]::before{background:var(--green)}
+.p-card[data-accent="gold"]::before{background:var(--gold)}
+.p-card:hover::before{opacity:1}
+.p-card:hover{box-shadow:0 24px 64px rgba(0,0,0,.4)}
+.p-card-glow{
+  position:absolute;width:200px;height:200px;border-radius:50%;
+  filter:blur(60px);opacity:0;transition:opacity .5s;pointer-events:none;
+}
+.p-card:hover .p-card-glow{opacity:.08}
+.p-card[data-accent="cyan"] .p-card-glow{background:var(--cyan)}
+.p-card[data-accent="orange"] .p-card-glow{background:var(--orange)}
+.p-card[data-accent="green"] .p-card-glow{background:var(--green)}
+.p-card[data-accent="gold"] .p-card-glow{background:var(--gold)}
+.p-icon{
+  width:52px;height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;
+  font-size:1.3rem;margin-bottom:24px;font-weight:800;font-family:var(--mono);
+}
+.p-card[data-accent="cyan"] .p-icon{background:rgba(0,212,255,.1);color:var(--cyan)}
+.p-card[data-accent="orange"] .p-icon{background:rgba(255,107,53,.1);color:var(--orange)}
+.p-card[data-accent="green"] .p-icon{background:rgba(16,185,129,.1);color:var(--green)}
+.p-card[data-accent="gold"] .p-icon{background:rgba(245,158,11,.1);color:var(--gold)}
+.p-card h3{font-size:1.35rem;font-weight:800;margin-bottom:6px}
+.p-tag{font-size:.8rem;font-weight:600;margin-bottom:14px;display:block}
+.p-card[data-accent="cyan"] .p-tag{color:var(--cyan)}
+.p-card[data-accent="orange"] .p-tag{color:var(--orange)}
+.p-card[data-accent="green"] .p-tag{color:var(--green)}
+.p-card[data-accent="gold"] .p-tag{color:var(--gold)}
+.p-card p{color:var(--muted);font-size:.95rem;line-height:1.7;margin-bottom:24px}
+.p-link{
+  display:inline-flex;align-items:center;gap:6px;font-size:.85rem;font-weight:600;
+  transition:gap .25s;
+}
+.p-card[data-accent="cyan"] .p-link{color:var(--cyan)}
+.p-card[data-accent="orange"] .p-link{color:var(--orange)}
+.p-card[data-accent="green"] .p-link{color:var(--green)}
+.p-card[data-accent="gold"] .p-link{color:var(--gold)}
+.p-card:hover .p-link{gap:12px}
+
+/* ── NC STACK ── */
+.stack-section{background:var(--bg2);border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+.stack-grid{display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:center}
+.stack-visual{position:relative;min-height:400px}
+.stack-center{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:100px;height:100px;border-radius:24px;
+  background:var(--grad);display:flex;align-items:center;justify-content:center;
+  font-size:1.5rem;font-weight:900;color:#fff;font-family:var(--mono);
+  box-shadow:0 0 60px rgba(0,212,255,.3);z-index:2;
+  animation:centerPulse 3s ease infinite;
+}
+@keyframes centerPulse{0%,100%{box-shadow:0 0 60px rgba(0,212,255,.3)}50%{box-shadow:0 0 80px rgba(0,212,255,.5)}}
+.stack-node{
+  position:absolute;padding:14px 22px;border-radius:14px;
+  background:var(--card);border:1px solid var(--border);
+  font-size:.82rem;font-weight:700;white-space:nowrap;z-index:2;
+  transition:transform .3s,box-shadow .3s;
+}
+.stack-node:hover{transform:scale(1.08);box-shadow:0 8px 32px rgba(0,0,0,.4)}
+.stack-node.sn1{top:8%;left:50%;transform:translateX(-50%);color:var(--cyan)}
+.stack-node.sn2{top:50%;right:5%;transform:translateY(-50%);color:var(--orange)}
+.stack-node.sn3{bottom:8%;left:50%;transform:translateX(-50%);color:var(--green)}
+.stack-node.sn4{top:50%;left:5%;transform:translateY(-50%);color:var(--gold)}
+.stack-node.sn1:hover{transform:translateX(-50%) scale(1.08)}
+.stack-node.sn2:hover{transform:translateY(-50%) scale(1.08)}
+.stack-node.sn3:hover{transform:translateX(-50%) scale(1.08)}
+.stack-node.sn4:hover{transform:translateY(-50%) scale(1.08)}
+.stack-line{
+  position:absolute;background:var(--border);z-index:1;
+}
+.stack-line.sl-v1{width:2px;height:calc(50% - 74px);top:calc(8% + 48px);left:50%;transform:translateX(-50%);
+  background:linear-gradient(to bottom,rgba(0,212,255,.3),rgba(0,212,255,.1));animation:linePulse 2s ease infinite}
+.stack-line.sl-v2{width:2px;height:calc(50% - 74px);bottom:calc(8% + 48px);left:50%;transform:translateX(-50%);
+  background:linear-gradient(to top,rgba(16,185,129,.3),rgba(16,185,129,.1));animation:linePulse 2s ease infinite .5s}
+.stack-line.sl-h1{height:2px;width:calc(50% - 90px);top:50%;right:calc(5% + 100px);transform:translateY(-50%);
+  background:linear-gradient(to left,rgba(255,107,53,.3),rgba(255,107,53,.1));animation:linePulse 2s ease infinite 1s}
+.stack-line.sl-h2{height:2px;width:calc(50% - 90px);top:50%;left:calc(5% + 100px);transform:translateY(-50%);
+  background:linear-gradient(to right,rgba(245,158,11,.3),rgba(245,158,11,.1));animation:linePulse 2s ease infinite 1.5s}
+@keyframes linePulse{0%,100%{opacity:.6}50%{opacity:1}}
+
+.stack-code{
+  background:var(--bg);border:1px solid var(--border);border-radius:16px;
+  padding:32px;font-family:var(--mono);font-size:.85rem;line-height:1.9;
+  position:relative;overflow:hidden;
+}
+.stack-code::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:40px;
+  background:rgba(255,255,255,.02);border-bottom:1px solid var(--border);
+}
+.stack-code .dots{position:absolute;top:12px;left:16px;display:flex;gap:6px}
+.stack-code .dots i{width:10px;height:10px;border-radius:50%;display:block}
+.stack-code .dots i:nth-child(1){background:#ff5f57}
+.stack-code .dots i:nth-child(2){background:#febc2e}
+.stack-code .dots i:nth-child(3){background:#28c840}
+.stack-code pre{margin-top:16px;color:var(--muted);overflow-x:auto}
+.kw{color:var(--purple)}.fn{color:var(--cyan)}.st{color:var(--green)}.cm{color:#444}.nu{color:var(--gold)}
+
+.stack-info h3{font-size:1.1rem;font-weight:700;margin-bottom:20px;margin-top:28px}
+.stack-features{list-style:none}
+.stack-features li{
+  padding:10px 0 10px 28px;position:relative;color:var(--muted);font-size:.95rem;
+}
+.stack-features li::before{
+  content:'';position:absolute;left:0;top:18px;width:8px;height:8px;border-radius:50%;
+  background:var(--grad);
+}
+
+/* ── STATS ── */
+.stats-section{overflow:hidden}
+.stats-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:20px}
+.stat{
+  background:var(--card);border:1px solid var(--border);border-radius:20px;
+  padding:40px 24px;text-align:center;position:relative;overflow:hidden;
+  transition:border-color .3s,transform .3s;
+}
+.stat:hover{border-color:rgba(0,212,255,.2);transform:translateY(-4px)}
+.stat-val{
+  font-size:clamp(2rem,3.5vw,2.8rem);font-weight:900;line-height:1.2;margin-bottom:4px;
+}
+.stat-val .gt{display:inline}
+.stat-suffix{font-size:.6em;font-weight:700;opacity:.7}
+.stat-label{font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:600;margin-top:4px}
+
+/* ── OPEN SOURCE ── */
+.oss-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.oss-card{
+  background:var(--card);border:1px solid var(--border);border-radius:16px;
+  padding:28px 28px 24px;transition:border-color .3s,transform .3s;
+}
+.oss-card:hover{border-color:rgba(0,212,255,.2);transform:translateY(-4px)}
+.oss-card-head{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.oss-card-head svg{color:var(--muted);flex-shrink:0}
+.oss-card h4{font-size:1rem;font-weight:700}
+.oss-card p{color:var(--muted);font-size:.88rem;line-height:1.6;margin-bottom:16px}
+.oss-stars{display:flex;align-items:center;gap:6px;font-size:.8rem;color:var(--muted);font-weight:600}
+.oss-stars svg{color:var(--gold)}
+
+/* ── ABOUT ── */
+.about-section{background:var(--bg2);border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+.about-grid{display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:center}
+.about-mission{
+  font-size:clamp(1.4rem,2.5vw,2rem);font-weight:800;line-height:1.3;letter-spacing:-.02em;
+  margin-bottom:24px;
+}
+.about-text{color:var(--muted);font-size:1.05rem;line-height:1.8;margin-bottom:24px}
+.about-loc{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:10px 20px;border-radius:12px;
+  background:rgba(0,212,255,.06);border:1px solid rgba(0,212,255,.15);
+  font-size:.9rem;font-weight:600;color:var(--cyan);
+}
+.about-quote{
+  background:var(--card);border:1px solid var(--border);border-radius:20px;
+  padding:40px 36px;position:relative;
+}
+.about-quote::before{
+  content:'\201C';position:absolute;top:16px;left:28px;
+  font-size:5rem;color:rgba(0,212,255,.1);line-height:1;font-family:Georgia,serif;
+}
+.about-quote p{font-size:1.15rem;line-height:1.8;font-style:italic;color:var(--muted);position:relative;z-index:1}
+.about-quote .aq-attr{margin-top:20px;font-size:.85rem;font-style:normal;color:var(--dim);font-weight:600}
+
+/* ── FOOTER ── */
+footer{border-top:1px solid var(--border);padding:80px 0 40px;position:relative;z-index:1}
+.footer-grid{display:grid;grid-template-columns:2.5fr 1fr 1fr 1fr;gap:48px;margin-bottom:60px}
+.footer-brand .f-logo{font-size:1.2rem;font-weight:800;margin-bottom:12px;letter-spacing:-.02em}
+.footer-brand .f-logo span{color:var(--cyan)}
+.footer-brand p{color:var(--muted);font-size:.88rem;line-height:1.7;max-width:300px}
+.f-col h5{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text);margin-bottom:20px}
+.f-col ul{list-style:none}
+.f-col ul li{margin-bottom:12px}
+.f-col ul a{color:var(--muted);font-size:.88rem;transition:color .2s}
+.f-col ul a:hover{color:var(--text)}
+.footer-bottom{
+  display:flex;justify-content:space-between;align-items:center;
+  padding-top:28px;border-top:1px solid var(--border);font-size:.8rem;color:var(--dim);
+}
+.footer-bottom .socials{display:flex;gap:16px}
+.footer-bottom .socials a{color:var(--muted);transition:color .2s}
+.footer-bottom .socials a:hover{color:var(--text)}
+.nc-badge{
+  display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:6px;
+  background:rgba(0,212,255,.06);border:1px solid rgba(0,212,255,.12);
+  font-size:.72rem;font-weight:700;color:var(--cyan);text-transform:uppercase;letter-spacing:.05em;
+}
+
+/* ── RESPONSIVE ── */
+@media(max-width:1024px){
+  .products-grid{grid-template-columns:1fr 1fr}
+  .stats-grid{grid-template-columns:repeat(3,1fr)}
+}
+@media(max-width:768px){
+  .nav-links{
+    display:none;position:absolute;top:100%;left:0;right:0;
+    background:rgba(10,10,15,.97);backdrop-filter:blur(20px);
+    flex-direction:column;padding:24px 32px;gap:20px;
+    border-bottom:1px solid var(--border);
+  }
+  .nav-links.open{display:flex}
+  .hamburger{display:block}
+  .hero{min-height:auto;padding:160px 24px 100px}
+  .products-grid{grid-template-columns:1fr}
+  .stack-grid,.about-grid{grid-template-columns:1fr}
+  .stack-visual{min-height:320px}
+  .stats-grid{grid-template-columns:repeat(2,1fr)}
+  .oss-grid{grid-template-columns:1fr}
+  .footer-grid{grid-template-columns:1fr 1fr}
+  section{padding:80px 0}
+  .sec-desc{margin-bottom:40px}
+}
+@media(max-width:480px){
+  .hero-buttons{flex-direction:column;align-items:center}
+  .btn{width:100%;justify-content:center}
+  .stats-grid{grid-template-columns:1fr}
+  .footer-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="nav" id="nav">
+  <div class="nav-inner">
+    <a href="#" class="nav-logo"><div class="logo-icon">DH</div> Dev<span>Heal</span> Labs</a>
+    <button class="hamburger" onclick="document.querySelector('.nav-links').classList.toggle('open')" aria-label="Menu">&#9776;</button>
+    <ul class="nav-links">
+      <li><a href="#products">Products</a></li>
+      <li><a href="#technology">Technology</a></li>
+      <li><a href="#open-source">Open Source</a></li>
+      <li><a href="#about">About</a></li>
+      <li><a href="https://github.com/DevHeal-Labs" target="_blank" rel="noopener" class="nav-gh"><svg fill="currentColor" viewBox="0 0 24 24"><path d="M12 .3a12 12 0 00-3.8 23.38c.6.1.82-.26.82-.58v-2.02c-3.34.73-4.04-1.61-4.04-1.61a3.18 3.18 0 00-1.33-1.76c-1.09-.74.08-.73.08-.73a2.52 2.52 0 011.84 1.24 2.56 2.56 0 003.5 1 2.56 2.56 0 01.76-1.6c-2.67-.3-5.47-1.33-5.47-5.93a4.64 4.64 0 011.24-3.22 4.3 4.3 0 01.12-3.18s1-.33 3.3 1.23a11.4 11.4 0 016 0c2.28-1.56 3.29-1.23 3.29-1.23a4.3 4.3 0 01.12 3.18 4.64 4.64 0 011.23 3.22c0 4.61-2.81 5.63-5.48 5.92a2.86 2.86 0 01.82 2.22v3.29c0 .32.21.7.82.58A12 12 0 0012 .3"/></svg>GitHub</a></li>
+    </ul>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero" id="hero">
+  <div class="hero-glow">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+  </div>
+  <div id="heroGlow"></div>
+  <div class="hero-content">
+    <div class="hero-badge"><span class="dot"></span> AI-Native Infrastructure</div>
+    <h1>
+      <span class="word" style="animation-delay:.1s">We</span>
+      <span class="word" style="animation-delay:.2s">build</span>
+      <span class="word" style="animation-delay:.3s">intelligent</span>
+    </h1>
+    <div class="hero-rotate">
+      <div class="hero-rotate-inner">
+        <span class="gt">developer tools</span>
+        <span class="gt">AI infrastructure</span>
+        <span class="gt">autonomous systems</span>
+        <span class="gt">developer tools</span>
+      </div>
+    </div>
+    <p class="hero-desc">DevHeal Labs AI is reimagining how software is written, deployed, and kept alive. Four products. One language. Zero compromises.</p>
+    <div class="hero-buttons">
+      <a href="#products" class="btn btn-primary">Explore Products <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+      <a href="https://github.com/DevHeal-Labs" target="_blank" rel="noopener" class="btn btn-ghost"><svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M12 .3a12 12 0 00-3.8 23.38c.6.1.82-.26.82-.58v-2.02c-3.34.73-4.04-1.61-4.04-1.61a3.18 3.18 0 00-1.33-1.76c-1.09-.74.08-.73.08-.73a2.52 2.52 0 011.84 1.24 2.56 2.56 0 003.5 1 2.56 2.56 0 01.76-1.6c-2.67-.3-5.47-1.33-5.47-5.93a4.64 4.64 0 011.24-3.22 4.3 4.3 0 01.12-3.18s1-.33 3.3 1.23a11.4 11.4 0 016 0c2.28-1.56 3.29-1.23 3.29-1.23a4.3 4.3 0 01.12 3.18 4.64 4.64 0 011.23 3.22c0 4.61-2.81 5.63-5.48 5.92a2.86 2.86 0 01.82 2.22v3.29c0 .32.21.7.82.58A12 12 0 0012 .3"/></svg> Star on GitHub</a>
+    </div>
+  </div>
+</section>
+
+<!-- Products -->
+<section id="products">
+  <div class="container">
+    <div class="sec-label sr">What We Build</div>
+    <h2 class="sec-title sr d1">Four products. One mission.</h2>
+    <p class="sec-desc sr d2">Software that builds itself and heals itself — powered by the NC language.</p>
+    <div class="products-grid">
+
+      <a href="https://nc.devheallabs.in" target="_blank" rel="noopener" class="p-card sr d1" data-accent="cyan" data-tilt>
+        <div class="p-card-glow"></div>
+        <div class="p-icon">&lt;/&gt;</div>
+        <h3>NC Language</h3>
+        <span class="p-tag">The AI Programming Language</span>
+        <p>Build AI APIs in 12 lines of plain English. One file, one binary, zero dependencies. The language that thinks before it compiles.</p>
+        <span class="p-link">nc.devheallabs.in <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></span>
+      </a>
+
+      <a href="https://hiveant.devheallabs.in" target="_blank" rel="noopener" class="p-card sr d2" data-accent="orange" data-tilt>
+        <div class="p-card-glow"></div>
+        <div class="p-icon">&#x2B21;</div>
+        <h3>HiveANT</h3>
+        <span class="p-tag">Autonomous Incident Response</span>
+        <p>12 AI agents that heal your infrastructure before you wake up. Detect, triage, and remediate incidents at machine speed.</p>
+        <span class="p-link">hiveant.devheallabs.in <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></span>
+      </a>
+
+      <a href="https://swarmops.devheallabs.in" target="_blank" rel="noopener" class="p-card sr d3" data-accent="green" data-tilt>
+        <div class="p-card-glow"></div>
+        <div class="p-icon">&#x25C8;</div>
+        <h3>SwarmOps</h3>
+        <span class="p-tag">Intelligent Operations</span>
+        <p>Detect, investigate, remediate — automatically. Swarm intelligence applied to DevOps, turning chaos into calm.</p>
+        <span class="p-link">swarmops.devheallabs.in <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></span>
+      </a>
+
+      <a href="https://neuraledge.devheallabs.in" target="_blank" rel="noopener" class="p-card sr d4" data-accent="gold" data-tilt>
+        <div class="p-card-glow"></div>
+        <div class="p-icon">&#x25B2;</div>
+        <h3>NeuralEdge</h3>
+        <span class="p-tag">Financial Intelligence</span>
+        <p>30+ indicators, AI predictions, real-time data. Institutional-grade financial intelligence, accessible to everyone.</p>
+        <span class="p-link">neuraledge.devheallabs.in <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></span>
+      </a>
+
+    </div>
+  </div>
+</section>
+
+<!-- The NC Stack -->
+<section id="technology" class="stack-section">
+  <div class="container">
+    <div class="sec-label sr">The Foundation</div>
+    <h2 class="sec-title sr d1">The NC Stack</h2>
+    <p class="sec-desc sr d2">Every product we build runs on NC. One language powers the entire ecosystem.</p>
+    <div class="stack-grid">
+      <div class="stack-visual sr">
+        <div class="stack-line sl-v1"></div>
+        <div class="stack-line sl-v2"></div>
+        <div class="stack-line sl-h1"></div>
+        <div class="stack-line sl-h2"></div>
+        <div class="stack-center">NC</div>
+        <div class="stack-node sn1">NC Language</div>
+        <div class="stack-node sn2">HiveANT</div>
+        <div class="stack-node sn3">SwarmOps</div>
+        <div class="stack-node sn4">NeuralEdge</div>
+      </div>
+      <div class="sr d2">
+        <div class="stack-code">
+          <div class="dots"><i></i><i></i><i></i></div>
+          <pre>
+<span class="cm">// AI sentiment API in NC</span>
+<span class="kw">service</span> <span class="fn">SentimentAPI</span> {
+
+  <span class="kw">route</span> <span class="st">"/analyze"</span> {
+    <span class="kw">input</span>  text: <span class="fn">string</span>
+    <span class="kw">ai</span>    model: <span class="st">"gpt-4"</span>
+    <span class="kw">prompt</span> <span class="st">"Analyze sentiment: {text}"</span>
+    <span class="kw">output</span> json
+  }
+
+  <span class="kw">deploy</span> port: <span class="nu">3000</span>
+}</pre>
+        </div>
+        <div class="stack-info">
+          <h3>Why NC?</h3>
+          <ul class="stack-features">
+            <li>Plain English syntax — no semicolons, no brackets hell</li>
+            <li>AI-native primitives built into the language core</li>
+            <li>Single binary output, zero runtime dependencies</li>
+            <li>570KB compiler — smaller than most npm packages</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- By the Numbers -->
+<section class="stats-section">
+  <div class="container">
+    <div class="sec-label sr">By the Numbers</div>
+    <h2 class="sec-title sr d1">Built different. Measured obsessively.</h2>
+    <p class="sec-desc sr d2">NC is not just another language. The numbers tell the story.</p>
+    <div class="stats-grid">
+      <div class="stat sr d1">
+        <div class="stat-val"><span class="gt counter" data-target="80">0</span><span class="suffix gt">+</span></div>
+        <div class="stat-label">Functions</div>
+      </div>
+      <div class="stat sr d2">
+        <div class="stat-val"><span class="gt counter" data-target="570">0</span><span class="suffix gt">KB</span></div>
+        <div class="stat-label">Binary Size</div>
+      </div>
+      <div class="stat sr d3">
+        <div class="stat-val"><span class="gt counter" data-target="0">0</span></div>
+        <div class="stat-label">Dependencies</div>
+      </div>
+      <div class="stat sr d4">
+        <div class="stat-val"><span class="gt counter" data-target="90">0</span></div>
+        <div class="stat-label">Tests Passing</div>
+      </div>
+      <div class="stat sr">
+        <div class="stat-val"><span class="gt counter" data-target="4">0</span></div>
+        <div class="stat-label">Products on NC</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Open Source -->
+<section id="open-source">
+  <div class="container">
+    <div class="sec-label sr">Open Source</div>
+    <h2 class="sec-title sr d1">Built in the open.</h2>
+    <p class="sec-desc sr d2">We believe the best developer tools are the ones developers can see, fork, and improve.</p>
+    <div class="oss-grid">
+      <a href="https://github.com/DevHeal-Labs/nc" target="_blank" rel="noopener" class="oss-card sr d1">
+        <div class="oss-card-head">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+          <h4>nc</h4>
+        </div>
+        <p>The NC programming language — AI-native, plain-English syntax, single-binary output.</p>
+        <div class="oss-stars"><svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg> Star</div>
+      </a>
+      <a href="https://github.com/DevHeal-Labs/hiveant" target="_blank" rel="noopener" class="oss-card sr d2">
+        <div class="oss-card-head">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+          <h4>hiveant</h4>
+        </div>
+        <p>Autonomous incident response with 12 AI agents. Self-healing infrastructure.</p>
+        <div class="oss-stars"><svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg> Star</div>
+      </a>
+      <a href="https://github.com/DevHeal-Labs/swarmops" target="_blank" rel="noopener" class="oss-card sr d3">
+        <div class="oss-card-head">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+          <h4>swarmops</h4>
+        </div>
+        <p>Intelligent operations platform — detect, investigate, remediate automatically.</p>
+        <div class="oss-stars"><svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg> Star</div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- About -->
+<section id="about" class="about-section">
+  <div class="container">
+    <div class="about-grid">
+      <div class="sr">
+        <div class="sec-label">About</div>
+        <div class="about-mission">Making AI development accessible to everyone.</div>
+        <p class="about-text">DevHeal Labs AI was born from a simple conviction: AI should not require a PhD to use. We build tools that let any developer harness artificial intelligence with plain language, minimal code, and zero friction.</p>
+        <p class="about-text">Every product we ship — from NC to NeuralEdge — is designed to collapse complexity into clarity.</p>
+        <div class="about-loc">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          Built in Hyderabad, India
+        </div>
+      </div>
+      <div class="sr d2">
+        <div class="about-quote">
+          <p>Founded by a developer who believed AI should be simple. That conviction became NC — and NC became a company.</p>
+          <div class="aq-attr">— The Origin Story</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <div class="f-logo">Dev<span>Heal</span> Labs</div>
+        <p>Intelligent developer tools and AI-native infrastructure. Building the future of software, one language at a time.</p>
+        <div class="nc-badge" style="margin-top:16px">
+          <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          Built with NC
+        </div>
+      </div>
+      <div class="f-col">
+        <h5>Products</h5>
+        <ul>
+          <li><a href="https://nc.devheallabs.in" target="_blank">NC Language</a></li>
+          <li><a href="https://hiveant.devheallabs.in" target="_blank">HiveANT</a></li>
+          <li><a href="https://swarmops.devheallabs.in" target="_blank">SwarmOps</a></li>
+          <li><a href="https://neuraledge.devheallabs.in" target="_blank">NeuralEdge</a></li>
+        </ul>
+      </div>
+      <div class="f-col">
+        <h5>Developers</h5>
+        <ul>
+          <li><a href="#">Documentation</a></li>
+          <li><a href="#">NC Playground</a></li>
+          <li><a href="#">API Reference</a></li>
+          <li><a href="#">Examples</a></li>
+        </ul>
+      </div>
+      <div class="f-col">
+        <h5>Company</h5>
+        <ul>
+          <li><a href="#about">About</a></li>
+          <li><a href="https://github.com/DevHeal-Labs" target="_blank">GitHub</a></li>
+          <li><a href="#">Blog</a></li>
+          <li><a href="#">Contact</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>&copy; 2026 DevHeal Labs AI. All rights reserved.</span>
+      <div class="socials">
+        <a href="https://github.com/DevHeal-Labs" target="_blank" aria-label="GitHub"><svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M12 .3a12 12 0 00-3.8 23.38c.6.1.82-.26.82-.58v-2.02c-3.34.73-4.04-1.61-4.04-1.61a3.18 3.18 0 00-1.33-1.76c-1.09-.74.08-.73.08-.73a2.52 2.52 0 011.84 1.24 2.56 2.56 0 003.5 1 2.56 2.56 0 01.76-1.6c-2.67-.3-5.47-1.33-5.47-5.93a4.64 4.64 0 011.24-3.22 4.3 4.3 0 01.12-3.18s1-.33 3.3 1.23a11.4 11.4 0 016 0c2.28-1.56 3.29-1.23 3.29-1.23a4.3 4.3 0 01.12 3.18 4.64 4.64 0 011.23 3.22c0 4.61-2.81 5.63-5.48 5.92a2.86 2.86 0 01.82 2.22v3.29c0 .32.21.7.82.58A12 12 0 0012 .3"/></svg></a>
+        <a href="#" aria-label="Twitter"><svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  'use strict';
+
+  // ── Nav shrink on scroll ──
+  const nav = document.getElementById('nav');
+  let lastScroll = 0;
+  function onScroll(){
+    const y = window.scrollY;
+    nav.classList.toggle('scrolled', y > 40);
+    lastScroll = y;
+  }
+  window.addEventListener('scroll', onScroll, {passive:true});
+
+  // ── Hero mouse glow ──
+  const hero = document.getElementById('hero');
+  const glow = document.getElementById('heroGlow');
+  hero.addEventListener('mousemove', function(e){
+    const r = hero.getBoundingClientRect();
+    glow.style.left = (e.clientX - r.left) + 'px';
+    glow.style.top = (e.clientY - r.top) + 'px';
+    glow.style.opacity = '1';
+  });
+  hero.addEventListener('mouseleave', function(){
+    glow.style.opacity = '0';
+  });
+
+  // ── Scroll reveal (IntersectionObserver) ──
+  const srEls = document.querySelectorAll('.sr');
+  const srObs = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if(e.isIntersecting){
+        e.target.classList.add('vis');
+        srObs.unobserve(e.target);
+      }
+    });
+  }, {threshold:0.15, rootMargin:'0px 0px -40px 0px'});
+  srEls.forEach(function(el){ srObs.observe(el); });
+
+  // ── Animated counters ──
+  const counters = document.querySelectorAll('.counter');
+  const ctrObs = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if(!e.isIntersecting) return;
+      const el = e.target;
+      const target = parseInt(el.dataset.target, 10);
+      if(target === 0){ el.textContent = '0'; ctrObs.unobserve(el); return; }
+      const duration = 1800;
+      const start = performance.now();
+      function tick(now){
+        const p = Math.min((now - start) / duration, 1);
+        const ease = 1 - Math.pow(1 - p, 3);
+        el.textContent = Math.round(target * ease);
+        if(p < 1) requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+      ctrObs.unobserve(el);
+    });
+  }, {threshold:0.5});
+  counters.forEach(function(c){ ctrObs.observe(c); });
+
+  // ── 3D tilt on product cards ──
+  document.querySelectorAll('[data-tilt]').forEach(function(card){
+    card.addEventListener('mousemove', function(e){
+      const r = card.getBoundingClientRect();
+      const x = (e.clientX - r.left) / r.width;
+      const y = (e.clientY - r.top) / r.height;
+      const tiltX = (y - 0.5) * -12;
+      const tiltY = (x - 0.5) * 12;
+      card.style.transform = 'perspective(800px) rotateX('+tiltX+'deg) rotateY('+tiltY+'deg) scale3d(1.02,1.02,1.02)';
+      // Move glow
+      const g = card.querySelector('.p-card-glow');
+      if(g){
+        g.style.left = (e.clientX - r.left - 100) + 'px';
+        g.style.top = (e.clientY - r.top - 100) + 'px';
+      }
+    });
+    card.addEventListener('mouseleave', function(){
+      card.style.transform = 'perspective(800px) rotateX(0) rotateY(0) scale3d(1,1,1)';
+      card.style.transition = 'transform .5s cubic-bezier(.4,0,.2,1), box-shadow .4s';
+    });
+    card.addEventListener('mouseenter', function(){
+      card.style.transition = 'box-shadow .4s';
+    });
+  });
+
+  // ── Close mobile nav on link click ──
+  document.querySelectorAll('.nav-links a').forEach(function(a){
+    a.addEventListener('click', function(){
+      document.querySelector('.nav-links').classList.remove('open');
+    });
+  });
+
+})();
+</script>
+</body>
+</html>
+
+

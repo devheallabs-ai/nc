@@ -1,0 +1,2 @@
+component OpsBanner:
+  text "Ops dashboard package is active"

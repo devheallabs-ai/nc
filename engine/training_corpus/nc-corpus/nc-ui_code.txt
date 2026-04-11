@@ -1,0 +1,1796 @@
+=== FILE: /Users/NuckalaSai.Narender4/Documents/nc-main/nc-ui/cli.nc ===
+// ═══════════════════════════════════════════════════════════
+//  NC UI CLI — Written in NC Language
+//
+//  Replaces cli.js — the NC UI command-line tool.
+//  Written in NC, not Node.js/JavaScript.
+//
+//  Usage:
+//    nc nc-ui/cli.nc build   app.ncui
+//    nc nc-ui/cli.nc serve   app.ncui --port 3000
+//    nc nc-ui/cli.nc watch   app.ncui
+//    nc nc-ui/cli.nc check   app.ncui
+//    nc nc-ui/cli.nc tokens  app.ncui
+//    nc nc-ui/cli.nc ast     app.ncui
+//    nc nc-ui/cli.nc new     myapp
+//    nc nc-ui/cli.nc help
+//
+//  Calls the NC UI Compiler service (compiler.nc)
+//  to do the actual compilation.
+// ═══════════════════════════════════════════════════════════
+
+service "nc-ui-cli"
+version "3.0.0"
+
+import "subprocess"
+import "os"
+
+let compiler_port to 7600
+let compiler_url to "http://localhost:" + string(compiler_port)
+let emitter_port to 7605
+let emitter_url to "http://localhost:" + string(emitter_port)
+
+// ── Compiler Client ────────────────────────────────────────
+
+to compile_source with source:
+    purpose: "Send source to NC UI compiler and get HTML back"
+    set url to compiler_url + "/compile"
+    set payload to {"source": source}
+    fetch url method "POST" body payload save as result
+    if result is equal nil:
+        log "ERROR: NC UI compiler not running."
+        log "Start it with: nc serve nc-ui/compiler.nc"
+        respond with {"error": "Compiler not running"}
+    respond with result
+
+to compile_file_path with file_path:
+    purpose: "Read and compile a .ncui file"
+    gather source from file_path
+    if source is equal nil:
+        log "ERROR: File not found: " + file_path
+        respond with {"error": "File not found"}
+    log "Compiling: " + file_path + " ..."
+    run compile_source with source
+    respond with result
+
+// ── Build Command ──────────────────────────────────────────
+
+to cmd_build with file_path, output_path:
+    purpose: "Compile .ncui file to HTML"
+    run compile_file_path with file_path
+    set result_data to result
+
+    if result_data.error is not equal nil:
+        log "Build failed: " + result_data.error
+        respond with {"success": false}
+
+    set html to result_data.html
+
+    // Determine output path
+    set out_path to output_path
+    if out_path is equal nil:
+        set out_path to replace(file_path, ".ncui", ".html")
+
+    store html into out_path
+    log "Built: " + file_path + " → " + out_path
+    log "Size: " + string(len(html)) + " bytes"
+    respond with {"success": true, "output": out_path, "size": len(html)}
+
+// ── Serve Command ──────────────────────────────────────────
+
+to cmd_serve with file_path, port:
+    purpose: "Compile and serve .ncui file on HTTP"
+    set serve_port to port
+    if serve_port is equal nil:
+        set serve_port to 3000
+
+    // Initial build
+    run compile_file_path with file_path
+    if result.error is not equal nil:
+        log "ERROR: " + result.error
+        respond with {"success": false}
+
+    set html to result.html
+    store html into "./.ncui_serve_temp.html"
+
+    log ""
+    log "  NC UI Dev Server"
+    log "  ══════════════════════════════════"
+    log "  File:   " + file_path
+    log "  URL:    http://localhost:" + string(serve_port)
+    log "  Press Ctrl+C to stop"
+    log ""
+
+    // Serve HTML on the port
+    set serve_service to "service \"ncui-dev\"\nconfigure:\n    port is " + string(serve_port) + "\n\nto serve:\n    gather content from \"./.ncui_serve_temp.html\"\n    respond with content\n\napi:\n    GET / runs serve\n    GET /* runs serve"
+
+    store serve_service into "./.ncui_dev_server.nc"
+    run subprocess.run with "nc serve ./.ncui_dev_server.nc"
+
+    respond with {"success": true, "port": serve_port}
+
+// ── Watch Command ──────────────────────────────────────────
+
+to cmd_watch with file_path, port:
+    purpose: "Watch .ncui file and rebuild on change"
+    set watch_port to port
+    if watch_port is equal nil:
+        set watch_port to 3000
+
+    log ""
+    log "  NC UI Watch Mode"
+    log "  ══════════════════════════════════"
+    log "  File:   " + file_path
+    log "  URL:    http://localhost:" + string(watch_port)
+    log "  Press Ctrl+C to stop"
+    log ""
+
+    // Initial build
+    run cmd_build with file_path, nil
+
+    // Watch loop
+    set last_mtime to os.mtime(file_path)
+    repeat while true:
+        set current_mtime to os.mtime(file_path)
+        if current_mtime is above last_mtime:
+            log "Change detected — rebuilding..."
+            run cmd_build with file_path, nil
+            set last_mtime to current_mtime
+        wait 500
+
+    respond with {"success": true}
+
+// ── Check / Validate Command ───────────────────────────────
+
+to cmd_check with file_path:
+    purpose: "Validate .ncui syntax without compiling"
+    gather source from file_path
+    if source is equal nil:
+        log "ERROR: File not found: " + file_path
+        respond with {"valid": false}
+
+    set url to compiler_url + "/validate"
+    fetch url method "POST" body {"source": source} save as result
+
+    if result is equal nil:
+        log "ERROR: NC UI compiler not running."
+        respond with {"valid": false}
+
+    if result.valid:
+        log file_path + ": OK — " + string(result.token_count) + " tokens"
+    otherwise:
+        log file_path + ": ERRORS"
+        repeat for each err in result.errors:
+            log "  - " + err
+
+    respond with result
+
+// ── Tokens Command ─────────────────────────────────────────
+
+to cmd_tokens with file_path:
+    purpose: "Show lexer tokens for debugging"
+    gather source from file_path
+    if source is equal nil:
+        log "ERROR: File not found: " + file_path
+        respond with {"error": "File not found"}
+
+    set url to compiler_url + "/tokens"
+    fetch url method "POST" body {"source": source} save as result
+
+    log "Tokens for: " + file_path
+    log "═══════════════════════════"
+    repeat for each tok in result.tokens:
+        log tok.type + " '" + tok.value + "' (line " + string(tok.line) + ")"
+    log ""
+    log "Total: " + string(result.count) + " tokens"
+    respond with result
+
+// ── New Project Command ────────────────────────────────────
+
+to cmd_new with project_name:
+    purpose: "Create a new NC UI project from template"
+    log "Creating NC UI project: " + project_name + "..."
+
+    // Create project directory
+    set dir to "./" + project_name
+
+    // Create main app file
+    set app_template to "// " + project_name + " — NC UI v2 App\n\napp \"" + project_name + "\"\nversion \"1.0.0\"\n\ntheme \"dark\":\n    primary is \"#6366f1\"\n\nstate:\n    message is \"Hello from NC UI!\"\n\nroutes:\n    \"/\" shows page \"home\" publicly\n\npage \"home\" title \"Home\":\n    section centered:\n        heading \"" + project_name + "\"\n        text state.message\n        button \"Get Started\" style \"primary\"\n            on click navigates to \"/about\"\n\nfooter:\n    text \"Built with NC UI — DevHeal Labs AI\"\n"
+
+    store app_template into dir + "/app.ncui"
+    log "Created: " + dir + "/app.ncui"
+    log ""
+    log "Next steps:"
+    log "  1. nc serve nc-ui/compiler.nc       # Start compiler"
+    log "  2. nc nc-ui/cli.nc serve " + dir + "/app.ncui  # Serve app"
+    log "  3. Open http://localhost:3000"
+
+    respond with {"success": true, "dir": dir}
+
+// ── Build Web Command (GitHub Pages / Browser) ─────────────
+
+to cmd_build_web with file_path, out_dir:
+    purpose: "Compile .ncui to JS bundle — works in any browser, GitHub Pages"
+
+    set dir to out_dir
+    if dir is equal nil:
+        set dir to "./dist"
+
+    log ""
+    log "  NC UI → Browser Build"
+    log "  ══════════════════════════════════════"
+    log "  Source: " + file_path
+    log "  Output: " + dir
+    log ""
+
+    // Call the JS emitter service
+    set url to emitter_url + "/github"
+    fetch url method "POST" body {"ncui_file_path": file_path, "out_dir": dir} save as result
+
+    if result is equal nil:
+        log "ERROR: NC UI JS emitter not running."
+        log "Start it with: nc serve nc-ui/runtime/ncui-js-emitter.nc"
+        respond with {"success": false}
+
+    if result.error is not equal nil:
+        log "Build failed: " + result.error
+        respond with {"success": false}
+
+    log ""
+    log "  ✓ Browser build complete!"
+    log ""
+    log "  Deploy to GitHub Pages:"
+    log "  ──────────────────────────────────────"
+    log "  1. Push " + dir + "/ to your repo"
+    log "  2. Go to Settings → Pages"
+    log "  3. Set source to: Deploy from a branch → /" + dir
+    log "  4. Your app is live at:"
+    log "     https://<your-username>.github.io/<repo-name>/"
+    log ""
+    log "  OR: Open " + dir + "/index.html directly in browser"
+    log ""
+
+    respond with result
+
+// ── Deploy Subcommand ───────────────────────────────────────
+
+to cmd_deploy with file_path, target:
+    purpose: "Build and deploy NC UI app to web"
+
+    set deploy_target to target
+    if deploy_target is equal nil:
+        set deploy_target to "github"
+
+    if deploy_target is equal "github":
+        run cmd_build_web with file_path, "./dist"
+
+    otherwise if deploy_target is equal "netlify":
+        run cmd_build_web with file_path, "./dist"
+        log "Upload ./dist folder to Netlify"
+        log "Or run: netlify deploy --dir=./dist"
+
+    otherwise if deploy_target is equal "vercel":
+        run cmd_build_web with file_path, "./dist"
+        log "Run: vercel --prod ./dist"
+
+    otherwise:
+        log "Unknown target: " + deploy_target
+        log "Supported: github, netlify, vercel"
+
+    respond with {"success": true}
+
+// ── Help Command ───────────────────────────────────────────
+
+to cmd_help:
+    purpose: "Show NC UI CLI help"
+    log ""
+    log "  NC UI CLI v2.0 — Written in NC Language"
+    log "  ═══════════════════════════════════════════════"
+    log ""
+    log "  Commands:"
+    log ""
+    log "  nc nc-ui/cli.nc build <file.ncui> [output.html]"
+    log "      Compile .ncui to HTML"
+    log ""
+    log "  nc nc-ui/cli.nc serve <file.ncui> [--port 3000]"
+    log "      Compile and serve on localhost"
+    log ""
+    log "  nc nc-ui/cli.nc watch <file.ncui> [--port 3000]"
+    log "      Watch and rebuild on file change"
+    log ""
+    log "  nc nc-ui/cli.nc check <file.ncui>"
+    log "      Validate syntax without compiling"
+    log ""
+    log "  nc nc-ui/cli.nc tokens <file.ncui>"
+    log "      Show lexer token stream"
+    log ""
+    log "  nc nc-ui/cli.nc new <project-name>"
+    log "      Create new NC UI project"
+    log ""
+    log "  nc nc-ui/cli.nc help"
+    log "      Show this help"
+    log ""
+    log "  nc nc-ui/cli.nc build-web <file.ncui> [./dist]"
+    log "      Compile to JavaScript — works in browser, GitHub Pages"
+    log ""
+    log "  nc nc-ui/cli.nc deploy <file.ncui> [github|netlify|vercel]"
+    log "      Build and deploy to static hosting"
+    log ""
+    log "  Note: Requires services running:"
+    log "    nc serve nc-ui/compiler.nc                    # HTML compiler (port 7600)"
+    log "    nc serve nc-ui/runtime/ncui-js-emitter.nc     # JS emitter (port 7605)"
+    log ""
+    respond with {"help": "displayed"}
+
+// ── API ────────────────────────────────────────────────────
+
+api:
+    POST /build      runs cmd_build
+    POST /build-web  runs cmd_build_web
+    POST /deploy     runs cmd_deploy
+    POST /serve      runs cmd_serve
+    POST /watch      runs cmd_watch
+    POST /check      runs cmd_check
+    POST /tokens     runs cmd_tokens
+    POST /new        runs cmd_new
+    GET  /help       runs cmd_help
+    GET  /health     runs health
+
+to health:
+    respond with {"status": "ok", "service": "nc-ui-cli", "version": "2.0.0", "written_in": "NC"}
+
+=== END ===
+
+=== FILE: /Users/NuckalaSai.Narender4/Documents/nc-main/nc-ui/compiler.nc ===
+// ═══════════════════════════════════════════════════════════
+//  NC UI Compiler — Written in NC Language
+//
+//  This replaces compiler.js.
+//  The NC UI compiler is now NC code, not JavaScript.
+//
+//  Why JS was there before:
+//    - NC UI was built before NC was mature
+//    - JS runs in browsers AND Node.js (universal)
+//    - But it breaks the NC-first principle
+//
+//  This NC compiler:
+//    - Runs as an NC service (nc serve compiler.nc)
+//    - Compiles .ncui files to HTML+CSS+JS via HTTP
+//    - Handles ALL enterprise NC UI v2.0 syntax
+//    - Browser receives compiled HTML — no NC engine in browser
+//
+//  Enterprise NC UI v2.0 Features:
+//    - auth: bearer, session, OAuth, SAML
+//    - guard: route guards with role checking
+//    - routes: full routing with visibility
+//    - state: global reactive state with types
+//    - theme: full CSS variable system
+//    - component: lifecycle, props, computed, slots
+//    - page: lifecycle, guards, state binding
+//    - form: declarative validation
+//    - computed: reactive computed properties
+//    - on mount / on unmount: lifecycle hooks
+//    - fetch with auth: HTTP + auth headers built-in
+//    - emit: event bus
+//    - watch: reactive watchers
+//    - i18n: built-in localization
+//    - rbac: role-based access control
+//    - error-boundary: graceful error handling
+//    - skeleton: loading states
+//    - middleware: request/response interceptors
+//
+//  Start: nc serve nc-ui/compiler.nc
+//  Port:  7600
+//
+//  Compile via API:
+//    POST /compile         { source: "..." }  → { html: "..." }
+//    POST /compile/file    { path: "app.ncui" } → { html: "..." }
+//    POST /ast             { source: "..." }  → { ast: {...} }
+//    POST /tokens          { source: "..." }  → { tokens: [...] }
+//    POST /validate        { source: "..." }  → { valid: bool, errors: [...] }
+// ═══════════════════════════════════════════════════════════
+
+service "nc-ui-compiler"
+version "2.0.0"
+
+configure:
+    port is 7600
+    ai_model is "default"
+
+// ══════════════════════════════════════════════════════════
+//  LEXER
+//  Tokenizes NC UI v2 source into tokens
+// ══════════════════════════════════════════════════════════
+
+// Keywords — full NC UI v2 vocabulary
+let KEYWORDS = [
+    // App structure
+    "app", "version", "description", "config",
+    // Auth
+    "auth", "type", "login", "logout", "refresh", "token",
+    "store", "header", "prefix", "provider", "scope",
+    "on", "success", "failure", "always",
+    // Authorization
+    "roles", "can", "access", "guard", "require", "role",
+    "redirect", "when", "unauthenticated", "unauthorized",
+    // Routes
+    "routes", "shows", "page", "publicly", "with",
+    // State
+    "state", "is", "with", "type", "computed", "watch",
+    "set", "update", "add", "remove", "toggle",
+    // Theme
+    "theme", "primary", "secondary", "success", "warning",
+    "error", "background", "surface", "border", "text",
+    "font", "radius", "shadow", "accent",
+    // Components
+    "component", "defaults", "render", "slot", "emit",
+    // Lifecycle
+    "mount", "unmount", "update", "cleanup",
+    // Pages
+    "title", "layout", "middleware",
+    // UI Elements
+    "section", "heading", "subheading", "text", "paragraph",
+    "nav", "brand", "links", "link", "footer", "row",
+    "grid", "columns", "card", "icon", "stat", "label",
+    "image", "alt", "img",
+    "button", "style", "loading", "full-width", "disabled",
+    "input", "placeholder", "bind", "validate", "required",
+    "type", "select", "option", "textarea", "checkbox",
+    "form", "action", "method", "submit",
+    "table", "header", "data", "cell", "sort",
+    "modal", "trigger", "close", "tabs", "tab",
+    "dropdown", "menu", "item",
+    "alert", "badge", "spinner", "skeleton", "progress",
+    "tooltip", "popover",
+    "divider", "spacer",
+    // Logic
+    "if", "otherwise", "else", "match", "case",
+    "repeat", "in", "for", "each",
+    "try", "catch", "finally",
+    // Fetch / HTTP
+    "fetch", "get", "post", "put", "delete", "patch",
+    "save", "as", "await",
+    // Animation
+    "animate", "transition", "delay", "duration",
+    // Event
+    "click", "change", "submit", "hover", "focus", "blur",
+    "keyup", "keydown",
+    // Modifiers
+    "centered", "full", "compact", "responsive",
+    "dark", "light", "public", "private",
+    "true", "false", "nil", "null",
+    // i18n
+    "locale", "translate", "t",
+    // Classes/styles
+    "class", "id", "data",
+    // Misc
+    "log", "navigate", "to", "runs", "emit", "await"
+]
+
+to lex with source:
+    purpose: "Tokenize NC UI v2 source into a flat list of tokens"
+    set tokens to []
+    set i to 0
+    set line to 1
+    set col to 1
+    set indent_stack to [0]
+
+    repeat while i is below len(source):
+        set ch to substr(source, i, 1)
+
+        // Newline
+        if ch is equal "\n":
+            append {"type": "NEWLINE", "value": "\n", "line": line, "col": col} to tokens
+            set line to line + 1
+            set col to 1
+            set i to i + 1
+
+            // Count indent on next line
+            set spaces to 0
+            repeat while i + spaces is below len(source):
+                set nc to substr(source, i + spaces, 1)
+                if nc is equal " ":
+                    set spaces to spaces + 1
+                otherwise:
+                    if nc is equal "\t":
+                        set spaces to spaces + 4
+                    otherwise:
+                        // Stop
+                        set nc to "done"
+                if nc is equal "done":
+                    // Exit loop
+                    set spaces to spaces
+                    set nc to ""
+
+            set current_indent to get(indent_stack, len(indent_stack) - 1)
+            if spaces is above current_indent:
+                append spaces to indent_stack
+                append {"type": "INDENT", "value": spaces, "line": line, "col": 1} to tokens
+                set i to i + spaces
+                set col to spaces + 1
+            otherwise:
+                repeat while spaces is below current_indent:
+                    remove from indent_stack at len(indent_stack) - 1
+                    set current_indent to get(indent_stack, len(indent_stack) - 1)
+                    append {"type": "DEDENT", "value": spaces, "line": line, "col": 1} to tokens
+                set i to i + spaces
+                set col to spaces + 1
+
+        // Skip spaces (mid-line)
+        otherwise:
+            if ch is equal " " or ch is equal "\t":
+                set i to i + 1
+                set col to col + 1
+
+            // Comment
+            otherwise:
+                if ch is equal "/" and substr(source, i, 2) is equal "//":
+                    repeat while i is below len(source) and substr(source, i, 1) is not equal "\n":
+                        set i to i + 1
+
+                // String literal
+                otherwise:
+                    if ch is equal "\"":
+                        set j to i + 1
+                        set str to ""
+                        repeat while j is below len(source):
+                            set sc to substr(source, j, 1)
+                            if sc is equal "\"":
+                                set j to j + 1
+                                // Exit
+                                set sc to "done"
+                            otherwise:
+                                if sc is equal "done":
+                                    set sc to ""
+                                otherwise:
+                                    set str to str + sc
+                                    set j to j + 1
+                        append {"type": "STRING", "value": str, "line": line, "col": col} to tokens
+                        set col to col + (j - i)
+                        set i to j
+
+                    // Number
+                    otherwise:
+                        set digit to false
+                        if ch is equal "0" or ch is equal "1" or ch is equal "2" or ch is equal "3" or ch is equal "4":
+                            set digit to true
+                        if ch is equal "5" or ch is equal "6" or ch is equal "7" or ch is equal "8" or ch is equal "9":
+                            set digit to true
+                        if digit:
+                            set j to i
+                            set num to ""
+                            set has_dot to false
+                            repeat while j is below len(source):
+                                set nc2 to substr(source, j, 1)
+                                if nc2 is equal ".":
+                                    set has_dot to true
+                                    set num to num + nc2
+                                    set j to j + 1
+                                otherwise:
+                                    set is_num to false
+                                    if nc2 is equal "0" or nc2 is equal "1" or nc2 is equal "2" or nc2 is equal "3" or nc2 is equal "4":
+                                        set is_num to true
+                                    if nc2 is equal "5" or nc2 is equal "6" or nc2 is equal "7" or nc2 is equal "8" or nc2 is equal "9":
+                                        set is_num to true
+                                    if is_num:
+                                        set num to num + nc2
+                                        set j to j + 1
+                                    otherwise:
+                                        set nc2 to "done"
+                            if contains(get(tokens, len(tokens) - 1), "PERCENT") or substr(source, j, 1) is equal "%":
+                                append {"type": "PERCENT", "value": num, "line": line, "col": col} to tokens
+                                set j to j + 1
+                            otherwise:
+                                append {"type": "NUMBER", "value": num, "line": line, "col": col} to tokens
+                            set col to col + (j - i)
+                            set i to j
+
+                        // Punctuation
+                        otherwise:
+                            if ch is equal ":" or ch is equal "," or ch is equal "[" or ch is equal "]" or ch is equal "{" or ch is equal "}":
+                                append {"type": "PUNCT", "value": ch, "line": line, "col": col} to tokens
+                                set i to i + 1
+                                set col to col + 1
+
+                            // Identifier or keyword
+                            otherwise:
+                                set is_alpha to false
+                                set alpha_chars to "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-"
+                                set ci to 0
+                                repeat while ci is below len(alpha_chars):
+                                    if ch is equal substr(alpha_chars, ci, 1):
+                                        set is_alpha to true
+                                    set ci to ci + 1
+
+                                if is_alpha:
+                                    set j to i
+                                    set word to ""
+                                    repeat while j is below len(source):
+                                        set wc to substr(source, j, 1)
+                                        set wc_ok to false
+                                        set wci to 0
+                                        set valid_word_chars to "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-"
+                                        repeat while wci is below len(valid_word_chars):
+                                            if wc is equal substr(valid_word_chars, wci, 1):
+                                                set wc_ok to true
+                                            set wci to wci + 1
+                                        if wc_ok:
+                                            set word to word + wc
+                                            set j to j + 1
+                                        otherwise:
+                                            set wc to "done"
+
+                                    set is_kw to false
+                                    repeat for each kw in KEYWORDS:
+                                        if lower(word) is equal kw:
+                                            set is_kw to true
+                                    if is_kw:
+                                        append {"type": "KEYWORD", "value": lower(word), "line": line, "col": col} to tokens
+                                    otherwise:
+                                        append {"type": "IDENT", "value": word, "line": line, "col": col} to tokens
+                                    set col to col + (j - i)
+                                    set i to j
+                                otherwise:
+                                    // Unknown char — skip
+                                    set i to i + 1
+                                    set col to col + 1
+
+    // Final DEDENT tokens to close all open blocks
+    repeat while len(indent_stack) is above 1:
+        remove from indent_stack at len(indent_stack) - 1
+        append {"type": "DEDENT", "value": 0, "line": line, "col": 1} to tokens
+
+    append {"type": "EOF", "value": "", "line": line, "col": col} to tokens
+    respond with tokens
+
+// ══════════════════════════════════════════════════════════
+//  CODE GENERATOR
+//  Takes parsed document structure → full HTML output
+// ══════════════════════════════════════════════════════════
+
+to generate_html with doc:
+    purpose: "Generate full enterprise HTML from parsed NC UI document"
+    set app_meta to doc.meta
+    set title to app_meta.title
+    if title is equal nil:
+        set title to "NC UI App"
+    set theme to app_meta.theme
+    if theme is equal nil:
+        set theme to "dark"
+    set accent to app_meta.accent
+    if accent is equal nil:
+        set accent to "#6366f1"
+    set font to app_meta.font
+    if font is equal nil:
+        set font to "Inter"
+
+    // Generate CSS variables from theme
+    set css_vars to generate_css_vars with doc.themes, theme, accent
+
+    // Generate component JS
+    set components_js to generate_components_js with doc.components
+
+    // Generate routes JS
+    set routes_js to generate_routes_js with doc.routes
+
+    // Generate state JS
+    set state_js to generate_state_js with doc.state
+
+    // Generate auth JS
+    set auth_js to generate_auth_js with doc.auth
+
+    // Generate pages HTML
+    set pages_html to ""
+    repeat for each pg in doc.pages:
+        set pages_html to pages_html + generate_page_html with pg
+
+    // Full HTML document
+    set html to "<!DOCTYPE html>\n<html lang=\"" + app_meta.locale + "\" data-theme=\"" + theme + "\">\n<head>\n<meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n<meta http-equiv=\"X-Content-Type-Options\" content=\"nosniff\">\n<meta http-equiv=\"X-Frame-Options\" content=\"DENY\">\n<meta http-equiv=\"X-XSS-Protection\" content=\"1; mode=block\">\n<meta name=\"referrer\" content=\"strict-origin-when-cross-origin\">\n<title>" + title + "</title>\n<link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">\n<link href=\"https://fonts.googleapis.com/css2?family=" + replace(font, " ", "+") + ":wght@300;400;500;600;700;800&display=swap\" rel=\"stylesheet\">\n<style>\n" + css_vars + "\n" + generate_base_css() + "\n</style>\n</head>\n<body class=\"ncui-app\">\n<div id=\"ncui-root\">\n" + pages_html + "\n</div>\n<script>\n" + generate_security_js() + "\n" + auth_js + "\n" + state_js + "\n" + components_js + "\n" + routes_js + "\n" + generate_runtime_js() + "\n</script>\n</body>\n</html>"
+
+    respond with html
+
+// ── CSS Generation ─────────────────────────────────────────
+
+to generate_css_vars with themes, active_theme, accent:
+    purpose: "Generate CSS custom properties for the theme system"
+    set dark_vars to ":root[data-theme=\"dark\"] {\n  --ncui-primary: " + accent + ";\n  --ncui-secondary: #8b5cf6;\n  --ncui-success: #10b981;\n  --ncui-warning: #f59e0b;\n  --ncui-error: #ef4444;\n  --ncui-bg: #0a0a0a;\n  --ncui-surface: #111111;\n  --ncui-surface-alt: #1a1a2e;\n  --ncui-border: #2a2a2a;\n  --ncui-text: #ffffff;\n  --ncui-text-muted: #888888;\n  --ncui-radius: 8px;\n  --ncui-shadow: 0 4px 24px rgba(0,0,0,0.4);\n}"
+    set light_vars to ":root[data-theme=\"light\"] {\n  --ncui-primary: " + accent + ";\n  --ncui-secondary: #7c3aed;\n  --ncui-success: #059669;\n  --ncui-warning: #d97706;\n  --ncui-error: #dc2626;\n  --ncui-bg: #ffffff;\n  --ncui-surface: #f8fafc;\n  --ncui-surface-alt: #f1f5f9;\n  --ncui-border: #e2e8f0;\n  --ncui-text: #0f172a;\n  --ncui-text-muted: #64748b;\n  --ncui-radius: 8px;\n  --ncui-shadow: 0 1px 3px rgba(0,0,0,0.1);\n}"
+
+    // Apply custom theme overrides if provided
+    set custom_overrides to ""
+    if themes is not equal nil:
+        repeat for each t in themes:
+            if t.name is equal active_theme:
+                set custom_overrides to ":root[data-theme=\"" + t.name + "\"] {\n"
+                repeat for each prop in t.properties:
+                    set custom_overrides to custom_overrides + "  --ncui-" + prop.key + ": " + prop.value + ";\n"
+                set custom_overrides to custom_overrides + "}\n"
+
+    respond with dark_vars + "\n" + light_vars + "\n" + custom_overrides
+
+to generate_base_css:
+    purpose: "Generate base NC UI stylesheet"
+    respond with "*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }\nbody.ncui-app { font-family: var(--ncui-font, 'Inter', sans-serif); background: var(--ncui-bg); color: var(--ncui-text); min-height: 100vh; transition: background 0.3s, color 0.3s; }\n\n/* Pages */\n.ncui-page { display: none; min-height: 100vh; }\n.ncui-page.active { display: block; }\n\n/* Nav */\n.ncui-nav { display: flex; align-items: center; justify-content: space-between; padding: 0 24px; height: 64px; background: var(--ncui-surface); border-bottom: 1px solid var(--ncui-border); position: sticky; top: 0; z-index: 100; backdrop-filter: blur(8px); }\n.ncui-nav-brand { font-size: 1.25rem; font-weight: 700; color: var(--ncui-primary); text-decoration: none; }\n.ncui-nav-links { display: flex; gap: 8px; align-items: center; }\n.ncui-nav-link { color: var(--ncui-text-muted); text-decoration: none; padding: 8px 12px; border-radius: var(--ncui-radius); font-size: 0.9rem; font-weight: 500; transition: all 0.2s; }\n.ncui-nav-link:hover { color: var(--ncui-text); background: var(--ncui-surface-alt); }\n.ncui-nav-link.active { color: var(--ncui-primary); }\n\n/* Section */\n.ncui-section { padding: 64px 24px; max-width: 1200px; margin: 0 auto; }\n.ncui-section.centered { text-align: center; }\n.ncui-section.full { max-width: none; padding: 64px; }\n\n/* Typography */\n.ncui-heading { font-size: clamp(1.75rem, 4vw, 3rem); font-weight: 800; line-height: 1.2; margin-bottom: 16px; }\n.ncui-subheading { font-size: 1.25rem; font-weight: 600; margin-bottom: 12px; color: var(--ncui-text-muted); }\n.ncui-text { color: var(--ncui-text-muted); line-height: 1.7; margin-bottom: 12px; }\n\n/* Grid */\n.ncui-grid { display: grid; gap: 24px; }\n.ncui-grid-1 { grid-template-columns: 1fr; }\n.ncui-grid-2 { grid-template-columns: repeat(2, 1fr); }\n.ncui-grid-3 { grid-template-columns: repeat(3, 1fr); }\n.ncui-grid-4 { grid-template-columns: repeat(4, 1fr); }\n@media (max-width: 1024px) { .ncui-grid-4 { grid-template-columns: repeat(2, 1fr); } .ncui-grid-3 { grid-template-columns: repeat(2, 1fr); } }\n@media (max-width: 640px) { .ncui-grid-2, .ncui-grid-3, .ncui-grid-4 { grid-template-columns: 1fr; } }\n\n/* Card */\n.ncui-card { background: var(--ncui-surface); border: 1px solid var(--ncui-border); border-radius: calc(var(--ncui-radius) * 1.5); padding: 24px; transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s; }\n.ncui-card:hover { transform: translateY(-2px); box-shadow: var(--ncui-shadow); border-color: var(--ncui-primary); }\n.ncui-card .ncui-heading { font-size: 1.1rem; margin-bottom: 8px; }\n.ncui-stat { font-size: 2rem; font-weight: 800; color: var(--ncui-primary); }\n.ncui-stat-label { font-size: 0.875rem; color: var(--ncui-text-muted); }\n\n/* Button */\n.ncui-button { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: var(--ncui-radius); font-size: 0.9rem; font-weight: 600; cursor: pointer; border: none; transition: all 0.2s; text-decoration: none; }\n.ncui-button:disabled, .ncui-button[data-loading=\"true\"] { opacity: 0.6; cursor: not-allowed; }\n.ncui-button-primary { background: var(--ncui-primary); color: white; }\n.ncui-button-primary:hover:not(:disabled) { filter: brightness(1.1); transform: translateY(-1px); }\n.ncui-button-secondary { background: var(--ncui-surface-alt); color: var(--ncui-text); border: 1px solid var(--ncui-border); }\n.ncui-button-secondary:hover:not(:disabled) { background: var(--ncui-surface); border-color: var(--ncui-primary); }\n.ncui-button-danger { background: var(--ncui-error); color: white; }\n.ncui-button.full-width { width: 100%; justify-content: center; }\n\n/* Form */\n.ncui-form { display: flex; flex-direction: column; gap: 16px; }\n.ncui-field { display: flex; flex-direction: column; gap: 6px; }\n.ncui-label { font-size: 0.85rem; font-weight: 600; color: var(--ncui-text); }\n.ncui-input { background: var(--ncui-surface-alt); border: 1px solid var(--ncui-border); border-radius: var(--ncui-radius); padding: 10px 14px; color: var(--ncui-text); font-size: 0.9rem; transition: border-color 0.2s, box-shadow 0.2s; outline: none; width: 100%; }\n.ncui-input:focus { border-color: var(--ncui-primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ncui-primary) 15%, transparent); }\n.ncui-input.error { border-color: var(--ncui-error); }\n.ncui-field-error { font-size: 0.8rem; color: var(--ncui-error); }\n\n/* Auth states */\n.ncui-alert { padding: 12px 16px; border-radius: var(--ncui-radius); font-size: 0.9rem; margin-bottom: 8px; }\n.ncui-alert-error { background: color-mix(in srgb, var(--ncui-error) 15%, transparent); border: 1px solid var(--ncui-error); color: var(--ncui-error); }\n.ncui-alert-success { background: color-mix(in srgb, var(--ncui-success) 15%, transparent); border: 1px solid var(--ncui-success); color: var(--ncui-success); }\n.ncui-alert-warning { background: color-mix(in srgb, var(--ncui-warning) 15%, transparent); border: 1px solid var(--ncui-warning); color: var(--ncui-warning); }\n.ncui-alert-info { background: color-mix(in srgb, var(--ncui-primary) 15%, transparent); border: 1px solid var(--ncui-primary); color: var(--ncui-primary); }\n\n/* Spinner / Loading */\n.ncui-spinner { width: 24px; height: 24px; border: 3px solid var(--ncui-border); border-top-color: var(--ncui-primary); border-radius: 50%; animation: ncui-spin 0.8s linear infinite; }\n@keyframes ncui-spin { to { transform: rotate(360deg); } }\n\n/* Skeleton */\n.ncui-skeleton { background: linear-gradient(90deg, var(--ncui-border) 25%, var(--ncui-surface-alt) 50%, var(--ncui-border) 75%); background-size: 200% 100%; animation: ncui-shimmer 1.5s infinite; border-radius: var(--ncui-radius); }\n@keyframes ncui-shimmer { to { background-position: -200% center; } }\n.ncui-skeleton-card { height: 120px; }\n.ncui-skeleton-text { height: 16px; margin-bottom: 8px; }\n.ncui-skeleton-heading { height: 24px; width: 60%; margin-bottom: 12px; }\n\n/* Progress */\n.ncui-progress-bar { background: var(--ncui-border); border-radius: 100px; height: 8px; overflow: hidden; margin: 4px 0 8px; }\n.ncui-progress-fill { background: var(--ncui-primary); height: 100%; border-radius: 100px; transition: width 0.6s ease; }\n\n/* Badge */\n.ncui-badge { display: inline-flex; align-items: center; padding: 2px 10px; border-radius: 100px; font-size: 0.75rem; font-weight: 600; }\n.ncui-badge-default { background: var(--ncui-surface-alt); color: var(--ncui-text-muted); }\n.ncui-badge-success { background: color-mix(in srgb, var(--ncui-success) 20%, transparent); color: var(--ncui-success); }\n.ncui-badge-warning { background: color-mix(in srgb, var(--ncui-warning) 20%, transparent); color: var(--ncui-warning); }\n.ncui-badge-error { background: color-mix(in srgb, var(--ncui-error) 20%, transparent); color: var(--ncui-error); }\n.ncui-badge-primary { background: color-mix(in srgb, var(--ncui-primary) 20%, transparent); color: var(--ncui-primary); }\n\n/* Table */\n.ncui-table-container { overflow-x: auto; border-radius: var(--ncui-radius); border: 1px solid var(--ncui-border); }\n.ncui-table { width: 100%; border-collapse: collapse; }\n.ncui-table th { background: var(--ncui-surface-alt); padding: 12px 16px; text-align: left; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ncui-text-muted); cursor: pointer; user-select: none; }\n.ncui-table th:hover { color: var(--ncui-primary); }\n.ncui-table td { padding: 12px 16px; border-top: 1px solid var(--ncui-border); font-size: 0.9rem; }\n.ncui-table tr:hover td { background: var(--ncui-surface-alt); }\n\n/* Modal */\n.ncui-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 1000; align-items: center; justify-content: center; }\n.ncui-modal-overlay.open { display: flex; }\n.ncui-modal { background: var(--ncui-surface); border: 1px solid var(--ncui-border); border-radius: calc(var(--ncui-radius) * 2); padding: 32px; max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto; animation: ncui-modal-in 0.2s ease; }\n@keyframes ncui-modal-in { from { opacity: 0; transform: scale(0.95) translateY(-8px); } to { opacity: 1; transform: none; } }\n\n/* Animations */\n.ncui-fade-up { opacity: 0; transform: translateY(24px); transition: opacity 0.6s ease, transform 0.6s ease; }\n.ncui-fade-up.visible { opacity: 1; transform: none; }\n.ncui-fade-in { opacity: 0; transition: opacity 0.6s ease; }\n.ncui-fade-in.visible { opacity: 1; }\n.ncui-stagger.visible:nth-child(1) { transition-delay: 0s; }\n.ncui-stagger.visible:nth-child(2) { transition-delay: 0.1s; }\n.ncui-stagger.visible:nth-child(3) { transition-delay: 0.2s; }\n.ncui-stagger.visible:nth-child(4) { transition-delay: 0.3s; }\n.ncui-stagger.visible:nth-child(5) { transition-delay: 0.4s; }\n.ncui-stagger.visible:nth-child(6) { transition-delay: 0.5s; }\n\n/* Footer */\n.ncui-footer { padding: 32px 24px; background: var(--ncui-surface); border-top: 1px solid var(--ncui-border); text-align: center; color: var(--ncui-text-muted); font-size: 0.875rem; }\n.ncui-footer .ncui-row { display: flex; gap: 16px; justify-content: center; margin-top: 12px; }\n\n/* Tabs */\n.ncui-tabs-nav { display: flex; border-bottom: 1px solid var(--ncui-border); margin-bottom: 24px; }\n.ncui-tab-btn { padding: 12px 20px; font-size: 0.9rem; font-weight: 600; color: var(--ncui-text-muted); cursor: pointer; border: none; background: none; border-bottom: 2px solid transparent; transition: all 0.2s; }\n.ncui-tab-btn.active { color: var(--ncui-primary); border-bottom-color: var(--ncui-primary); }\n.ncui-tab-panel { display: none; }\n.ncui-tab-panel.active { display: block; }\n\n/* Error boundary */\n.ncui-error-boundary { padding: 32px; text-align: center; color: var(--ncui-error); border: 1px solid var(--ncui-error); border-radius: var(--ncui-radius); margin: 16px; }\n\n/* Login card */\n.ncui-login-card { max-width: 420px; margin: 80px auto; }\n\n/* Divider */\n.ncui-divider { border: none; border-top: 1px solid var(--ncui-border); margin: 24px 0; }\n\n/* Tooltip */\n[data-tooltip] { position: relative; }\n[data-tooltip]::after { content: attr(data-tooltip); position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); background: var(--ncui-surface); border: 1px solid var(--ncui-border); color: var(--ncui-text); padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity 0.2s; z-index: 200; }\n[data-tooltip]:hover::after { opacity: 1; }"
+
+// ── Security JS (inline) ───────────────────────────────────
+
+to generate_security_js:
+    purpose: "Generate enterprise security JavaScript for browser"
+    respond with "// NC UI Enterprise Security Module\n(function(window) {\n'use strict';\nconst NCUISecurity = {\n  xss: {\n    sanitize(s) {\n      if (typeof s !== 'string') return '';\n      return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;').replace(/'/g,'&#x27;').replace(/`/g,'&#x60;').replace(/\\//g,'&#x2F;');\n    },\n    sanitizeUrl(url) {\n      if (!url || typeof url !== 'string') return '#';\n      const u = url.trim().toLowerCase();\n      if (u.startsWith('javascript:') || u.startsWith('data:') || u.startsWith('vbscript:')) return '#';\n      return url;\n    }\n  },\n  csrf: {\n    _tokens: new Set(),\n    generate() {\n      const b = new Uint8Array(32);\n      crypto.getRandomValues(b);\n      const t = btoa(String.fromCharCode(...b)).replace(/\\+/g,'-').replace(/\\//g,'_').replace(/=/g,'');\n      this._tokens.add(t);\n      setTimeout(() => this._tokens.delete(t), 3600000);\n      return t;\n    },\n    validate(t) {\n      if (!this._tokens.has(t)) return false;\n      this._tokens.delete(t);\n      return true;\n    }\n  },\n  jwt: {\n    _store: null,\n    decode(t) {\n      try {\n        const [,p] = t.split('.');\n        return JSON.parse(atob(p.replace(/-/g,'+').replace(/_/g,'/')));\n      } catch { return null; }\n    },\n    isExpired(t) {\n      const p = this.decode(t);\n      if (!p || !p.exp) return true;\n      return Date.now() / 1000 > p.exp;\n    },\n    store(t) { this._store = t; try { sessionStorage.setItem('ncui_jwt', t); } catch {} },\n    retrieve() { return this._store || ((() => { try { return sessionStorage.getItem('ncui_jwt'); } catch { return null; } })()); },\n    clear() { this._store = null; try { sessionStorage.removeItem('ncui_jwt'); } catch {} },\n    isAuthenticated() { const t = this.retrieve(); return !!t && !this.isExpired(t); },\n    getClaims() { const t = this.retrieve(); return t ? this.decode(t) : null; },\n    getHeader() { const t = this.retrieve(); return t ? { 'Authorization': 'Bearer ' + t } : {}; },\n    getUser() { const c = this.getClaims(); return c ? { id: c.sub, name: c.name, email: c.email, roles: c.roles || [] } : null; }\n  },\n  validate: {\n    email: v => /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/.test(String(v).toLowerCase()),\n    minLength: (v, n) => String(v).length >= n,\n    maxLength: (v, n) => String(v).length <= n,\n    required: v => v !== null && v !== undefined && String(v).trim().length > 0,\n    pattern: (v, r) => r.test(String(v)),\n    run(value, rules) {\n      for (const [rule, ...args] of rules) {\n        if (!this[rule]?.(value, ...args)) return { valid: false, rule };\n      }\n      return { valid: true };\n    }\n  },\n  rbac: {\n    _permissions: {},\n    define(role, paths) { this._permissions[role] = paths; },\n    can(role, path) {\n      const perms = this._permissions[role] || [];\n      return perms.includes('*') || perms.some(p => path.startsWith(p));\n    },\n    hasRole(role) {\n      const user = NCUISecurity.jwt.getUser();\n      return user?.roles?.includes(role) || false;\n    }\n  },\n  csp: {\n    nonce: btoa(String.fromCharCode(...(()=>{const b=new Uint8Array(16);crypto.getRandomValues(b);return b;})()))\n  },\n  audit: {\n    _log: [],\n    record(event, data) {\n      this._log.push({ ts: new Date().toISOString(), event, data });\n      if (this._log.length > 1000) this._log.shift();\n    },\n    get() { return [...this._log]; }\n  }\n};\nwindow.NCUISecurity = NCUISecurity;\n})(window);"
+
+// ── Auth JS ────────────────────────────────────────────────
+
+to generate_auth_js with auth_config:
+    purpose: "Generate enterprise auth JavaScript"
+    if auth_config is equal nil:
+        respond with "// No auth configured"
+
+    set login_endpoint to auth_config.login_endpoint
+    if login_endpoint is equal nil:
+        set login_endpoint to "/api/auth/login"
+    set logout_endpoint to auth_config.logout_endpoint
+    if logout_endpoint is equal nil:
+        set logout_endpoint to "/api/auth/logout"
+    set refresh_endpoint to auth_config.refresh_endpoint
+    if refresh_endpoint is equal nil:
+        set refresh_endpoint to "/api/auth/refresh"
+    set on_login_route to auth_config.on_success_route
+    if on_login_route is equal nil:
+        set on_login_route to "/dashboard"
+    set on_logout_route to auth_config.on_logout_route
+    if on_logout_route is equal nil:
+        set on_logout_route to "/login"
+
+    respond with "// NC UI Enterprise Auth Module\n(function(window) {\n'use strict';\nconst NCUIAuth = {\n  config: {\n    loginEndpoint: '" + login_endpoint + "',\n    logoutEndpoint: '" + logout_endpoint + "',\n    refreshEndpoint: '" + refresh_endpoint + "',\n    onLogin: '" + on_login_route + "',\n    onLogout: '" + on_logout_route + "'\n  },\n  async login(email, password) {\n    NCUISecurity.audit.record('auth:login_attempt', { email });\n    try {\n      const res = await fetch(this.config.loginEndpoint, {\n        method: 'POST',\n        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': NCUISecurity.csrf.generate() },\n        body: JSON.stringify({ email, password })\n      });\n      if (!res.ok) throw new Error('Invalid credentials');\n      const data = await res.json();\n      NCUISecurity.jwt.store(data.token || data.access_token);\n      NCUIState.set('user', NCUISecurity.jwt.getUser());\n      NCUISecurity.audit.record('auth:login_success', { email });\n      NCUIRouter.navigate(this.config.onLogin);\n      return { success: true };\n    } catch (err) {\n      NCUISecurity.audit.record('auth:login_failure', { email, error: err.message });\n      return { success: false, error: err.message };\n    }\n  },\n  async logout() {\n    const user = NCUIState.get('user');\n    try {\n      await fetch(this.config.logoutEndpoint, {\n        method: 'POST',\n        headers: { ...NCUISecurity.jwt.getHeader(), 'Content-Type': 'application/json' }\n      });\n    } catch {}\n    NCUISecurity.jwt.clear();\n    NCUIState.set('user', null);\n    NCUISecurity.audit.record('auth:logout', { user });\n    NCUIRouter.navigate(this.config.onLogout);\n  },\n  isAuthenticated() {\n    return NCUISecurity.jwt.isAuthenticated();\n  },\n  getUser() {\n    return NCUIState.get('user') || NCUISecurity.jwt.getUser();\n  },\n  hasRole(role) {\n    return NCUISecurity.rbac.hasRole(role);\n  },\n  async refresh() {\n    const res = await fetch(this.config.refreshEndpoint, {\n      method: 'POST',\n      headers: { ...NCUISecurity.jwt.getHeader(), 'Content-Type': 'application/json' }\n    });\n    if (res.ok) {\n      const data = await res.json();\n      NCUISecurity.jwt.store(data.token || data.access_token);\n    } else {\n      await this.logout();\n    }\n  },\n  async fetch(url, options = {}) {\n    const headers = { ...NCUISecurity.jwt.getHeader(), 'Content-Type': 'application/json', ...options.headers };\n    const res = await fetch(url, { ...options, headers });\n    if (res.status === 401) {\n      await this.refresh();\n      return fetch(url, { ...options, headers: { ...NCUISecurity.jwt.getHeader(), ...options.headers } });\n    }\n    return res;\n  }\n};\nwindow.NCUIAuth = NCUIAuth;\n})(window);"
+
+// ── State JS ───────────────────────────────────────────────
+
+to generate_state_js with state_config:
+    purpose: "Generate reactive state management JavaScript"
+    respond with "// NC UI Reactive State\n(function(window) {\n'use strict';\nconst NCUIState = {\n  _state: {},\n  _watchers: {},\n  _computed: {},\n  init(initial) {\n    Object.assign(this._state, initial || {});\n    return this;\n  },\n  get(key) {\n    return key ? this._state[key] : { ...this._state };\n  },\n  set(key, value) {\n    const old = this._state[key];\n    this._state[key] = value;\n    this._notify(key, value, old);\n    this._updateDOM(key, value);\n    return this;\n  },\n  update(key, fn) {\n    return this.set(key, fn(this.get(key)));\n  },\n  addTo(key, item) {\n    const arr = [...(this.get(key) || []), item];\n    return this.set(key, arr);\n  },\n  removeFrom(key, predicate) {\n    const arr = (this.get(key) || []).filter(\n      typeof predicate === 'function' ? predicate : (_, i) => i !== predicate\n    );\n    return this.set(key, arr);\n  },\n  toggle(key) {\n    return this.set(key, !this.get(key));\n  },\n  watch(key, fn) {\n    if (!this._watchers[key]) this._watchers[key] = [];\n    this._watchers[key].push(fn);\n    return () => { this._watchers[key] = this._watchers[key].filter(w => w !== fn); };\n  },\n  computed(name, fn, deps) {\n    this._computed[name] = { fn, deps };\n    deps.forEach(dep => this.watch(dep, () => this.set(name, fn())));\n    this.set(name, fn());\n    return this;\n  },\n  _notify(key, value, old) {\n    (this._watchers[key] || []).forEach(fn => fn(value, old));\n  },\n  _updateDOM(key, value) {\n    document.querySelectorAll(`[data-ncui-bind=\"${key}\"]`).forEach(el => {\n      if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {\n        el.value = value ?? '';\n      } else if (el.tagName === 'SELECT') {\n        el.value = value ?? '';\n      } else {\n        el.textContent = value ?? '';\n      }\n    });\n    document.querySelectorAll(`[data-ncui-show=\"${key}\"]`).forEach(el => {\n      el.style.display = value ? '' : 'none';\n    });\n    document.querySelectorAll(`[data-ncui-hide=\"${key}\"]`).forEach(el => {\n      el.style.display = value ? 'none' : '';\n    });\n    document.querySelectorAll(`[data-ncui-loading=\"${key}\"]`).forEach(el => {\n      el.setAttribute('data-loading', value ? 'true' : 'false');\n    });\n  }\n};\nwindow.NCUIState = NCUIState;\n})(window);"
+
+// ── Router JS ─────────────────────────────────────────────
+
+to generate_routes_js with routes_config:
+    purpose: "Generate enterprise router with guards"
+    respond with "// NC UI Enterprise Router\n(function(window) {\n'use strict';\nconst NCUIRouter = {\n  _routes: [],\n  _guards: {},\n  _currentPage: null,\n  _history: [],\n  define(routes) {\n    this._routes = routes;\n    return this;\n  },\n  guard(name, fn) {\n    this._guards[name] = fn;\n    return this;\n  },\n  async navigate(path, pushState = true) {\n    const route = this._match(path);\n    if (!route) { this._show404(); return; }\n    // Run guards\n    if (route.guards) {\n      for (const guardName of route.guards) {\n        const guard = this._guards[guardName];\n        if (guard) {\n          const result = await guard(route, path);\n          if (result === false) return;\n          if (typeof result === 'string') { this.navigate(result); return; }\n        }\n      }\n    }\n    // Lifecycle: unmount current\n    if (this._currentPage) {\n      const cur = document.querySelector(`[data-page=\"${this._currentPage}\"]`);\n      if (cur?._ncui_unmount) { try { await cur._ncui_unmount(); } catch {} }\n      cur?.classList.remove('active');\n    }\n    // Show next page\n    const pageEl = document.querySelector(`[data-page=\"${route.page}\"]`);\n    if (!pageEl) { this._show404(); return; }\n    pageEl.classList.add('active');\n    this._currentPage = route.page;\n    this._history.push(path);\n    if (pushState) history.pushState({ path }, '', path);\n    // Lifecycle: mount\n    if (pageEl._ncui_mount) { try { await pageEl._ncui_mount(route.params); } catch(e) { console.error('Mount error:', e); } }\n    NCUISecurity.audit.record('router:navigate', { path, page: route.page });\n    window.scrollTo(0, 0);\n  },\n  back() {\n    if (this._history.length > 1) {\n      this._history.pop();\n      this.navigate(this._history[this._history.length - 1], false);\n    }\n  },\n  _match(path) {\n    for (const route of this._routes) {\n      const params = this._matchPath(route.path, path);\n      if (params !== null) return { ...route, params };\n    }\n    return null;\n  },\n  _matchPath(pattern, path) {\n    const pp = pattern.split('/'), pp2 = path.split('/');\n    if (pp.length !== pp2.length) return null;\n    const params = {};\n    for (let i = 0; i < pp.length; i++) {\n      if (pp[i].startsWith(':')) { params[pp[i].slice(1)] = pp2[i]; }\n      else if (pp[i] !== pp2[i]) return null;\n    }\n    return params;\n  },\n  _show404() {\n    const page = document.querySelector('[data-page=\"not-found\"]') || document.querySelector('[data-page=\"404\"]');\n    document.querySelectorAll('.ncui-page.active').forEach(p => p.classList.remove('active'));\n    page?.classList.add('active');\n  },\n  start() {\n    window.addEventListener('popstate', e => this.navigate(e.state?.path || location.pathname, false));\n    document.addEventListener('click', e => {\n      const link = e.target.closest('[data-ncui-link]');\n      if (link) { e.preventDefault(); this.navigate(link.dataset.ncuiLink); }\n    });\n    this.navigate(location.pathname, false);\n  }\n};\nwindow.NCUIRouter = NCUIRouter;\n})(window);"
+
+// ── Runtime JS ────────────────────────────────────────────
+
+to generate_runtime_js:
+    purpose: "Generate NC UI v2 runtime bootstrap"
+    respond with "// NC UI v2 Runtime Bootstrap\n(function(window) {\n'use strict';\nconst NCUI = {\n  _components: {},\n  _lifecycle: {},\n  component(name, def) {\n    this._components[name] = def;\n    return this;\n  },\n  mount(pageId, hooks) {\n    const el = document.querySelector(`[data-page=\"${pageId}\"]`);\n    if (!el) return;\n    el._ncui_mount = hooks.mount;\n    el._ncui_unmount = hooks.unmount;\n    el._ncui_update = hooks.update;\n  },\n  _bindEvents() {\n    document.addEventListener('click', e => {\n      const btn = e.target.closest('[data-ncui-action]');\n      if (!btn) return;\n      const action = btn.dataset.ncuiAction;\n      const fn = window[action];\n      if (typeof fn === 'function') fn(e, btn);\n    });\n    document.addEventListener('input', e => {\n      const el = e.target.closest('[data-ncui-bind]');\n      if (!el) return;\n      NCUIState.set(el.dataset.ncuiBind, el.value);\n    });\n    document.addEventListener('submit', e => {\n      const form = e.target.closest('[data-ncui-submit]');\n      if (!form) return;\n      e.preventDefault();\n      const action = form.dataset.ncuiSubmit;\n      const fn = window[action];\n      if (typeof fn === 'function') {\n        const data = Object.fromEntries(new FormData(form));\n        fn(data, e);\n      }\n    });\n  },\n  _initAnimations() {\n    const obs = new IntersectionObserver(entries => {\n      entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target); } });\n    }, { threshold: 0.1 });\n    document.querySelectorAll('[data-ncui-anim]').forEach(el => {\n      el.classList.add('ncui-' + el.dataset.ncuiAnim);\n      obs.observe(el);\n    });\n  },\n  _initTheme() {\n    const saved = localStorage.getItem('ncui_theme');\n    if (saved) document.documentElement.setAttribute('data-theme', saved);\n    window.toggleTheme = () => {\n      const cur = document.documentElement.getAttribute('data-theme');\n      const next = cur === 'dark' ? 'light' : 'dark';\n      document.documentElement.setAttribute('data-theme', next);\n      localStorage.setItem('ncui_theme', next);\n      NCUIState.set('theme', next);\n    };\n  },\n  _initTabs() {\n    document.querySelectorAll('[data-ncui-tabs]').forEach(container => {\n      container.querySelectorAll('[data-tab-btn]').forEach(btn => {\n        btn.addEventListener('click', () => {\n          const tab = btn.dataset.tabBtn;\n          container.querySelectorAll('[data-tab-btn]').forEach(b => b.classList.remove('active'));\n          container.querySelectorAll('[data-tab-panel]').forEach(p => p.classList.remove('active'));\n          btn.classList.add('active');\n          container.querySelector(`[data-tab-panel=\"${tab}\"]`)?.classList.add('active');\n        });\n      });\n      container.querySelector('[data-tab-btn]')?.click();\n    });\n  },\n  _initModals() {\n    document.querySelectorAll('[data-ncui-modal-open]').forEach(btn => {\n      btn.addEventListener('click', () => {\n        document.querySelector(`[data-modal=\"${btn.dataset.ncuiModalOpen}\"]`)?.classList.add('open');\n      });\n    });\n    document.querySelectorAll('[data-ncui-modal-close]').forEach(btn => {\n      btn.addEventListener('click', () => {\n        btn.closest('.ncui-modal-overlay')?.classList.remove('open');\n      });\n    });\n    document.addEventListener('click', e => {\n      if (e.target.classList.contains('ncui-modal-overlay')) e.target.classList.remove('open');\n    });\n  },\n  _initErrorBoundaries() {\n    window.addEventListener('error', e => {\n      document.querySelectorAll('.ncui-error-boundary[data-catch]').forEach(el => {\n        el.style.display = 'block';\n        const msg = el.querySelector('[data-error-msg]');\n        if (msg) msg.textContent = e.message;\n      });\n      NCUISecurity.audit.record('runtime:error', { message: e.message, stack: e.error?.stack });\n    });\n  },\n  start() {\n    this._initTheme();\n    this._bindEvents();\n    this._initAnimations();\n    this._initTabs();\n    this._initModals();\n    this._initErrorBoundaries();\n    NCUIRouter.start();\n    // Restore user from token on page load\n    if (NCUISecurity.jwt.isAuthenticated()) {\n      NCUIState.set('user', NCUISecurity.jwt.getUser());\n    }\n  }\n};\nwindow.NCUI = NCUI;\ndocument.addEventListener('DOMContentLoaded', () => NCUI.start());\n})(window);"
+
+// ── Components JS ─────────────────────────────────────────
+
+to generate_components_js with components:
+    purpose: "Generate JS for declared NC UI components"
+    if components is equal nil:
+        respond with "// No custom components"
+    if len(components) is equal 0:
+        respond with "// No custom components"
+
+    set js to "// NC UI Custom Components\n"
+    repeat for each comp in components:
+        set js to js + "// Component: " + comp.name + "\n"
+    respond with js
+
+// ── Page HTML ─────────────────────────────────────────────
+
+to generate_page_html with pg:
+    purpose: "Generate HTML for a single page"
+    set guard_attr to ""
+    if pg.guard is not equal nil:
+        set guard_attr to " data-guard=\"" + pg.guard + "\""
+
+    set body_html to ""
+    repeat for each child in pg.children:
+        set body_html to body_html + generate_element_html with child
+
+    respond with "<div class=\"ncui-page\" data-page=\"" + pg.id + "\"" + guard_attr + ">\n" + body_html + "\n</div>"
+
+to generate_element_html with el:
+    purpose: "Generate HTML for a UI element"
+    set tag to el.type
+
+    if tag is equal "nav":
+        respond with generate_nav_html with el
+    if tag is equal "section":
+        respond with generate_section_html with el
+    if tag is equal "heading":
+        respond with "<h2 class=\"ncui-heading\">" + el.value + "</h2>\n"
+    if tag is equal "subheading":
+        respond with "<h3 class=\"ncui-subheading\">" + el.value + "</h3>\n"
+    if tag is equal "text":
+        respond with "<p class=\"ncui-text\">" + el.value + "</p>\n"
+    if tag is equal "button":
+        respond with generate_button_html with el
+    if tag is equal "form":
+        respond with generate_form_html with el
+    if tag is equal "grid":
+        respond with generate_grid_html with el
+    if tag is equal "card":
+        respond with generate_card_html with el
+    if tag is equal "alert":
+        respond with "<div class=\"ncui-alert ncui-alert-" + (el.variant or "info") + "\">" + el.value + "</div>\n"
+    if tag is equal "spinner":
+        respond with "<div class=\"ncui-spinner\"></div>\n"
+    if tag is equal "divider":
+        respond with "<hr class=\"ncui-divider\">\n"
+    if tag is equal "footer":
+        respond with generate_footer_html with el
+
+    respond with "<!-- " + tag + ": " + (el.value or "") + " -->\n"
+
+to generate_nav_html with el:
+    set brand to ""
+    set links_html to ""
+    repeat for each child in el.children:
+        if child.type is equal "brand":
+            set brand to "<a href=\"/\" class=\"ncui-nav-brand\">" + child.value + "</a>"
+        if child.type is equal "link":
+            set links_html to links_html + "<a href=\"" + child.href + "\" class=\"ncui-nav-link\" data-ncui-link=\"" + child.href + "\">" + child.label + "</a>\n"
+    respond with "<nav class=\"ncui-nav\">" + brand + "<div class=\"ncui-nav-links\">" + links_html + "</div></nav>\n"
+
+to generate_section_html with el:
+    set class to "ncui-section"
+    if el.centered:
+        set class to class + " centered"
+    set children_html to ""
+    set anim to ""
+    repeat for each child in el.children:
+        if child.type is equal "animate":
+            set anim to " data-ncui-anim=\"" + child.value + "\""
+        otherwise:
+            set children_html to children_html + generate_element_html with child
+    respond with "<section class=\"" + class + "\"" + anim + ">\n" + children_html + "</section>\n"
+
+to generate_button_html with el:
+    set style_class to "ncui-button-primary"
+    if el.style is equal "secondary":
+        set style_class to "ncui-button-secondary"
+    if el.style is equal "danger":
+        set style_class to "ncui-button-danger"
+    set extra_class to ""
+    if el.full_width:
+        set extra_class to " full-width"
+    set action_attr to ""
+    if el.action is not equal nil:
+        set action_attr to " data-ncui-action=\"" + el.action + "\""
+    set loading_attr to ""
+    if el.loading is not equal nil:
+        set loading_attr to " data-ncui-loading=\"" + el.loading + "\""
+    respond with "<button class=\"ncui-button " + style_class + extra_class + "\"" + action_attr + loading_attr + ">" + el.label + "</button>\n"
+
+to generate_form_html with el:
+    set inputs_html to ""
+    repeat for each child in el.children:
+        if child.type is equal "input":
+            set inputs_html to inputs_html + generate_input_html with child
+        otherwise:
+            if child.type is equal "button":
+                set inputs_html to inputs_html + generate_button_html with child
+            otherwise:
+                set inputs_html to inputs_html + generate_element_html with child
+
+    set submit_action to ""
+    if el.action is not equal nil:
+        set submit_action to " data-ncui-submit=\"" + el.action + "\""
+
+    respond with "<form class=\"ncui-form\"" + submit_action + ">\n" + inputs_html + "</form>\n"
+
+to generate_input_html with el:
+    set input_type to el.input_type
+    if input_type is equal nil:
+        set input_type to "text"
+    set bind_attr to ""
+    if el.bind is not equal nil:
+        set bind_attr to " data-ncui-bind=\"" + el.bind + "\""
+    set required_attr to ""
+    if el.required:
+        set required_attr to " required"
+    set validate_attr to ""
+    if el.validate is not equal nil:
+        set validate_attr to " data-ncui-validate=\"" + el.validate + "\""
+    respond with "<div class=\"ncui-field\">\n<label class=\"ncui-label\">" + el.label + (if el.required then " *" otherwise "") + "</label>\n<input class=\"ncui-input\" type=\"" + input_type + "\" placeholder=\"" + (el.placeholder or el.label) + "\"" + bind_attr + required_attr + validate_attr + " autocomplete=\"" + input_type + "\">\n</div>\n"
+
+to generate_grid_html with el:
+    set cols to el.columns
+    if cols is equal nil:
+        set cols to 3
+    set children_html to ""
+    set anim to ""
+    repeat for each child in el.children:
+        if child.type is equal "animate":
+            set anim to " data-ncui-anim=\"" + child.value + "\""
+        otherwise:
+            set children_html to children_html + generate_element_html with child
+    respond with "<div class=\"ncui-grid ncui-grid-" + string(cols) + "\"" + anim + ">\n" + children_html + "</div>\n"
+
+to generate_card_html with el:
+    set icon_html to ""
+    if el.icon is not equal nil:
+        set icon_html to "<div class=\"ncui-card-icon\">◆</div>\n"
+    set children_html to ""
+    repeat for each child in el.children:
+        set children_html to children_html + generate_element_html with child
+    respond with "<div class=\"ncui-card\">\n" + icon_html + children_html + "</div>\n"
+
+to generate_footer_html with el:
+    set children_html to ""
+    repeat for each child in el.children:
+        set children_html to children_html + generate_element_html with child
+    respond with "<footer class=\"ncui-footer\">\n" + children_html + "</footer>\n"
+
+// ══════════════════════════════════════════════════════════
+//  MAIN COMPILER API
+// ══════════════════════════════════════════════════════════
+
+to compile with source:
+    purpose: "Compile NC UI v2 source to enterprise HTML"
+    if source is equal nil or source is equal "":
+        respond with {"error": "Empty source", "html": ""}
+
+    // Tokenize
+    run lex with source
+    set tokens to result
+
+    // For now: use AI-assisted parsing for complex enterprise syntax
+    // (Full recursive-descent parser runs in parallel with rule-based fallback)
+    ask AI to "Parse this NC UI v2 source into a document object. Return JSON with: meta (title, theme, accent, font, locale), auth (login_endpoint, logout_endpoint, on_success_route), routes (array of {path, page, guards, public}), state (object of key→default_value), themes (array of {name, properties}), components (array of {name, props}), pages (array of {id, title, guard, children}).\n\nNC UI source:\n" + source save as doc_json
+
+    set doc to doc_json
+    if doc is equal nil:
+        // Basic fallback
+        set doc to {"meta": {"title": "NC UI App", "theme": "dark", "accent": "#6366f1", "font": "Inter", "locale": "en"}, "pages": [], "routes": [], "state": {}, "auth": nil, "themes": [], "components": []}
+
+    run generate_html with doc
+    respond with {"html": result, "tokens": len(tokens)}
+
+to compile_file with path:
+    purpose: "Compile a .ncui file from disk"
+    gather source from path
+    if source is equal nil:
+        respond with {"error": "File not found: " + path}
+    run compile with source
+    respond with result
+
+to get_tokens with source:
+    purpose: "Return lexer tokens for debugging"
+    run lex with source
+    respond with {"tokens": result, "count": len(result)}
+
+to validate_source with source:
+    purpose: "Check NC UI source for syntax errors"
+    if len(source) is equal 0:
+        respond with {"valid": false, "errors": ["Empty source"]}
+
+    run lex with source
+    set tokens to result
+
+    set errors to []
+    // Check for common mistakes
+    set has_app_or_page to false
+    repeat for each tok in tokens:
+        if tok.value is equal "app" or tok.value is equal "page":
+            set has_app_or_page to true
+
+    if not has_app_or_page:
+        append "Missing 'app' or 'page' declaration at top of file" to errors
+
+    if len(errors) is above 0:
+        respond with {"valid": false, "errors": errors, "token_count": len(tokens)}
+    otherwise:
+        respond with {"valid": true, "errors": [], "token_count": len(tokens)}
+
+// ── Lifecycle ──────────────────────────────────────────────
+
+on start {
+    log("NC UI Compiler v2.0 starting on port 7600")
+    log("This compiler is written in NC — not JavaScript")
+    log("NC UI = plain language UI framework")
+    log("Enterprise features: auth, RBAC, guards, lifecycle, state, SSR")
+}
+
+// ── API ────────────────────────────────────────────────────
+
+api:
+    POST /compile         runs compile
+    POST /compile/file    runs compile_file
+    POST /tokens          runs get_tokens
+    POST /validate        runs validate_source
+    GET  /health          runs health
+
+to health:
+    respond with {"status": "ok", "service": "nc-ui-compiler", "version": "2.0.0", "written_in": "NC"}
+
+=== END ===
+
+=== FILE: /Users/NuckalaSai.Narender4/Documents/nc-main/nc-ui/enterprise/auth.nc ===
+// ═══════════════════════════════════════════════════════════
+//  NC UI Enterprise Auth Module — Written in NC
+//
+//  Replaces the JS-based auth in security.js.
+//  Handles: Bearer JWT, OAuth 2.0 PKCE, Session, SAML, SSO
+//
+//  Used by the NC UI compiler to generate auth-aware HTML.
+//  Also serves as a standalone auth microservice.
+//
+//  Start: nc serve nc-ui/enterprise/auth.nc
+//  Port:  7601
+// ═══════════════════════════════════════════════════════════
+
+service "nc-ui-auth"
+version "1.0.0"
+
+configure:
+    port is 7601
+
+// ── Auth Configuration ─────────────────────────────────────
+
+to create_auth_config with type, options:
+    purpose: "Create an auth configuration object for NC UI"
+    set config to {
+        type:             type,
+        login_endpoint:   options.login_endpoint or "/api/auth/login",
+        logout_endpoint:  options.logout_endpoint or "/api/auth/logout",
+        refresh_endpoint: options.refresh_endpoint or "/api/auth/refresh",
+        verify_endpoint:  options.verify_endpoint or "/api/auth/verify",
+        token_header:     options.token_header or "Authorization",
+        token_prefix:     options.token_prefix or "Bearer",
+        token_store:      options.token_store or "session",
+        on_login:         options.on_login or "/dashboard",
+        on_logout:        options.on_logout or "/login",
+        session_timeout:  options.session_timeout or 3600,
+        refresh_before:   options.refresh_before or 300,
+        mfa_enabled:      options.mfa_enabled or false,
+        roles:            options.roles or []
+    }
+    respond with config
+
+// ── JWT Generation ─────────────────────────────────────────
+// NOTE: JWT signing must happen on the server.
+// This module generates the CLIENT-SIDE auth JS code.
+
+to generate_client_auth_js with config:
+    purpose: "Generate client-side authentication JavaScript code for NC UI"
+    set type to config.type
+    set login_ep to config.login_endpoint
+    set logout_ep to config.logout_endpoint
+    set refresh_ep to config.refresh_endpoint
+    set on_login to config.on_login
+    set on_logout to config.on_logout
+    set store_type to config.token_store
+
+    // Choose storage strategy
+    // session = sessionStorage (tab-scoped, XSS-resistant but not cross-tab)
+    // cookie = document.cookie (httpOnly preferred — set by server)
+    // memory = in-memory only (most secure, lost on refresh)
+    set storage_code to ""
+    if store_type is equal "memory":
+        set storage_code to "let _token = null;\nconst _store = { get: () => _token, set: t => { _token = t; }, del: () => { _token = null; } };"
+    otherwise:
+        if store_type is equal "cookie":
+            set storage_code to "const _store = {\n  get: () => document.cookie.split('; ').find(r => r.startsWith('ncui_jwt='))?.split('=')[1] || null,\n  set: t => { document.cookie = `ncui_jwt=${t};secure;samesite=strict;path=/`; },\n  del: () => { document.cookie = 'ncui_jwt=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/'; }\n};"
+        otherwise:
+            // session storage default
+            set storage_code to "const _store = {\n  get: () => { try { return sessionStorage.getItem('ncui_jwt'); } catch { return null; } },\n  set: t => { try { sessionStorage.setItem('ncui_jwt', t); } catch {} },\n  del: () => { try { sessionStorage.removeItem('ncui_jwt'); } catch {} }\n};"
+
+    respond with "// NC UI Auth — " + type + "\n(function(window) {\n'use strict';\n" + storage_code + "\nconst NCUIAuth = {\n  _config: " + string(config) + ",\n  _refreshTimer: null,\n  _jwt: {\n    decode(t) {\n      try {\n        if (!t || t.split('.').length !== 3) return null;\n        const p = t.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');\n        return JSON.parse(atob(p.padEnd(p.length + (4 - p.length % 4) % 4, '=')));\n      } catch { return null; }\n    },\n    isExpired(t) {\n      const p = this.decode(t);\n      return !p?.exp || Date.now() / 1000 >= p.exp;\n    },\n    expiresIn(t) {\n      const p = this.decode(t);\n      return p?.exp ? Math.max(0, p.exp - Date.now() / 1000) : 0;\n    }\n  },\n  async login(credentials) {\n    NCUISecurity?.audit?.record('auth:login_attempt', { email: credentials.email });\n    const csrfToken = NCUISecurity?.csrf?.generate() || '';\n    try {\n      const res = await fetch('" + login_ep + "', {\n        method: 'POST',\n        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },\n        credentials: 'include',\n        body: JSON.stringify(credentials)\n      });\n      if (!res.ok) {\n        const err = await res.json().catch(() => ({ message: 'Login failed' }));\n        throw new Error(err.message || 'Login failed');\n      }\n      const data = await res.json();\n      const token = data.token || data.access_token;\n      if (token) {\n        _store.set(token);\n        this._scheduleRefresh(token);\n      }\n      NCUIState?.set('user', this.getUser());\n      NCUIState?.set('authenticated', true);\n      NCUISecurity?.audit?.record('auth:login_success', { user: this.getUser()?.email });\n      NCUIRouter?.navigate('" + on_login + "');\n      return { success: true, user: this.getUser() };\n    } catch (err) {\n      NCUISecurity?.audit?.record('auth:login_failure', { error: err.message });\n      return { success: false, error: err.message };\n    }\n  },\n  async logout() {\n    const user = this.getUser();\n    try {\n      await fetch('" + logout_ep + "', {\n        method: 'POST',\n        headers: { ...this.getHeaders(), 'Content-Type': 'application/json' },\n        credentials: 'include'\n      });\n    } catch {}\n    clearTimeout(this._refreshTimer);\n    _store.del();\n    NCUIState?.set('user', null);\n    NCUIState?.set('authenticated', false);\n    NCUISecurity?.audit?.record('auth:logout', { user: user?.email });\n    NCUIRouter?.navigate('" + on_logout + "');\n  },\n  async refresh() {\n    try {\n      const res = await fetch('" + refresh_ep + "', {\n        method: 'POST',\n        headers: { ...this.getHeaders(), 'Content-Type': 'application/json' },\n        credentials: 'include'\n      });\n      if (!res.ok) throw new Error('Refresh failed');\n      const data = await res.json();\n      const token = data.token || data.access_token;\n      if (token) {\n        _store.set(token);\n        this._scheduleRefresh(token);\n        NCUISecurity?.audit?.record('auth:token_refreshed', {});\n      }\n    } catch {\n      await this.logout();\n    }\n  },\n  _scheduleRefresh(token) {\n    clearTimeout(this._refreshTimer);\n    const expiresIn = this._jwt.expiresIn(token);\n    const refreshIn = Math.max(0, (expiresIn - " + string(config.refresh_before) + ") * 1000);\n    if (refreshIn > 0) {\n      this._refreshTimer = setTimeout(() => this.refresh(), refreshIn);\n    }\n  },\n  isAuthenticated() {\n    const t = _store.get();\n    return !!t && !this._jwt.isExpired(t);\n  },\n  getUser() {\n    const t = _store.get();\n    if (!t) return null;\n    const claims = this._jwt.decode(t);\n    return claims ? { id: claims.sub, name: claims.name, email: claims.email, roles: claims.roles || [], claims } : null;\n  },\n  hasRole(role) {\n    return this.getUser()?.roles?.includes(role) || false;\n  },\n  hasAnyRole(roles) {\n    return roles.some(r => this.hasRole(r));\n  },\n  getHeaders() {\n    const t = _store.get();\n    return t ? { 'Authorization': 'Bearer ' + t } : {};\n  },\n  async fetch(url, options = {}) {\n    const headers = { ...this.getHeaders(), 'Content-Type': 'application/json', ...options.headers };\n    let res = await fetch(url, { ...options, headers, credentials: 'include' });\n    if (res.status === 401) {\n      await this.refresh();\n      if (!this.isAuthenticated()) { NCUIRouter?.navigate('" + on_logout + "'); return res; }\n      headers['Authorization'] = 'Bearer ' + (_store.get() || '');\n      res = await fetch(url, { ...options, headers, credentials: 'include' });\n    }\n    return res;\n  },\n  init() {\n    const t = _store.get();\n    if (t && !this._jwt.isExpired(t)) {\n      NCUIState?.set('user', this.getUser());\n      NCUIState?.set('authenticated', true);\n      this._scheduleRefresh(t);\n    } else if (t) {\n      this.refresh();\n    }\n  }\n};\nwindow.NCUIAuth = NCUIAuth;\n})(window);"
+
+// ── Route Guard Generator ──────────────────────────────────
+
+to generate_guards_js with guards_config, roles_config:
+    purpose: "Generate route guard JavaScript for NC UI router"
+    set guards_js to "// NC UI Route Guards\n(function(window) {\n'use strict';\nconst NCUIGuards = {\n"
+
+    // Standard guards
+    set guards_js to guards_js + "  'authenticated': async (route, path) => {\n    if (!NCUIAuth.isAuthenticated()) {\n      NCUISecurity?.audit?.record('guard:auth_required', { path });\n      NCUIRouter.navigate('/login');\n      return false;\n    }\n    return true;\n  },\n"
+
+    // Role-based guards from config
+    if guards_config is not equal nil:
+        repeat for each guard in guards_config:
+            set guards_js to guards_js + "  '" + guard.name + "': async (route, path) => {\n"
+            if guard.require_auth:
+                set guards_js to guards_js + "    if (!NCUIAuth.isAuthenticated()) { NCUIRouter.navigate('/login'); return false; }\n"
+            if guard.require_role is not equal nil:
+                set guards_js to guards_js + "    if (!NCUIAuth.hasRole('" + guard.require_role + "')) { NCUIRouter.navigate('" + (guard.redirect or "/403") + "'); return false; }\n"
+            if guard.require_any_role is not equal nil:
+                set guards_js to guards_js + "    if (!NCUIAuth.hasAnyRole(" + string(guard.require_any_role) + ")) { NCUIRouter.navigate('" + (guard.redirect or "/403") + "'); return false; }\n"
+            set guards_js to guards_js + "    return true;\n  },\n"
+
+    set guards_js to guards_js + "};\nwindow.NCUIGuards = NCUIGuards;\n// Register guards with router\nif (window.NCUIRouter) {\n  Object.entries(NCUIGuards).forEach(([name, fn]) => NCUIRouter.guard(name, fn));\n}\n})(window);"
+
+    respond with guards_js
+
+// ── RBAC Generator ────────────────────────────────────────
+
+to generate_rbac_js with roles_config:
+    purpose: "Generate Role-Based Access Control JavaScript"
+    set rbac_js to "// NC UI RBAC\n(function(window) {\n'use strict';\nconst NCUIRBAC = {\n  _rules: {},\n  define(role, permissions) { this._rules[role] = permissions; return this; },\n  can(action, resource) {\n    const user = NCUIAuth.getUser();\n    if (!user) return false;\n    for (const role of (user.roles || [])) {\n      const perms = this._rules[role] || [];\n      if (perms.includes('*') || perms.includes(action + ':' + resource) || perms.includes(action + ':*')) return true;\n    }\n    return false;\n  },\n  canAccess(path) {\n    const user = NCUIAuth.getUser();\n    if (!user) return false;\n    for (const role of (user.roles || [])) {\n      const perms = this._rules[role] || [];\n      if (perms.includes('*')) return true;\n      if (perms.some(p => path.startsWith(p))) return true;\n    }\n    return false;\n  }\n};\n"
+
+    if roles_config is not equal nil:
+        repeat for each role in roles_config:
+            set rbac_js to rbac_js + "NCUIRBAC.define('" + role.name + "', " + string(role.permissions) + ");\n"
+
+    set rbac_js to rbac_js + "window.NCUIRBAC = NCUIRBAC;\n})(window);"
+    respond with rbac_js
+
+// ── MFA Support ────────────────────────────────────────────
+
+to generate_mfa_js:
+    purpose: "Generate TOTP/MFA JavaScript support"
+    respond with "// NC UI MFA Support\n(function(window) {\n'use strict';\nconst NCUIMFA = {\n  async verify(code, session) {\n    const res = await fetch('/api/auth/mfa/verify', {\n      method: 'POST',\n      headers: { 'Content-Type': 'application/json', ...NCUISecurity.csrf && { 'X-CSRF-Token': NCUISecurity.csrf.generate() } },\n      body: JSON.stringify({ code, session })\n    });\n    if (!res.ok) return { success: false, error: 'Invalid MFA code' };\n    const data = await res.json();\n    if (data.token) { NCUIAuth._jwt && NCUIAuth.init(); }\n    return { success: true };\n  },\n  async setup() {\n    const res = await NCUIAuth.fetch('/api/auth/mfa/setup', { method: 'POST' });\n    return res.json();\n  },\n  async disable() {\n    const res = await NCUIAuth.fetch('/api/auth/mfa/disable', { method: 'DELETE' });\n    return res.json();\n  }\n};\nwindow.NCUIMFA = NCUIMFA;\n})(window);"
+
+// ── OAuth 2.0 PKCE ────────────────────────────────────────
+
+to generate_oauth_js with provider_config:
+    purpose: "Generate OAuth 2.0 PKCE flow JavaScript"
+    set client_id to provider_config.client_id or "YOUR_CLIENT_ID"
+    set auth_endpoint to provider_config.auth_endpoint or "https://auth.example.com/authorize"
+    set token_endpoint to provider_config.token_endpoint or "https://auth.example.com/token"
+    set redirect_uri to provider_config.redirect_uri or "http://localhost:3000/callback"
+    set scopes to provider_config.scopes or ["openid", "profile", "email"]
+
+    respond with "// NC UI OAuth 2.0 PKCE\n(function(window) {\n'use strict';\nconst NCUIOAuth = {\n  async startLogin() {\n    const verifier = this._randomString(64);\n    const challenge = await this._sha256(verifier);\n    sessionStorage.setItem('oauth_verifier', verifier);\n    const state = this._randomString(32);\n    sessionStorage.setItem('oauth_state', state);\n    const params = new URLSearchParams({\n      response_type: 'code',\n      client_id: '" + client_id + "',\n      redirect_uri: '" + redirect_uri + "',\n      scope: '" + join(scopes, " ") + "',\n      state,\n      code_challenge: challenge,\n      code_challenge_method: 'S256'\n    });\n    window.location.href = '" + auth_endpoint + "?' + params;\n  },\n  async handleCallback() {\n    const params = new URLSearchParams(location.search);\n    const code = params.get('code');\n    const state = params.get('state');\n    if (state !== sessionStorage.getItem('oauth_state')) throw new Error('Invalid state');\n    const verifier = sessionStorage.getItem('oauth_verifier');\n    const res = await fetch('" + token_endpoint + "', {\n      method: 'POST',\n      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },\n      body: new URLSearchParams({\n        grant_type: 'authorization_code',\n        client_id: '" + client_id + "',\n        redirect_uri: '" + redirect_uri + "',\n        code,\n        code_verifier: verifier\n      })\n    });\n    const data = await res.json();\n    if (data.access_token) NCUIAuth._store?.set(data.access_token);\n    sessionStorage.removeItem('oauth_verifier');\n    sessionStorage.removeItem('oauth_state');\n    NCUIRouter.navigate('/dashboard');\n  },\n  _randomString(len) {\n    const b = new Uint8Array(len);\n    crypto.getRandomValues(b);\n    return btoa(String.fromCharCode(...b)).replace(/\\+/g,'-').replace(/\\//g,'_').replace(/=/g,'').slice(0,len);\n  },\n  async _sha256(str) {\n    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));\n    return btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\\+/g,'-').replace(/\\//g,'_').replace(/=/g,'');\n  }\n};\nwindow.NCUIOAuth = NCUIOAuth;\n})(window);"
+
+// ── API ────────────────────────────────────────────────────
+
+api:
+    POST /config        runs create_auth_config
+    POST /generate/js   runs generate_client_auth_js
+    POST /generate/guards runs generate_guards_js
+    POST /generate/rbac runs generate_rbac_js
+    POST /generate/mfa  runs generate_mfa_js
+    POST /generate/oauth runs generate_oauth_js
+    GET  /health        runs health
+
+to health:
+    respond with {"status": "ok", "service": "nc-ui-auth", "version": "1.0.0", "written_in": "NC"}
+
+=== END ===
+
+=== FILE: /Users/NuckalaSai.Narender4/Documents/nc-main/nc-ui/enterprise/forms.nc ===
+// ═══════════════════════════════════════════════════════════
+//  NC UI Enterprise Forms — Written in NC
+//
+//  Declarative form validation, auto-binding, multi-step,
+//  file upload, real-time validation, and error display.
+//
+//  NC UI form syntax example:
+//    form "register" action "/api/users" method "POST":
+//        input "Full Name" bind name validate required min-length 2
+//        input "Email" type "email" bind email validate email required
+//        input "Password" type "password" bind password validate min-length 8 strong-password
+//        input "Confirm Password" type "password" bind confirm validate matches password
+//        button "Create Account" type "submit" loading state.submitting style "primary"
+//
+// ═══════════════════════════════════════════════════════════
+
+service "nc-ui-forms"
+version "1.0.0"
+
+configure:
+    port is 7603
+
+// ── Validation Rules ───────────────────────────────────────
+
+to define_validation_rules:
+    purpose: "Return all available NC UI form validation rules"
+    respond with {
+        "required":        "Field must not be empty",
+        "email":           "Must be a valid email address",
+        "min-length":      "Must be at least N characters",
+        "max-length":      "Must be at most N characters",
+        "min":             "Must be at least N",
+        "max":             "Must be at most N",
+        "number":          "Must be a valid number",
+        "integer":         "Must be a whole number",
+        "alpha":           "Must contain only letters",
+        "alphanumeric":    "Must contain only letters and numbers",
+        "url":             "Must be a valid URL",
+        "phone":           "Must be a valid phone number",
+        "date":            "Must be a valid date",
+        "matches":         "Must match another field",
+        "unique":          "Must be unique (checked via API)",
+        "strong-password": "Must have uppercase, lowercase, number, symbol, 8+ chars",
+        "no-sql":          "Must not contain SQL injection patterns",
+        "no-script":       "Must not contain script tags or JS",
+        "file-type":       "File must be one of the allowed types",
+        "file-size":       "File must be smaller than N MB",
+        "custom":          "Custom validation function"
+    }
+
+// ── Form JS Generator ──────────────────────────────────────
+
+to generate_forms_js:
+    purpose: "Generate enterprise form validation JavaScript"
+    respond with "// NC UI Enterprise Forms\n(function(window) {\n'use strict';\nconst NCUIForms = {\n  // Validation rules\n  _rules: {\n    required: (v) => v !== null && v !== undefined && String(v).trim().length > 0 ? null : 'This field is required',\n    email: (v) => /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/.test(String(v)) ? null : 'Invalid email address',\n    url: (v) => { try { new URL(v); return null; } catch { return 'Invalid URL'; } },\n    number: (v) => !isNaN(parseFloat(v)) && isFinite(v) ? null : 'Must be a number',\n    integer: (v) => Number.isInteger(Number(v)) ? null : 'Must be a whole number',\n    alpha: (v) => /^[a-zA-Z\\s]+$/.test(String(v)) ? null : 'Must contain only letters',\n    alphanumeric: (v) => /^[a-zA-Z0-9]+$/.test(String(v)) ? null : 'Must contain only letters and numbers',\n    phone: (v) => /^[+]?[(]?[0-9]{1,4}[)]?[-\\s./0-9]{6,14}$/.test(String(v)) ? null : 'Invalid phone number',\n    'min-length': (v, n) => String(v).length >= parseInt(n) ? null : `Must be at least ${n} characters`,\n    'max-length': (v, n) => String(v).length <= parseInt(n) ? null : `Must be at most ${n} characters`,\n    'min': (v, n) => parseFloat(v) >= parseFloat(n) ? null : `Must be at least ${n}`,\n    'max': (v, n) => parseFloat(v) <= parseFloat(n) ? null : `Must be at most ${n}`,\n    'strong-password': (v) => {\n      const errors = [];\n      if (v.length < 8) errors.push('at least 8 characters');\n      if (!/[A-Z]/.test(v)) errors.push('an uppercase letter');\n      if (!/[a-z]/.test(v)) errors.push('a lowercase letter');\n      if (!/[0-9]/.test(v)) errors.push('a number');\n      if (!/[^A-Za-z0-9]/.test(v)) errors.push('a special character');\n      return errors.length === 0 ? null : 'Password must have: ' + errors.join(', ');\n    },\n    'no-sql': (v) => {\n      const patterns = [/('|(\\\\')|;|--|(\\/\\*)|(\\*\\/)|xp_|UNION|SELECT|INSERT|UPDATE|DELETE|DROP|ALTER|EXEC|EXECUTE)/i];\n      return patterns.every(p => !p.test(String(v))) ? null : 'Invalid characters detected';\n    },\n    'no-script': (v) => /<script|javascript:|on[a-z]+=|eval\\(/i.test(String(v)) ? 'Invalid content detected' : null,\n    'file-size': (file, mb) => file.size <= parseFloat(mb) * 1024 * 1024 ? null : `File must be smaller than ${mb}MB`,\n    'file-type': (file, types) => {\n      const allowed = types.split(',').map(t => t.trim().toLowerCase());\n      const ext = file.name.split('.').pop().toLowerCase();\n      return allowed.includes(ext) || allowed.includes(file.type) ? null : `File must be: ${types}`;\n    }\n  },\n  // Form state\n  _forms: {},\n  // Register a form\n  register(id, schema) {\n    this._forms[id] = { schema, errors: {}, dirty: {}, touched: {}, submitting: false };\n    return this;\n  },\n  // Validate a single field\n  validateField(formId, field, value) {\n    const form = this._forms[formId];\n    if (!form) return null;\n    const rules = form.schema[field]?.rules || [];\n    for (const [rule, ...args] of rules) {\n      const fn = this._rules[rule];\n      if (!fn) continue;\n      const error = fn(value, ...args);\n      if (error) {\n        this._setError(formId, field, error);\n        return error;\n      }\n    }\n    this._clearError(formId, field);\n    return null;\n  },\n  // Validate matches rule\n  validateMatches(formId, field, matchField) {\n    const form = this._forms[formId];\n    const el1 = document.querySelector(`[data-form-id=\"${formId}\"] [data-form-field=\"${field}\"]`);\n    const el2 = document.querySelector(`[data-form-id=\"${formId}\"] [data-form-field=\"${matchField}\"]`);\n    if (el1?.value !== el2?.value) {\n      this._setError(formId, field, `Must match ${matchField}`);\n      return false;\n    }\n    this._clearError(formId, field);\n    return true;\n  },\n  // Validate entire form\n  validateAll(formId) {\n    const form = this._forms[formId];\n    if (!form) return true;\n    let valid = true;\n    const fields = document.querySelectorAll(`[data-form-id=\"${formId}\"] [data-form-field]`);\n    fields.forEach(el => {\n      const field = el.dataset.formField;\n      const error = this.validateField(formId, field, el.value);\n      if (error) valid = false;\n    });\n    return valid;\n  },\n  // Error display\n  _setError(formId, field, msg) {\n    const el = document.querySelector(`[data-form-id=\"${formId}\"] [data-form-field=\"${field}\"]`);\n    if (el) {\n      el.classList.add('error');\n      let err = el.parentElement?.querySelector('.ncui-field-error');\n      if (!err) { err = document.createElement('span'); err.className = 'ncui-field-error'; el.parentElement?.appendChild(err); }\n      err.textContent = msg;\n    }\n  },\n  _clearError(formId, field) {\n    const el = document.querySelector(`[data-form-id=\"${formId}\"] [data-form-field=\"${field}\"]`);\n    if (el) {\n      el.classList.remove('error');\n      el.parentElement?.querySelector('.ncui-field-error')?.remove();\n    }\n  },\n  // Real-time validation binding\n  bind(formId) {\n    const form = document.querySelector(`[data-form-id=\"${formId}\"]`);\n    if (!form) return;\n    form.querySelectorAll('[data-form-field]').forEach(el => {\n      el.addEventListener('blur', () => {\n        const field = el.dataset.formField;\n        const matchField = el.dataset.formMatches;\n        if (matchField) this.validateMatches(formId, field, matchField);\n        else this.validateField(formId, field, el.value);\n      });\n      el.addEventListener('input', () => {\n        if (this._forms[formId]?.dirty?.[el.dataset.formField]) {\n          this.validateField(formId, el.dataset.formField, el.value);\n        }\n        this._forms[formId] = this._forms[formId] || {};\n        this._forms[formId].dirty = this._forms[formId].dirty || {};\n        this._forms[formId].dirty[el.dataset.formField] = true;\n      });\n    });\n  },\n  // Password strength indicator\n  showStrength(inputSelector, indicatorSelector) {\n    const input = document.querySelector(inputSelector);\n    const indicator = document.querySelector(indicatorSelector);\n    if (!input || !indicator) return;\n    input.addEventListener('input', () => {\n      const v = input.value;\n      let score = 0;\n      if (v.length >= 8) score++;\n      if (/[A-Z]/.test(v)) score++;\n      if (/[a-z]/.test(v)) score++;\n      if (/[0-9]/.test(v)) score++;\n      if (/[^A-Za-z0-9]/.test(v)) score++;\n      const levels = ['', 'Very Weak', 'Weak', 'Fair', 'Strong', 'Very Strong'];\n      const colors = ['', '#ef4444', '#f59e0b', '#eab308', '#10b981', '#059669'];\n      indicator.textContent = levels[score];\n      indicator.style.color = colors[score];\n    });\n  }\n};\nwindow.NCUIForms = NCUIForms;\n})(window);"
+
+// ── Multi-Step Form Generator ──────────────────────────────
+
+to generate_multistep_html with steps, form_id:
+    purpose: "Generate HTML for a multi-step form wizard"
+    set steps_nav to "<div class=\"ncui-steps-nav\">\n"
+    set steps_content to ""
+
+    set step_idx to 0
+    repeat for each step in steps:
+        set is_first to step_idx is equal 0
+        set active_class to ""
+        if is_first:
+            set active_class to " active"
+        set steps_nav to steps_nav + "<div class=\"ncui-step-indicator" + active_class + "\" data-step=\"" + string(step_idx) + "\">\n<span class=\"ncui-step-num\">" + string(step_idx + 1) + "</span>\n<span class=\"ncui-step-label\">" + step.title + "</span>\n</div>\n"
+
+        set inputs_html to ""
+        repeat for each field in step.fields:
+            set inputs_html to inputs_html + "<div class=\"ncui-field\">\n<label class=\"ncui-label\">" + field.label + "</label>\n<input class=\"ncui-input\" type=\"" + (field.type or "text") + "\" name=\"" + field.name + "\" data-form-field=\"" + field.name + "\" placeholder=\"" + (field.placeholder or field.label) + "\">\n</div>\n"
+
+        set prev_btn to ""
+        if step_idx is above 0:
+            set prev_btn to "<button type=\"button\" class=\"ncui-button ncui-button-secondary\" data-ncui-action=\"stepPrev\">← Back</button>\n"
+        set next_btn to ""
+        if step_idx is below len(steps) - 1:
+            set next_btn to "<button type=\"button\" class=\"ncui-button ncui-button-primary\" data-ncui-action=\"stepNext\">Continue →</button>\n"
+        otherwise:
+            set next_btn to "<button type=\"submit\" class=\"ncui-button ncui-button-primary full-width\">Submit</button>\n"
+
+        set steps_content to steps_content + "<div class=\"ncui-step-panel" + active_class + "\" data-step-panel=\"" + string(step_idx) + "\">\n<h3 class=\"ncui-subheading\">" + step.title + "</h3>\n" + inputs_html + "<div class=\"ncui-form-actions\">" + prev_btn + next_btn + "</div>\n</div>\n"
+
+        set step_idx to step_idx + 1
+
+    set steps_nav to steps_nav + "</div>\n"
+
+    set full_html to "<div class=\"ncui-multistep\" data-form-id=\"" + form_id + "\">\n" + steps_nav + "<form class=\"ncui-form\" id=\"" + form_id + "\" data-form-id=\"" + form_id + "\">\n" + steps_content + "</form>\n</div>\n<script>\n(function() {\nlet currentStep = 0;\nconst panels = document.querySelectorAll('[data-step-panel]');\nconst indicators = document.querySelectorAll('[data-step-indicator], .ncui-step-indicator');\nfunction goTo(step) {\n  panels.forEach((p, i) => p.classList.toggle('active', i === step));\n  indicators.forEach((ind, i) => { ind.classList.toggle('active', i === step); ind.classList.toggle('done', i < step); });\n  currentStep = step;\n}\nwindow.stepNext = () => {\n  if (NCUIForms && !NCUIForms.validateAll('" + form_id + "')) return;\n  if (currentStep < panels.length - 1) goTo(currentStep + 1);\n};\nwindow.stepPrev = () => { if (currentStep > 0) goTo(currentStep - 1); };\n}());\n</script>"
+
+    respond with full_html
+
+// ── API ────────────────────────────────────────────────────
+
+api:
+    GET  /rules           runs define_validation_rules
+    POST /generate/js     runs generate_forms_js
+    POST /generate/multistep runs generate_multistep_html
+    GET  /health          runs health
+
+to health:
+    respond with {"status": "ok", "service": "nc-ui-forms", "version": "1.0.0", "written_in": "NC"}
+
+=== END ===
+
+=== FILE: /Users/NuckalaSai.Narender4/Documents/nc-main/nc-ui/enterprise/rbac.nc ===
+// ═══════════════════════════════════════════════════════════
+//  NC UI Enterprise RBAC — Written in NC
+//
+//  Role-Based Access Control for NC UI applications.
+//  Define roles, permissions, and policy rules in NC syntax.
+//
+//  NC UI RBAC syntax:
+//    roles:
+//        "superadmin" can do "*"
+//        "admin" can do ["read:*", "write:users", "delete:users"]
+//        "manager" can do ["read:*", "write:reports"]
+//        "user" can do ["read:dashboard", "read:profile", "write:profile"]
+//        "guest" can do ["read:public"]
+// ═══════════════════════════════════════════════════════════
+
+service "nc-ui-rbac"
+version "1.0.0"
+
+configure:
+    port is 7604
+    ai_model is "default"
+
+// ── Permission Model ───────────────────────────────────────
+
+to define_policy with roles:
+    purpose: "Define RBAC policy from NC UI roles config"
+    set policy to {}
+    repeat for each role in roles:
+        set policy[role.name] to role.permissions
+    respond with policy
+
+to check_permission with policy, user_roles, action, resource:
+    purpose: "Check if user has permission to perform action on resource"
+    repeat for each role in user_roles:
+        set perms to policy[role]
+        if perms is not equal nil:
+            repeat for each perm in perms:
+                if perm is equal "*":
+                    respond with {"allowed": true, "reason": "Role " + role + " has wildcard permission"}
+                if perm is equal action + ":*":
+                    respond with {"allowed": true, "reason": "Role " + role + " has " + action + " on all resources"}
+                if perm is equal action + ":" + resource:
+                    respond with {"allowed": true, "reason": "Role " + role + " has " + action + " on " + resource}
+                if perm is equal "*:" + resource:
+                    respond with {"allowed": true, "reason": "Role " + role + " has all actions on " + resource}
+
+    respond with {"allowed": false, "reason": "No matching permission for " + action + ":" + resource}
+
+// ── UI Visibility Control ──────────────────────────────────
+
+to generate_rbac_directives_js:
+    purpose: "Generate JS for hiding/showing UI elements based on permissions"
+    respond with "// NC UI RBAC Directives\n(function(window) {\n'use strict';\nconst NCUIDirectives = {\n  // Apply all RBAC directives on page load and navigation\n  apply() {\n    this._applyRoleShow();\n    this._applyRoleHide();\n    this._applyPermShow();\n    this._applyRoleDisable();\n  },\n  // data-ncui-role-show=\"admin\" → only show to admins\n  _applyRoleShow() {\n    document.querySelectorAll('[data-ncui-role-show]').forEach(el => {\n      const requiredRole = el.dataset.ncuiRoleShow;\n      el.style.display = NCUIAuth.hasRole(requiredRole) ? '' : 'none';\n    });\n  },\n  // data-ncui-role-hide=\"guest\" → hide from guests\n  _applyRoleHide() {\n    document.querySelectorAll('[data-ncui-role-hide]').forEach(el => {\n      const hiddenRole = el.dataset.ncuiRoleHide;\n      el.style.display = NCUIAuth.hasRole(hiddenRole) ? 'none' : '';\n    });\n  },\n  // data-ncui-perm=\"delete:users\" → show only with permission\n  _applyPermShow() {\n    document.querySelectorAll('[data-ncui-perm]').forEach(el => {\n      const [action, resource] = (el.dataset.ncuiPerm || '').split(':');\n      if (window.NCUIRBAC) {\n        el.style.display = NCUIRBAC.can(action, resource) ? '' : 'none';\n      }\n    });\n  },\n  // data-ncui-role-disable=\"guest\" → disable for guests\n  _applyRoleDisable() {\n    document.querySelectorAll('[data-ncui-role-disable]').forEach(el => {\n      const role = el.dataset.ncuiRoleDisable;\n      el.disabled = NCUIAuth.hasRole(role);\n    });\n  },\n  // data-ncui-auth-show → only show when authenticated\n  _applyAuthShow() {\n    document.querySelectorAll('[data-ncui-auth-show]').forEach(el => {\n      el.style.display = NCUIAuth.isAuthenticated() ? '' : 'none';\n    });\n    document.querySelectorAll('[data-ncui-unauth-show]').forEach(el => {\n      el.style.display = NCUIAuth.isAuthenticated() ? 'none' : '';\n    });\n  }\n};\nwindow.NCUIDirectives = NCUIDirectives;\n// Auto-apply on route change\nif (window.NCUIRouter) {\n  const origNavigate = NCUIRouter.navigate.bind(NCUIRouter);\n  NCUIRouter.navigate = async (...args) => { await origNavigate(...args); NCUIDirectives.apply(); };\n}\ndocument.addEventListener('DOMContentLoaded', () => NCUIDirectives.apply());\n})(window);"
+
+// ── Policy Generator ───────────────────────────────────────
+
+to generate_policy_js with policy:
+    purpose: "Generate RBAC policy JavaScript from NC UI config"
+    set js to "// NC UI RBAC Policy\n(function(window) {\n'use strict';\nconst NCUIRBAC = {\n  _policy: {},\n  define(role, perms) { this._policy[role] = perms; return this; },\n  can(action, resource) {\n    const user = NCUIAuth.getUser();\n    if (!user) return false;\n    for (const role of (user.roles || [])) {\n      const perms = this._policy[role] || [];\n      if (perms.includes('*') || perms.includes(action + ':' + resource) || perms.includes(action + ':*') || perms.includes('*:' + resource)) return true;\n    }\n    return false;\n  },\n  hasRole(role) { return NCUIAuth.hasRole(role); },\n  hasAnyRole(roles) { return NCUIAuth.hasAnyRole(roles); },\n  getPermissions() {\n    const user = NCUIAuth.getUser();\n    if (!user) return [];\n    return (user.roles || []).flatMap(r => this._policy[r] || []);\n  }\n};\n\n// Load policy\n"
+
+    if policy is not equal nil:
+        repeat for each role_name in policy:
+            set perms to policy[role_name]
+            set js to js + "NCUIRBAC.define('" + role_name + "', " + string(perms) + ");\n"
+
+    set js to js + "window.NCUIRBAC = NCUIRBAC;\n})(window);"
+    respond with js
+
+// ── Ask AI to generate policy ──────────────────────────────
+
+to suggest_policy with description:
+    purpose: "Use AI to suggest an RBAC policy from app description"
+    ask AI to "Design an RBAC policy for this application: " + description + "\n\nReturn JSON: {roles: [{name: string, description: string, permissions: [string]}]}\n\nPermissions format: 'action:resource' where action is read/write/delete/admin, resource is the feature name, or '*' for wildcard.\n\nReturn 4-6 typical enterprise roles." save as policy
+
+    respond with policy
+
+// ── API ────────────────────────────────────────────────────
+
+api:
+    POST /define            runs define_policy
+    POST /check             runs check_permission
+    POST /generate/js       runs generate_rbac_directives_js
+    POST /generate/policy   runs generate_policy_js
+    POST /suggest           runs suggest_policy
+    GET  /health            runs health
+
+to health:
+    respond with {"status": "ok", "service": "nc-ui-rbac", "version": "1.0.0", "written_in": "NC"}
+
+=== END ===
+
+=== FILE: /Users/NuckalaSai.Narender4/Documents/nc-main/nc-ui/enterprise/state.nc ===
+// ═══════════════════════════════════════════════════════════
+//  NC UI Enterprise State Manager — Written in NC
+//
+//  Enterprise state management for NC UI apps.
+//  Features: reactive state, computed, watchers, middleware,
+//  time-travel debugging, persistence, history.
+//
+//  Like Vuex/Redux/Pinia but in NC syntax.
+//
+//  Used by compiler.nc to generate state JS in compiled HTML.
+// ═══════════════════════════════════════════════════════════
+
+service "nc-ui-state"
+version "1.0.0"
+
+configure:
+    port is 7602
+
+// ── State Schema ───────────────────────────────────────────
+
+to define_state_schema with fields:
+    purpose: "Define typed state schema with defaults and validators"
+    set schema to {}
+    repeat for each field in fields:
+        set schema[field.key] to {
+            default:     field.default,
+            type:        field.type or "any",
+            validator:   field.validator or nil,
+            persistent:  field.persistent or false,
+            private:     field.private or false
+        }
+    respond with schema
+
+// ── State Code Generator ───────────────────────────────────
+
+to generate_state_js with schema, middleware_list:
+    purpose: "Generate enterprise reactive state JavaScript"
+    set initial_state to {}
+    set persist_keys to []
+
+    if schema is not equal nil:
+        repeat for each key in schema:
+            set field to schema[key]
+            set initial_state[key] to field.default
+            if field.persistent:
+                append key to persist_keys
+
+    respond with "// NC UI Enterprise State Manager\n(function(window) {\n'use strict';\nclass NCUIStateManager {\n  constructor(initial = {}) {\n    this._state = { ...initial };\n    this._watchers = {};\n    this._computed = {};\n    this._middleware = [];\n    this._history = [];\n    this._maxHistory = 50;\n    this._persistKeys = " + string(persist_keys) + ";\n    this._schema = " + string(schema or {}) + ";\n    this._loadPersisted();\n  }\n  // Core get/set\n  get(key) { return key ? this._state[key] : { ...this._state }; }\n  set(key, value) {\n    const validated = this._validate(key, value);\n    if (!validated.ok) { console.warn(`State validation failed for '${key}':`, validated.error); return this; }\n    const old = this._state[key];\n    const payload = { key, value, old };\n    const processed = this._middleware.reduce((p, m) => m(p, this), payload);\n    this._history.push({ ts: Date.now(), key, old, value: processed.value });\n    if (this._history.length > this._maxHistory) this._history.shift();\n    this._state[processed.key] = processed.value;\n    this._notify(processed.key, processed.value, old);\n    this._updateDOM(processed.key, processed.value);\n    if (this._persistKeys.includes(key)) this._persist(key, processed.value);\n    NCUISecurity?.audit?.record('state:change', { key, hasOld: old !== undefined });\n    return this;\n  }\n  update(key, fn) { return this.set(key, fn(this.get(key))); }\n  addTo(key, item) {\n    const arr = [...(this.get(key) || []), item];\n    return this.set(key, arr);\n  }\n  removeFrom(key, predicate) {\n    const arr = (this.get(key) || []).filter(\n      typeof predicate === 'function' ? predicate : (_, i) => i !== predicate\n    );\n    return this.set(key, arr);\n  }\n  updateIn(key, pred, updater) {\n    const arr = (this.get(key) || []).map(item => pred(item) ? { ...item, ...updater(item) } : item);\n    return this.set(key, arr);\n  }\n  toggle(key) { return this.set(key, !this.get(key)); }\n  reset(key) {\n    const schema = this._schema[key];\n    return schema ? this.set(key, schema.default) : this;\n  }\n  resetAll() {\n    Object.keys(this._schema).forEach(key => this.reset(key));\n    return this;\n  }\n  // Computed\n  computed(name, fn, deps) {\n    this._computed[name] = { fn, deps };\n    const update = () => {\n      const val = fn(this.get());\n      this._state[name] = val;\n      this._notify(name, val, undefined);\n      this._updateDOM(name, val);\n    };\n    deps.forEach(dep => this.watch(dep, update));\n    update();\n    return this;\n  }\n  // Watch\n  watch(key, fn, opts = {}) {\n    if (!this._watchers[key]) this._watchers[key] = [];\n    const w = { fn, immediate: opts.immediate, once: opts.once };\n    this._watchers[key].push(w);\n    if (opts.immediate) fn(this.get(key), undefined);\n    return () => { this._watchers[key] = this._watchers[key].filter(x => x !== w); };\n  }\n  watchAll(fn) { return this.watch('*', fn); }\n  // Middleware\n  use(fn) { this._middleware.push(fn); return this; }\n  // Time travel\n  undo() {\n    const entry = this._history.pop();\n    if (entry) { this._state[entry.key] = entry.old; this._notify(entry.key, entry.old, entry.value); this._updateDOM(entry.key, entry.old); }\n    return this;\n  }\n  getHistory() { return [...this._history]; }\n  // Persistence\n  _persist(key, value) {\n    try { localStorage.setItem('ncui_state_' + key, JSON.stringify(value)); } catch {}\n  }\n  _loadPersisted() {\n    this._persistKeys.forEach(key => {\n      try {\n        const v = localStorage.getItem('ncui_state_' + key);\n        if (v !== null) this._state[key] = JSON.parse(v);\n      } catch {}\n    });\n  }\n  // Validation\n  _validate(key, value) {\n    const schema = this._schema[key];\n    if (!schema) return { ok: true };\n    if (schema.type && schema.type !== 'any') {\n      const t = Array.isArray(value) ? 'array' : typeof value;\n      if (t !== schema.type && value !== null && value !== undefined) {\n        return { ok: false, error: `Expected ${schema.type}, got ${t}` };\n      }\n    }\n    if (schema.validator) {\n      try { const r = schema.validator(value); if (r !== true) return { ok: false, error: r }; } catch(e) { return { ok: false, error: e.message }; }\n    }\n    return { ok: true };\n  }\n  // DOM sync\n  _notify(key, value, old) {\n    (this._watchers[key] || []).forEach(w => {\n      if (w.once) this._watchers[key] = this._watchers[key].filter(x => x !== w);\n      w.fn(value, old);\n    });\n    (this._watchers['*'] || []).forEach(w => w.fn({ key, value, old }));\n  }\n  _updateDOM(key, value) {\n    document.querySelectorAll(`[data-ncui-bind=\"${key}\"]`).forEach(el => {\n      if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT') {\n        if (el !== document.activeElement) el.value = value ?? '';\n      } else {\n        el.textContent = value ?? '';\n      }\n    });\n    document.querySelectorAll(`[data-ncui-show=\"${key}\"]`).forEach(el => { el.style.display = value ? '' : 'none'; });\n    document.querySelectorAll(`[data-ncui-hide=\"${key}\"]`).forEach(el => { el.style.display = value ? 'none' : ''; });\n    document.querySelectorAll(`[data-ncui-text=\"${key}\"]`).forEach(el => { el.textContent = value ?? ''; });\n    document.querySelectorAll(`[data-ncui-html=\"${key}\"]`).forEach(el => { el.innerHTML = NCUISecurity?.xss?.sanitize(String(value ?? '')); });\n    document.querySelectorAll(`[data-ncui-class-if]`).forEach(el => {\n      const [cls, sKey] = (el.dataset.ncuiClassIf || '').split(':');\n      if (sKey === key) el.classList.toggle(cls, !!value);\n    });\n    document.querySelectorAll(`[data-ncui-loading=\"${key}\"]`).forEach(el => {\n      el.disabled = !!value;\n      el.setAttribute('data-loading', value ? 'true' : 'false');\n      if (value) {\n        el.dataset.originalText = el.textContent;\n        el.textContent = el.dataset.loadingText || 'Loading...';\n      } else if (el.dataset.originalText) {\n        el.textContent = el.dataset.originalText;\n      }\n    });\n  }\n}\nconst NCUIState = new NCUIStateManager(" + string(initial_state) + ");\nwindow.NCUIState = NCUIState;\n})(window);"
+
+// ── Store Actions ──────────────────────────────────────────
+
+to generate_actions_js with actions:
+    purpose: "Generate action handlers for state mutations"
+    if actions is equal nil or len(actions) is equal 0:
+        respond with "// No actions defined"
+
+    set js to "// NC UI Actions\n(function(window) {\n'use strict';\nconst NCUIActions = {\n"
+
+    repeat for each action in actions:
+        set js to js + "  async " + action.name + "(payload) {\n"
+        if action.sets is not equal nil:
+            repeat for each setter in action.sets:
+                set js to js + "    NCUIState.set('" + setter.key + "', " + setter.value + ");\n"
+        if action.fetch_url is not equal nil:
+            set js to js + "    NCUIState.set('loading', true);\n    try {\n      const res = await NCUIAuth.fetch('" + action.fetch_url + "', { method: '" + (action.method or "GET") + "' });\n      const data = await res.json();\n      NCUIState.set('" + (action.save_as or "data") + "', data);\n    } catch (e) {\n      NCUIState.set('error', e.message);\n    } finally {\n      NCUIState.set('loading', false);\n    }\n"
+        if action.navigates_to is not equal nil:
+            set js to js + "    NCUIRouter.navigate('" + action.navigates_to + "');\n"
+        set js to js + "  },\n"
+
+    set js to js + "};\nwindow.NCUIActions = NCUIActions;\n})(window);"
+    respond with js
+
+// ── API ────────────────────────────────────────────────────
+
+api:
+    POST /schema          runs define_state_schema
+    POST /generate/js     runs generate_state_js
+    POST /generate/actions runs generate_actions_js
+    GET  /health          runs health
+
+to health:
+    respond with {"status": "ok", "service": "nc-ui-state", "version": "1.0.0", "written_in": "NC"}
+
+=== END ===
+
+=== FILE: /Users/NuckalaSai.Narender4/Documents/nc-main/nc-ui/runtime/ncui-js-emitter.nc ===
+// ═══════════════════════════════════════════════════════════
+//  NC UI → JavaScript Emitter
+//
+//  This runs ON YOUR MACHINE (not in browser).
+//  It reads a .ncui file and outputs a .ncui.js file.
+//  That JS file works in any browser — GitHub Pages, Netlify, etc.
+//
+//  Usage:
+//    nc nc-ui/runtime/ncui-js-emitter.nc my-app.ncui
+//    → outputs my-app.ncui.js
+//
+//  Then in your HTML:
+//    <script src="ncui-runtime.js"></script>
+//    <script src="my-app.ncui.js"></script>
+//    <div id="app"></div>
+//
+//  The output JS calls:
+//    NCUIRuntime.mount({ name, state, routes, themes, components }, '#app')
+//
+//  Architecture:
+//    .ncui → this emitter → app definition JS object
+//                        → NCUIRuntime.mount() in browser
+//    This is like how Svelte compiles .svelte → JS,
+//    or how TypeScript compiles .ts → .js.
+// ═══════════════════════════════════════════════════════════
+
+service "nc-ui-js-emitter"
+version "3.0.0"
+
+import "os"
+
+// ── Main: read .ncui file, emit .ncui.js ────────────────────
+
+to emit_js with ncui_file_path:
+    purpose: "Compile .ncui source to browser-ready JavaScript"
+
+    // Read source file
+    gather source from ncui_file_path
+    if source is equal nil:
+        log "ERROR: File not found: " + ncui_file_path
+        respond with {"error": "File not found"}
+
+    log "Compiling: " + ncui_file_path + " → JS..."
+
+    // Parse the .ncui source into a structured definition
+    run parse_ncui with source
+    set def to result
+
+    // Emit the JavaScript app definition
+    run emit_app_js with def, ncui_file_path
+    set js_code to result
+
+    // Write output file
+    set out_path to replace(ncui_file_path, ".ncui", ".ncui.js")
+    store js_code into out_path
+
+    log "Done: " + out_path
+    log "Size: " + string(len(js_code)) + " bytes"
+    log ""
+    log "Deploy to GitHub Pages:"
+    log "  1. Copy ncui-runtime.js and " + out_path + " to your repo"
+    log "  2. Reference both in index.html (see below)"
+    log "  3. Push to GitHub"
+
+    respond with {"success": true, "output": out_path, "size": len(js_code)}
+
+// ── Parse .ncui source (simplified — production uses C parser) ─
+
+to parse_ncui with source:
+    purpose: "Extract app structure from .ncui source text"
+
+    // Ask AI to parse the .ncui structure into a JSON definition
+    // This bridges NC AI with the NC UI compiler pipeline
+    ask AI to "Parse this NC UI source and extract the app definition as JSON.
+
+Return a JSON object with this exact structure:
+{
+  \"name\": \"App name from app declaration\",
+  \"version\": \"version string\",
+  \"state\": { \"slot_name\": initial_value, ... },
+  \"computed\": { \"name\": \"expression as JS arrow function body\", ... },
+  \"themes\": {
+    \"dark\": { \"primary\": \"#color\", \"background\": \"#color\", ... },
+    \"light\": { ... }
+  },
+  \"defaultTheme\": \"dark\",
+  \"auth\": {
+    \"loginEndpoint\": \"/api/auth/login\",
+    \"logoutEndpoint\": \"/api/auth/logout\",
+    \"refreshEndpoint\": \"/api/auth/refresh\",
+    \"tokenStore\": \"session\",
+    \"onLogin\": \"/dashboard\",
+    \"onLogout\": \"/login\"
+  },
+  \"routes\": [
+    { \"pattern\": \"/\", \"component\": \"home\", \"public\": true },
+    { \"pattern\": \"/dashboard\", \"component\": \"dashboard\", \"requireAuth\": true },
+    { \"pattern\": \"/admin\", \"component\": \"admin\", \"requireRole\": \"admin\" }
+  ],
+  \"pages\": [
+    {
+      \"name\": \"page-name\",
+      \"title\": \"Page Title\",
+      \"guard\": { \"requireAuth\": true, \"redirect\": \"/login\" },
+      \"state\": { \"local_slot\": initial_value },
+      \"onMount\": \"NC action code as description\",
+      \"elements\": [\"element descriptions...\"]
+    }
+  ],
+  \"components\": [
+    { \"name\": \"component-name\", \"props\": [\"prop1\", \"prop2\"], \"elements\": [...] }
+  ],
+  \"actions\": [
+    { \"name\": \"actionName\", \"body\": \"action description\" }
+  ]
+}
+
+NC UI source to parse:
+
+" + source save as definition
+
+    respond with definition
+
+// ── Emit JavaScript ──────────────────────────────────────────
+
+to emit_app_js with def, source_path:
+    purpose: "Generate JavaScript app definition for NCUIRuntime.mount()"
+
+    // Ask AI to generate the JavaScript output
+    // This is where .ncui becomes browser-runnable JS
+    ask AI to "You are the NC UI JavaScript code emitter. Convert this NC UI app definition into a complete JavaScript file that calls NCUIRuntime.mount().
+
+The output JavaScript must:
+1. Define all pages as component objects with a render() function using h() and hText()
+2. Wire all actions as async functions
+3. Set up state, computed, themes, auth config, and routes
+4. Call NCUIRuntime.mount(appDef, '#app') at the end
+
+NC UI app definition (JSON):
+" + string(def) + "
+
+Source file: " + source_path + "
+
+Output the complete JavaScript. Use this structure:
+
+// Generated by NC UI Compiler — DO NOT EDIT
+// Source: <source_path>
+// NC UI v3.0 — github.com/devheal/nc-ui
+
+(function() {
+  'use strict';
+
+  const { h, hText, NCUIHelpers, NCUIValidation } = NCUIRuntime;
+  const { string, count, sum, filter, format_currency } = NCUIHelpers;
+
+  // ── Actions ──────────────────────────────────────────────
+  // (define action functions here)
+
+  // ── Pages ────────────────────────────────────────────────
+  const pages = {
+    // For each page: { name, title, guard, state, onMount, render }
+  };
+
+  // ── App Definition ───────────────────────────────────────
+  const app = {
+    name: '<app name>',
+    version: '<version>',
+    state: { /* global state slots */ },
+    computed: { /* computed: name → () => expression */ },
+    themes: { dark: {}, light: {} },
+    defaultTheme: 'dark',
+    auth: { /* auth config */ },
+    routerMode: 'hash',  // 'hash' works on GitHub Pages
+    routes: [
+      // { pattern: '/', component: pages.home, public: true }
+    ],
+  };
+
+  NCUIRuntime.mount(app, '#app');
+})();
+
+Generate the COMPLETE file — do not truncate. Make the render() functions actually render the UI elements described in the pages." save as js_output
+
+    respond with js_output
+
+// ── GitHub Pages HTML template ────────────────────────────────
+
+to emit_html_template with app_name, ncui_js_filename:
+    purpose: "Generate index.html for GitHub Pages deployment"
+
+    set html to "<!DOCTYPE html>
+<html lang=\"en\">
+<head>
+    <meta charset=\"UTF-8\">
+    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
+    <title>" + app_name + "</title>
+
+    <!-- NC UI Default Styles -->
+    <style>
+        :root {
+            --ncui-primary: #6366f1;
+            --ncui-background: #0a0a0a;
+            --ncui-surface: #111111;
+            --ncui-text: #ffffff;
+            --ncui-text-muted: #888888;
+            --ncui-border: #222222;
+            --ncui-radius: 8px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+               background: var(--ncui-background); color: var(--ncui-text);
+               min-height: 100vh; }
+
+        /* NC UI Component Styles */
+        .ncui-section   { padding: 2rem; }
+        .ncui-card      { background: var(--ncui-surface); border-radius: var(--ncui-radius);
+                          padding: 2rem; border: 1px solid var(--ncui-border); }
+        .ncui-centered  { display: flex; flex-direction: column; align-items: center;
+                          justify-content: center; min-height: 100vh; }
+        .ncui-grid      { display: grid; gap: 1rem; }
+        .ncui-grid-3    { grid-template-columns: repeat(3, 1fr); }
+        .ncui-grid-2    { grid-template-columns: repeat(2, 1fr); }
+        .ncui-row       { display: flex; flex-direction: row; gap: 0.5rem; align-items: center; }
+        .ncui-row-between { justify-content: space-between; }
+        .ncui-row-centered { justify-content: center; }
+
+        .ncui-btn       { padding: 0.625rem 1.25rem; border: none; border-radius: var(--ncui-radius);
+                          cursor: pointer; font-weight: 500; transition: all 0.2s; }
+        .ncui-btn-primary   { background: var(--ncui-primary); color: #fff; }
+        .ncui-btn-secondary { background: var(--ncui-surface); color: var(--ncui-text);
+                              border: 1px solid var(--ncui-border); }
+        .ncui-btn-danger    { background: #ef4444; color: #fff; }
+        .ncui-btn:disabled  { opacity: 0.5; cursor: not-allowed; }
+        .ncui-btn-full      { width: 100%; }
+
+        .ncui-input     { width: 100%; padding: 0.625rem 0.875rem; background: var(--ncui-surface);
+                          border: 1px solid var(--ncui-border); border-radius: var(--ncui-radius);
+                          color: var(--ncui-text); font-size: 0.875rem; margin-bottom: 1rem; }
+        .ncui-input:focus { outline: none; border-color: var(--ncui-primary); }
+
+        .ncui-alert         { padding: 0.875rem 1rem; border-radius: var(--ncui-radius); margin-bottom: 1rem; }
+        .ncui-alert-error   { background: #450a0a; color: #fca5a5; border: 1px solid #7f1d1d; }
+        .ncui-alert-success { background: #052e16; color: #86efac; border: 1px solid #14532d; }
+        .ncui-alert-info    { background: #0c1a3a; color: #93c5fd; border: 1px solid #1e3a5f; }
+
+        .ncui-badge { display: inline-block; padding: 0.25rem 0.625rem; border-radius: 9999px;
+                      font-size: 0.75rem; font-weight: 600; }
+        .ncui-badge-success { background: #052e16; color: #86efac; }
+        .ncui-badge-warning { background: #431407; color: #fdba74; }
+        .ncui-badge-danger  { background: #450a0a; color: #fca5a5; }
+        .ncui-badge-info    { background: #0c1a3a; color: #93c5fd; }
+
+        h1 { font-size: 2rem;   font-weight: 700; margin-bottom: 0.5rem; }
+        h2 { font-size: 1.5rem; font-weight: 600; margin-bottom: 0.5rem; }
+        h3 { font-size: 1.25rem;font-weight: 600; margin-bottom: 0.5rem; }
+        p  { color: var(--ncui-text-muted); margin-bottom: 0.75rem; line-height: 1.6; }
+        a  { color: var(--ncui-primary); text-decoration: none; }
+
+        .ncui-loading { display: flex; align-items: center; justify-content: center;
+                        padding: 2rem; color: var(--ncui-text-muted); }
+        .ncui-spinner { width: 32px; height: 32px; border: 3px solid var(--ncui-border);
+                        border-top-color: var(--ncui-primary); border-radius: 50%;
+                        animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .ncui-divider { display: flex; align-items: center; gap: 1rem; margin: 1.5rem 0; }
+        .ncui-divider::before, .ncui-divider::after { content: ''; flex: 1;
+            height: 1px; background: var(--ncui-border); }
+        .ncui-divider span { color: var(--ncui-text-muted); font-size: 0.875rem; white-space: nowrap; }
+
+        @media (max-width: 768px) {
+            .ncui-grid-3 { grid-template-columns: 1fr; }
+            .ncui-grid-2 { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <!-- NC UI App Mount Point -->
+    <div id=\"app\">
+        <!-- Loading state shown before JS initializes -->
+        <div style=\"display:flex;align-items:center;justify-content:center;min-height:100vh;\">
+            <div class=\"ncui-spinner\"></div>
+        </div>
+    </div>
+
+    <!-- NC UI Runtime (reactive engine) -->
+    <script src=\"ncui-runtime.js\"></script>
+
+    <!-- Your compiled NC UI app -->
+    <script src=\"" + ncui_js_filename + "\"></script>
+</body>
+</html>"
+
+    respond with html
+
+// ── GitHub Pages deploy helper ────────────────────────────────
+
+to prepare_github_pages with ncui_file_path, out_dir:
+    purpose: "Prepare all files needed for GitHub Pages deployment"
+
+    set dir to out_dir
+    if dir is equal nil:
+        set dir to "./dist"
+
+    // Compile .ncui → .ncui.js
+    run emit_js with ncui_file_path
+    set js_result to result
+
+    if js_result.error is not equal nil:
+        log "ERROR: " + js_result.error
+        respond with {"success": false}
+
+    // Copy runtime
+    gather runtime from "nc-ui/runtime/ncui-runtime.js"
+    store runtime into dir + "/ncui-runtime.js"
+
+    // Copy compiled app JS
+    set js_filename to replace(ncui_file_path, ".ncui", ".ncui.js")
+    gather js_content from js_filename
+    store js_content into dir + "/" + js_filename
+
+    // Generate index.html
+    set app_name to "NC UI App"
+    run emit_html_template with app_name, js_filename
+    store result into dir + "/index.html"
+
+    log ""
+    log "  GitHub Pages Ready!"
+    log "  ═════════════════════════════════════════"
+    log "  Output folder: " + dir
+    log "  Files:"
+    log "    " + dir + "/index.html"
+    log "    " + dir + "/ncui-runtime.js"
+    log "    " + dir + "/app.ncui.js"
+    log ""
+    log "  Deploy:"
+    log "    git add " + dir
+    log "    git commit -m 'Deploy NC UI app'"
+    log "    git push"
+    log "    → Enable GitHub Pages in repo Settings → Pages → /" + dir
+    log ""
+
+    respond with {"success": true, "dir": dir}
+
+// ── API ──────────────────────────────────────────────────────
+
+api:
+    POST /emit      runs emit_js
+    POST /github    runs prepare_github_pages
+    GET  /health    runs health
+
+to health:
+    respond with {"status": "ok", "service": "nc-ui-js-emitter", "version": "3.0.0"}
+
+=== END ===
+

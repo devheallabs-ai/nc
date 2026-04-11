@@ -1,0 +1,103 @@
+page "Nexus — Ship Faster"
+theme "dark"
+accent "#8b5cf6"
+
+nav:
+    brand "Nexus"
+    links:
+        link "Features" to "#features"
+        link "Pricing" to "#pricing"
+        link "Docs" to "#docs"
+        button "Get Started" links to "#signup" style "primary"
+
+section hero centered:
+    badge "Now in Public Beta"
+    heading "Ship products 10x faster" style "gradient"
+    subheading "The modern development platform for teams who move fast"
+    text "Nexus gives you the tools to build, deploy, and scale — all in one place. No more stitching together a dozen services."
+    row:
+        button "Start Free" links to "#signup" style "primary"
+        button "Watch Demo" links to "#demo" style "glass"
+    animate "fade-up"
+
+section features centered:
+    heading "Everything you need"
+    text "A complete platform that replaces your entire toolchain."
+    grid 3 columns:
+        card icon "code":
+            heading "Instant APIs"
+            text "Generate production-ready APIs from your data models in seconds."
+        card icon "globe":
+            heading "Edge Deployment"
+            text "Deploy globally with zero configuration. Your code runs close to users."
+        card icon "shield":
+            heading "Built-in Auth"
+            text "User authentication, roles, and permissions — ready out of the box."
+        card icon "chart":
+            heading "Real-time Analytics"
+            text "Track every metric that matters with beautiful dashboards."
+        card icon "brain":
+            heading "AI Powered"
+            text "Smart suggestions, auto-optimization, and anomaly detection built in."
+        card icon "rocket":
+            heading "One-click Deploy"
+            text "Push to production with confidence. Automatic rollbacks if anything fails."
+    animate "stagger"
+
+section stats centered:
+    heading "Trusted by developers worldwide"
+    grid 4 columns:
+        stat "50K+" "Developers"
+        stat "2M+" "Deployments"
+        stat "99.99%" "Uptime"
+        stat "< 50ms" "Latency"
+    animate "fade-up"
+
+section pricing centered:
+    heading "Simple, transparent pricing"
+    text "Start free. Scale as you grow. No hidden fees."
+    grid 3 columns:
+        card:
+            heading "Starter"
+            text "Free forever for hobby projects"
+            list:
+                item "3 projects"
+                item "1 GB storage"
+                item "Community support"
+            button "Start Free" style "outline"
+        card:
+            heading "Pro"
+            text "$29/month for growing teams"
+            list:
+                item "Unlimited projects"
+                item "50 GB storage"
+                item "Priority support"
+                item "Custom domains"
+            button "Go Pro" style "primary"
+        card:
+            heading "Enterprise"
+            text "Custom pricing for large orgs"
+            list:
+                item "Everything in Pro"
+                item "SSO & SAML"
+                item "Dedicated support"
+                item "SLA guarantee"
+            button "Contact Sales" style "outline"
+    animate "stagger"
+
+section signup centered:
+    heading "Ready to ship faster?"
+    text "Join 50,000+ developers who are building the future with Nexus."
+    form action "/api/signup":
+        input "Work Email" type "email" required
+        button "Get Started Free" style "gradient"
+    animate "fade-up"
+
+footer:
+    text "Nexus Inc. Built with NC UI."
+    row:
+        link "Docs" to "#"
+        link "Blog" to "#"
+        link "GitHub" to "https://github.com"
+        link "Twitter" to "https://twitter.com"
+        link "Status" to "#"

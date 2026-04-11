@@ -1,0 +1,35 @@
+{
+  "name": "nc-ui",
+  "version": "1.0.0",
+  "description": "Build websites in plain English. NC UI compiles human-readable markup into stunning HTML/CSS/JS.",
+  "main": "compiler.js",
+  "browser": "nc-ui.js",
+  "bin": {
+    "nc-ui": "./cli.js"
+  },
+  "scripts": {
+    "build": "node cli.js build",
+    "watch": "node cli.js watch",
+    "serve": "node cli.js serve"
+  },
+  "keywords": [
+    "nc",
+    "nc-ui",
+    "plain-english",
+    "html-compiler",
+    "website-builder",
+    "no-code",
+    "frontend",
+    "css",
+    "compiler"
+  ],
+  "author": "DevHeal Labs AI",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/devheal-labs/nc-ui"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}

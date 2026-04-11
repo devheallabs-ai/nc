@@ -1,0 +1,1092 @@
+// FILE: nc-lang/deploy/helm/nc/Chart.yaml
+
+apiVersion: v2
+name: nc
+description: NC (Notation-as-Code) — AI-powered API runtime
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+maintainers:
+  - name: NC Team
+keywords:
+  - nc
+  - ai
+  - api
+  - nc-lang
+home: https://github.com/example/nc
+sources:
+  - https://github.com/example/nc
+
+
+// FILE: nc-lang/deploy/helm/nc/templates/deployment.yaml
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "nc.fullname" . }}
+  labels:
+    {{- include "nc.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "nc.selectorLabels" . | nindent 6 }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  template:
+    metadata:
+      annotations:
+        {{- toYaml .Values.podAnnotations | nindent 8 }}
+      labels:
+        {{- include "nc.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "nc.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["nc", "serve", "{{ .Values.nc.serviceFile }}"]
+          ports:
+            - name: http
+              containerPort: {{ .Values.nc.port }}
+              protocol: TCP
+          env:
+            - name: NC_PORT
+              value: {{ .Values.nc.port | quote }}
+            - name: NC_LOG_FORMAT
+              value: {{ .Values.nc.logFormat | quote }}
+            - name: NC_LOG_LEVEL
+              value: {{ .Values.nc.logLevel | quote }}
+            - name: NC_MAX_WORKERS
+              value: {{ .Values.nc.maxWorkers | quote }}
+            - name: NC_MAX_REQUEST_SIZE
+              value: {{ .Values.nc.maxRequestSize | quote }}
+            - name: NC_MAX_RESPONSE_SIZE
+              value: {{ .Values.nc.maxResponseSize | quote }}
+            {{- if .Values.nc.auth.enabled }}
+            {{- if .Values.nc.auth.jwtSecretExistingSecret }}
+            - name: NC_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.nc.auth.jwtSecretExistingSecret }}
+                  key: jwt-secret
+            {{- end }}
+            {{- if .Values.nc.auth.oidcIssuer }}
+            - name: NC_OIDC_ISSUER
+              value: {{ .Values.nc.auth.oidcIssuer | quote }}
+            - name: NC_OIDC_CLIENT_ID
+              value: {{ .Values.nc.auth.oidcClientId | quote }}
+            {{- end }}
+            {{- end }}
+            {{- if .Values.nc.rateLimit.enabled }}
+            - name: NC_RATE_LIMIT_RPM
+              value: {{ .Values.nc.rateLimit.rpm | quote }}
+            - name: NC_RATE_LIMIT_WINDOW
+              value: {{ .Values.nc.rateLimit.window | quote }}
+            {{- end }}
+            {{- if .Values.nc.ai.existingSecret }}
+            - name: NC_AI_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.nc.ai.existingSecret }}
+                  key: ai-key
+            {{- end }}
+            {{- if .Values.nc.ai.url }}
+            - name: NC_AI_URL
+              value: {{ .Values.nc.ai.url | quote }}
+            {{- end }}
+            {{- if .Values.nc.ai.model }}
+            - name: NC_AI_MODEL
+              value: {{ .Values.nc.ai.model | quote }}
+            {{- end }}
+            {{- if .Values.nc.observability.otelEndpoint }}
+            - name: NC_OTEL_ENDPOINT
+              value: {{ .Values.nc.observability.otelEndpoint | quote }}
+            {{- end }}
+            - name: NC_LISTEN_BACKLOG
+              value: {{ .Values.nc.listenBacklog | quote }}
+            - name: NC_REQUEST_QUEUE_SIZE
+              value: {{ .Values.nc.requestQueueSize | quote }}
+            - name: NC_KEEPALIVE_MAX
+              value: {{ .Values.nc.keepaliveMax | quote }}
+            - name: NC_KEEPALIVE_TIMEOUT
+              value: {{ .Values.nc.keepaliveTimeout | quote }}
+            - name: NC_QUEUE_TIMEOUT
+              value: {{ .Values.nc.queueTimeout | quote }}
+            - name: NC_DRAIN_TIMEOUT
+              value: {{ .Values.nc.drainTimeout | quote }}
+            - name: NC_AUDIT_FORMAT
+              value: {{ .Values.nc.observability.auditFormat | quote }}
+            - name: NC_AUDIT_FILE
+              value: {{ .Values.nc.observability.auditFile | quote }}
+          livenessProbe:
+            {{- toYaml .Values.livenessProbe | nindent 12 }}
+          readinessProbe:
+            {{- toYaml .Values.readinessProbe | nindent 12 }}
+          startupProbe:
+            {{- toYaml .Values.startupProbe | nindent 12 }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          {{- with .Values.volumeMounts }}
+          volumeMounts:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      {{- with .Values.volumes }}
+      volumes:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
+
+// FILE: nc-lang/deploy/helm/nc/templates/hpa.yaml
+
+{{- if .Values.autoscaling.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "nc.fullname" . }}
+  labels:
+    {{- include "nc.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "nc.fullname" . }}
+  minReplicas: {{ .Values.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.autoscaling.maxReplicas }}
+  metrics:
+    {{- if .Values.autoscaling.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.autoscaling.targetCPUUtilizationPercentage }}
+    {{- end }}
+    {{- if .Values.autoscaling.targetMemoryUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.autoscaling.targetMemoryUtilizationPercentage }}
+    {{- end }}
+{{- end }}
+
+
+// FILE: nc-lang/deploy/helm/nc/templates/ingress.yaml
+
+{{- if .Values.ingress.enabled -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "nc.fullname" . }}
+  labels:
+    {{- include "nc.labels" . | nindent 4 }}
+  {{- with .Values.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if .Values.ingress.className }}
+  ingressClassName: {{ .Values.ingress.className }}
+  {{- end }}
+  {{- if .Values.ingress.tls }}
+  tls:
+    {{- range .Values.ingress.tls }}
+    - hosts:
+        {{- range .hosts }}
+        - {{ . | quote }}
+        {{- end }}
+      secretName: {{ .secretName }}
+    {{- end }}
+  {{- end }}
+  rules:
+    {{- range .Values.ingress.hosts }}
+    - host: {{ .host | quote }}
+      http:
+        paths:
+          {{- range .paths }}
+          - path: {{ .path }}
+            pathType: {{ .pathType }}
+            backend:
+              service:
+                name: {{ include "nc.fullname" $ }}
+                port:
+                  name: http
+          {{- end }}
+    {{- end }}
+{{- end }}
+
+
+// FILE: nc-lang/deploy/helm/nc/templates/networkpolicy.yaml
+
+{{- if .Values.networkPolicy.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "nc.fullname" . }}
+  labels:
+    {{- include "nc.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "nc.selectorLabels" . | nindent 6 }}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    {{- toYaml .Values.networkPolicy.ingress | nindent 4 }}
+  egress:
+    - to: []
+      ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+        - port: 443
+          protocol: TCP
+        - port: 80
+          protocol: TCP
+{{- end }}
+
+
+// FILE: nc-lang/deploy/helm/nc/templates/pdb.yaml
+
+{{- if .Values.podDisruptionBudget.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "nc.fullname" . }}
+  labels:
+    {{- include "nc.labels" . | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.podDisruptionBudget.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "nc.selectorLabels" . | nindent 6 }}
+{{- end }}
+
+
+// FILE: nc-lang/deploy/helm/nc/templates/service.yaml
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "nc.fullname" . }}
+  labels:
+    {{- include "nc.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "nc.selectorLabels" . | nindent 4 }}
+
+
+// FILE: nc-lang/deploy/helm/nc/templates/serviceaccount.yaml
+
+{{- if .Values.serviceAccount.create -}}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "nc.serviceAccountName" . }}
+  labels:
+    {{- include "nc.labels" . | nindent 4 }}
+  {{- with .Values.serviceAccount.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+automountServiceAccountToken: {{ .Values.serviceAccount.automount }}
+{{- end }}
+
+
+// FILE: nc-lang/deploy/helm/nc/templates/servicemonitor.yaml
+
+{{- if .Values.serviceMonitor.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "nc.fullname" . }}
+  labels:
+    {{- include "nc.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "nc.selectorLabels" . | nindent 6 }}
+  endpoints:
+    - port: http
+      interval: {{ .Values.serviceMonitor.interval }}
+      path: {{ .Values.serviceMonitor.path }}
+{{- end }}
+
+
+// FILE: nc-lang/deploy/helm/nc/values.yaml
+
+# NC Helm Chart — Default Values
+# Override these for your environment
+
+replicaCount: 2
+
+image:
+  repository: your-registry.example.com/nc
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""
+
+# NC application configuration
+nc:
+  serviceFile: /app/service.nc
+  port: 8080
+  logFormat: json
+  logLevel: info
+  maxWorkers: 64
+  maxRequestSize: 1048576
+  maxResponseSize: 4194304
+  listenBacklog: 512
+  requestQueueSize: 4096
+  keepaliveMax: 100
+  keepaliveTimeout: 30
+  queueTimeout: 5000
+  drainTimeout: 30
+
+  # Authentication
+  auth:
+    enabled: false
+    jwtSecret: ""
+    jwtSecretExistingSecret: ""
+    apiKeys: ""
+    oidcIssuer: ""
+    oidcClientId: ""
+
+  # Rate limiting
+  rateLimit:
+    enabled: false
+    rpm: 100
+    window: 60
+
+  # AI provider
+  ai:
+    url: ""
+    key: ""
+    model: ""
+    existingSecret: ""
+
+  # Observability
+  observability:
+    otelEndpoint: ""
+    auditFormat: json
+    auditFile: /var/log/nc/audit.jsonl
+
+  # Feature flags
+  featureFlags: {}
+
+# Pod configuration
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8080"
+  prometheus.io/path: "/metrics"
+
+podLabels: {}
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+service:
+  type: ClusterIP
+  port: 8080
+
+ingress:
+  enabled: false
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+  hosts:
+    - host: nc.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 256Mi
+  limits:
+    cpu: '1.0'
+    memory: 1Gi
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+livenessProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 3
+  periodSeconds: 5
+  timeoutSeconds: 2
+  failureThreshold: 3
+
+startupProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 2
+  periodSeconds: 3
+  failureThreshold: 10
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - nc
+          topologyKey: kubernetes.io/hostname
+
+# Pod Disruption Budget
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+# Network Policy
+networkPolicy:
+  enabled: true
+  ingress:
+    - from:
+        - namespaceSelector: {}
+      ports:
+        - port: 8080
+          protocol: TCP
+
+# Volume mounts for NC service files
+volumes:
+  - name: app-data
+    emptyDir: {}
+  - name: audit-logs
+    emptyDir: {}
+
+volumeMounts:
+  - name: app-data
+    mountPath: /app
+  - name: audit-logs
+    mountPath: /var/log/nc
+
+# ServiceMonitor for Prometheus Operator
+serviceMonitor:
+  enabled: false
+  interval: 15s
+  path: /metrics
+
+
+// FILE: nc-lang/deploy/monitoring/alertmanager.yml
+
+# Alertmanager Configuration for NC
+# Configure receivers with your actual endpoints
+
+global:
+  resolve_timeout: 5m
+
+route:
+  group_by: ['alertname', 'severity']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 1h
+  receiver: 'default'
+  routes:
+    - match:
+        severity: critical
+      receiver: 'critical'
+      repeat_interval: 5m
+    - match:
+        severity: warning
+      receiver: 'warning'
+      repeat_interval: 30m
+
+receivers:
+  - name: 'default'
+    # Configure webhook, email, Slack, PagerDuty, etc.
+    # webhook_configs:
+    #   - url: 'http://your-webhook-endpoint/alerts'
+
+  - name: 'critical'
+    # PagerDuty for critical alerts
+    # pagerduty_configs:
+    #   - service_key: '<your-pagerduty-key>'
+    # Or Slack:
+    # slack_configs:
+    #   - api_url: 'https://hooks.slack.com/services/xxx/yyy/zzz'
+    #     channel: '#nc-alerts-critical'
+    #     title: '{{ .CommonAnnotations.summary }}'
+    #     text: '{{ .CommonAnnotations.description }}'
+
+  - name: 'warning'
+    # Slack for warnings
+    # slack_configs:
+    #   - api_url: 'https://hooks.slack.com/services/xxx/yyy/zzz'
+    #     channel: '#nc-alerts'
+    #     title: '{{ .CommonAnnotations.summary }}'
+
+inhibit_rules:
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname']
+
+
+// FILE: nc-lang/deploy/monitoring/docker-compose.yml
+
+# NC Monitoring Stack — Prometheus + Grafana
+#
+# Usage:
+#   cd deploy/monitoring
+#   docker compose up -d
+#
+# Access:
+#   Prometheus: http://localhost:9090
+#   Grafana:    http://localhost:3000 (admin/admin)
+
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.enable-lifecycle'
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/nc-dashboard.json:/var/lib/grafana/dashboards/nc-dashboard.json:ro
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+  alertmanager:
+    image: prom/alertmanager:latest
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+    restart: unless-stopped
+
+volumes:
+  prometheus-data:
+  grafana-data:
+
+
+// FILE: nc-lang/deploy/monitoring/grafana/provisioning/dashboards/dashboards.yml
+
+apiVersion: 1
+
+providers:
+  - name: 'NC Dashboards'
+    orgId: 1
+    folder: 'NC'
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /var/lib/grafana/dashboards
+      foldersFromFilesStructure: false
+
+
+// FILE: nc-lang/deploy/monitoring/grafana/provisioning/datasources/prometheus.yml
+
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: true
+
+
+// FILE: nc-lang/deploy/monitoring/prometheus/alerts.yml
+
+groups:
+  - name: nc-alerts
+    rules:
+      # ── Availability ─────────────────────────────────────
+      - alert: NCServiceDown
+        expr: up{job="nc"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "NC service is down"
+          description: "NC service {{ $labels.instance }} has been unreachable for 1 minute."
+
+      - alert: NCHighErrorRate
+        expr: rate(nc_errors_total[5m]) / rate(nc_requests_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "NC error rate above 5%"
+          description: "Error rate is {{ $value | humanizePercentage }} for the last 5 minutes."
+
+      # ── Latency ──────────────────────────────────────────
+      - alert: NCHighLatencyP99
+        expr: histogram_quantile(0.99, rate(nc_request_duration_seconds_bucket[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "NC P99 latency above 2 seconds"
+          description: "P99 latency is {{ $value }}s."
+
+      # ── Saturation ───────────────────────────────────────
+      - alert: NCHighConnectionCount
+        expr: nc_active_connections > 100
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "NC has high active connections"
+          description: "{{ $value }} active connections."
+
+      - alert: NCAllWorkerssBusy
+        expr: nc_active_connections >= nc_max_workers
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "NC all worker threads are busy"
+          description: "All {{ $value }} workers are occupied. New requests will get 503."
+
+      # ── Request Queue ──────────────────────────────────────
+      - alert: NCRequestQueueHigh
+        expr: nc_queue_depth > 1000
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Request queue depth is high"
+          description: "Queue depth is {{ $value }}. Consider scaling up replicas."
+
+      - alert: NCRequestQueueFull
+        expr: rate(nc_queue_full_rejects_total[5m]) > 1
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Requests are being rejected due to full queue"
+          description: "{{ $value }} requests/sec are being rejected with 503. Scale up immediately."
+
+      # ── Keep-Alive ───────────────────────────────────────
+      - alert: NCLowKeepaliveReuse
+        expr: rate(nc_keepalive_reuse_total[5m]) / rate(nc_requests_total[5m]) < 0.1
+        for: 10m
+        labels:
+          severity: info
+        annotations:
+          summary: "Low keep-alive connection reuse rate"
+          description: "Only {{ $value | humanizePercentage }} of requests reuse connections. Check client configuration."
+
+      # ── Rate Limiting ────────────────────────────────────
+      - alert: NCHighRateLimitRate
+        expr: rate(nc_rate_limited_total[5m]) > 10
+        for: 5m
+        labels:
+          severity: info
+        annotations:
+          summary: "High rate of rate-limited requests"
+          description: "{{ $value }} requests/sec are being rate limited."
+
+      # ── Latency (Mean) ──────────────────────────────────
+      - alert: NCHighMeanLatency
+        expr: nc_requests_latency_sum / nc_requests_total > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Mean request latency above 1 second"
+          description: "Average latency is {{ $value }}s."
+
+      # ── Resource Usage ───────────────────────────────────
+      - alert: NCHighCPU
+        expr: process_cpu_seconds_total > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "NC high CPU usage"
+
+      - alert: NCHighMemory
+        expr: process_resident_memory_bytes > 512 * 1024 * 1024
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "NC memory usage above 512MB"
+
+
+// FILE: nc-lang/deploy/monitoring/prometheus/prometheus.yml
+
+# Prometheus configuration for NC monitoring
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - "alerts.yml"
+
+scrape_configs:
+  - job_name: 'nc'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['nc:8080']
+        labels:
+          service: 'nc'
+          environment: 'production'
+
+    # For Kubernetes service discovery
+    # kubernetes_sd_configs:
+    #   - role: pod
+    # relabel_configs:
+    #   - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+    #     action: keep
+    #     regex: true
+    #   - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_port]
+    #     action: replace
+    #     target_label: __address__
+    #     regex: (.+)
+    #     replacement: ${1}:$1
+
+
+// FILE: nc-lang/docker-compose.yml
+
+# ═══════════════════════════════════════════════════════════
+#  NC Service — Docker Compose (Enterprise)
+#
+#  Usage:
+#    docker compose up                    # dev mode
+#    docker compose --profile monitoring up  # with monitoring
+#
+#  This runs your NC service just like you'd run a Python
+#  Flask/FastAPI app — but in plain English.
+# ═══════════════════════════════════════════════════════════
+
+services:
+  nc:
+    build: .
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./examples/real_world:/app
+      - nc-audit-logs:/var/log/nc
+    environment:
+      - NC_PORT=8080
+      - NC_MAX_WORKERS=${NC_MAX_WORKERS:-64}
+      - NC_LISTEN_BACKLOG=${NC_LISTEN_BACKLOG:-512}
+      - NC_REQUEST_QUEUE_SIZE=${NC_REQUEST_QUEUE_SIZE:-4096}
+      - NC_KEEPALIVE_MAX=${NC_KEEPALIVE_MAX:-100}
+      - NC_KEEPALIVE_TIMEOUT=${NC_KEEPALIVE_TIMEOUT:-30}
+      - NC_QUEUE_TIMEOUT=${NC_QUEUE_TIMEOUT:-5000}
+      - NC_DRAIN_TIMEOUT=${NC_DRAIN_TIMEOUT:-30}
+      - NC_AI_URL=${NC_AI_URL:-}
+      - NC_AI_KEY=${NC_AI_KEY:-}
+      - NC_AI_MODEL=${NC_AI_MODEL:-}
+      - NC_STORE_URL=${NC_STORE_URL:-}
+      - NC_LOG_FORMAT=${NC_LOG_FORMAT:-json}
+      - NC_LOG_LEVEL=${NC_LOG_LEVEL:-info}
+      - NC_AUDIT_FORMAT=json
+      - NC_AUDIT_FILE=/var/log/nc/audit.jsonl
+      - NC_CORS_ORIGIN=${NC_CORS_ORIGIN:-}
+      - NC_JWT_SECRET=${NC_JWT_SECRET:-}
+      - NC_OIDC_ISSUER=${NC_OIDC_ISSUER:-}
+      - NC_OIDC_CLIENT_ID=${NC_OIDC_CLIENT_ID:-}
+      - NC_OTEL_ENDPOINT=${NC_OTEL_ENDPOINT:-}
+      - NC_API_VERSIONS=${NC_API_VERSIONS:-v1}
+    command: ["serve", "/app/01_chat_assistant.nc"]
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+    healthcheck:
+      test: ["CMD", "nc", "version"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+
+  # ── Monitoring Stack (optional profile) ─────────────────
+  prometheus:
+    image: prom/prometheus:latest
+    profiles: ["monitoring"]
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./deploy/monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./deploy/monitoring/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus-data:/prometheus
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    profiles: ["monitoring"]
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - ./deploy/monitoring/grafana/nc-dashboard.json:/var/lib/grafana/dashboards/nc-dashboard.json:ro
+      - ./deploy/monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+volumes:
+  nc-audit-logs:
+  prometheus-data:
+  grafana-data:
+
+
+// FILE: nc-lang/engine/build/nc_asan.dSYM/Contents/Resources/Relocations/aarch64/nc_asan.yml
+
+---
+triple:          'arm64-apple-darwin'
+binary-path:     'build/nc_asan'
+relocations:     []
+...
+
+
+// FILE: nc-lang/engine/build/nc_debug.dSYM/Contents/Resources/Relocations/aarch64/nc_debug.yml
+
+---
+triple:          'arm64-apple-darwin'
+binary-path:     'build/nc_debug'
+relocations:     []
+...
+
+
+// FILE: nc-lang/k8s/configmap.yaml
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nc-config
+  namespace: nc-lang
+data:
+  ai_url: "http://ollama:11434/v1/chat/completions"
+  ai_model: "llama3"
+
+
+// FILE: nc-lang/k8s/deployment.yaml
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nc-service
+  namespace: nc-lang
+  labels:
+    app: nc
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nc
+  template:
+    metadata:
+      labels:
+        app: nc
+    spec:
+      containers:
+        - name: nc
+          image: nc-lang/nc:latest
+          ports:
+            - containerPort: 8000
+              name: http
+          env:
+            - name: NC_ALLOW_EXEC
+              value: "1"
+            - name: NC_ALLOW_FILE_WRITE
+              value: "1"
+            - name: NC_ACCEPT_LICENSE
+              value: "1"
+            - name: NC_AI_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: nc-config
+                  key: ai_url
+            - name: NC_AI_MODEL
+              valueFrom:
+                configMapKeyRef:
+                  name: nc-config
+                  key: ai_model
+            - name: NC_AI_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: nc-secrets
+                  key: ai_key
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 3
+            periodSeconds: 10
+
+
+// FILE: nc-lang/k8s/namespace.yaml
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nc-lang
+  labels:
+    app: nc
+    managed-by: devheallabs
+
+
+// FILE: nc-lang/k8s/secret.yaml
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: nc-secrets
+  namespace: nc-lang
+type: Opaque
+data:
+  # base64 encoded — replace with real values
+  # echo -n "your-api-key" | base64
+  ai_key: Y2hhbmdlLW1l
+
+
+// FILE: nc-lang/k8s/service.yaml
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: nc-service
+  namespace: nc-lang
+  labels:
+    app: nc
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 8000
+      protocol: TCP
+      name: http
+  selector:
+    app: nc
+
+
