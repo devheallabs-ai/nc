@@ -1,0 +1,35 @@
+Notation as Code (NC) Programming Language
+Copyright 2026 DevHeal Labs AI
+
+This product includes software developed by DevHeal Labs AI.
+
+===============================================================================
+
+ATTRIBUTION
+
+Created by Nuckala Sai Narender
+Founder & CEO, DevHeal Labs AI
+
+  Company: DevHeal Labs AI
+  Website: https://devheallabs.in
+  Email:   support@devheallabs.in
+
+===============================================================================
+
+THIRD-PARTY NOTICES
+
+NC uses the following open-source library at runtime:
+
+  - libcurl (MIT/X License) - HTTP client library
+    https://curl.se/libcurl/
+
+NC includes its own implementations for JSON parsing (nc_json.c),
+WebSocket framing (nc_websocket.c), data storage (nc_database.c),
+and all other functionality. No other third-party code is embedded.
+
+On Alpine Linux (Docker), libucontext is used for coroutine support:
+
+  - libucontext (ISC License) - ucontext implementation for musl
+    https://github.com/kaniini/libucontext
+
+Each of these components is subject to its own license terms.

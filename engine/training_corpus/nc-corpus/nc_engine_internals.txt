@@ -1,0 +1,3091 @@
+// NC Engine Internals — How NC Language Works Under The Hood
+// This teaches the LLM about NC's internal C implementation
+
+// ─── nc_model.h ───
+/*
+ * nc_model.h — Transformer neural network for NC code generation.
+ *
+ * A small decoder-only transformer built from scratch in C.
+ * Purpose-built to understand and generate NC language code.
+ *
+ * No external dependencies — pure C11 standard library.
+ */
+
+#ifndef NC_MODEL_H
+#define NC_MODEL_H
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
+#include <time.h>
+#include <stdbool.h>
+#include <float.h>
+
+/* ═══════════════════════════════════════════════════════════
+ *  Tensor — multi-dimensional array
+ * ═══════════════════════════════════════════════════════════ */
+
+typedef struct {
+    float *data;
+    int   *shape;
+    int    ndim;
+    int    size;    /* total number of elements */
+} NCTensor;
+
+/* ═══════════════════════════════════════════════════════════
+ *  Layer types
+ * ═══════════════════════════════════════════════════════════ */
+
+typedef struct {
+    NCTensor weights;    /* [in_dim, out_dim] */
+    NCTensor bias;       /* [out_dim]         */
+    int in_dim, out_dim;
+} NCLinear;
+
+typedef struct {
+    NCTensor gamma;      /* [dim] */
+    NCTensor beta;       /* [dim] */
+    float eps;
+    int dim;
+} NCLayerNorm;
+
+typedef struct {
+    NCLinear q_proj, k_proj, v_proj, o_proj;
+    int n_heads, head_dim, dim;
+} NCAttention;
+
+typedef struct {
+    NCLinear up_proj, down_proj;
+    int dim, hidden_dim;
+} NCFFN;
+
+typedef struct {
+    NCAttention  attn;
+    NCFFN        ffn;
+    NCLayerNorm  ln1, ln2;
+} NCTransformerBlock;
+
+typedef struct {
+    NCTensor            token_emb;    /* [vocab_size, dim] */
+    NCTensor            pos_emb;      /* [max_seq, dim]    */
+    NCTransformerBlock *layers;
+    NCLayerNorm         final_ln;
+    NCLinear            lm_head;      /* [dim, vocab_size] */
+    int n_layers, dim, vocab_size, max_seq;
+} NCModel;
+
+/* ═══════════════════════════════════════════════════════════
+ *  Configuration
+ * ═══════════════════════════════════════════════════════════ */
+
+typedef struct {
+    int   dim;           /* 128 or 256                   */
+    int   n_layers;      /* 4-6                          */
+    int   n_heads;       /* 4-8                          */
+    int   vocab_size;    /* ~2000 (NC tokens)            */
+    int   max_seq;       /* 512                          */
+    int   hidden_dim;    /* dim * 4                      */
+    float lr;            /* 0.001                        */
+    float dropout;       /* 0.1                          */
+} NCModelConfig;
+
+/* ── Default config ────────────────────────────────────── */
+
+static inline NCModelConfig nc_model_default_config(void) {
+    NCModelConfig c;
+    c.dim        = 128;
+    c.n_layers   = 4;
+    c.n_heads    = 4;
+    c.vocab_size = 2048;
+    c.max_seq    = 512;
+    c.hidden_dim = 128 * 4;
+    c.lr         = 0.001f;
+    c.dropout    = 0.1f;
+    return c;
+}
+
+/* ═══════════════════════════════════════════════════════════
+ *  Tensor operations
+ * ═══════════════════════════════════════════════════════════ */
+
+NCTensor ncm_tensor_create(int *shape, int ndim);
+void     ncm_tensor_free(NCTensor *t);
+void     ncm_tensor_matmul(const NCTensor *a, const NCTensor *b, NCTensor *out);
+void     ncm_tensor_add(const NCTensor *a, const NCTensor *b, NCTensor *out);
+void     ncm_tensor_scale(const NCTensor *t, float scalar, NCTensor *out);
+void     ncm_tensor_softmax(const NCTensor *t, NCTensor *out);
+void     ncm_tensor_gelu(const NCTensor *t, NCTensor *out);
+void     ncm_tensor_layer_norm(const NCTensor *t, const NCTensor *gamma,
+                              const NCTensor *beta, float eps, NCTensor *out);
+void     ncm_tensor_copy(const NCTensor *src, NCTensor *dst);
+
+/* ═══════════════════════════════════════════════════════════
+ *  Layer forward passes
+ * ═══════════════════════════════════════════════════════════ */
+
+void ncm_linear_forward(const NCLinear *layer, const NCTensor *x, NCTensor *out);
+void ncm_attention_forward(const NCAttention *attn, const NCTensor *x,
+                          int seq_len, NCTensor *out);
+void ncm_ffn_forward(const NCFFN *ffn, const NCTensor *x, NCTensor *out);
+void ncm_block_forward(const NCTransformerBlock *block, const NCTensor *x,
+                      int seq_len, NCTensor *out);
+
+/* ═══════════════════════════════════════════════════════════
+ *  Model lifecycle
+ * ═══════════════════════════════════════════════════════════ */
+
+NCModel *nc_model_create(NCModelConfig config);
+void     nc_model_forward(const NCModel *model, const int *tokens,
+                          int seq_len, float *logits);
+void     nc_model_free(NCModel *model);
+int      nc_model_save(const NCModel *model, const char *path);
+NCModel *nc_model_load(const char *path);
+
+/* ═══════════════════════════════════════════════════════════
+ *  Generation
+ * ═══════════════════════════════════════════════════════════ */
+
+int nc_model_generate(const NCModel *model, const int *prompt_tokens,
+                      int prompt_len, int max_tokens, float temperature,
+                      int *output);
+
+#endif /* NC_MODEL_H */
+
+// ─── nc_tokenizer.h ───
+/*
+ * nc_tokenizer.h — BPE tokenizer for the NC programming language.
+ *
+ * Byte Pair Encoding tokenizer designed specifically for NC syntax.
+ * Knows about NC keywords, operators, and common code patterns.
+ */
+
+#ifndef NC_TOKENIZER_H
+#define NC_TOKENIZER_H
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdbool.h>
+
+/* Maximum vocabulary size */
+#define NC_TOK_MAX_VOCAB    4096
+#define NC_TOK_MAX_MERGES   8192
+#define NC_TOK_MAX_TOKEN_LEN 128
+
+/* Special tokens */
+#define NC_TOK_PAD    0
+#define NC_TOK_BOS    1    /* <|begin|> */
+#define NC_TOK_EOS    2    /* <|end|>   */
+#define NC_TOK_UNK    3    /* <|unk|>   */
+
+typedef struct {
+    char **vocab;          /* token strings indexed by ID */
+    int    vocab_size;
+    int   *merges_a;       /* merge pair: first token ID  */
+    int   *merges_b;       /* merge pair: second token ID */
+    int    n_merges;
+    int    pad_token;      /* 0 */
+    int    bos_token;      /* 1 */
+    int    eos_token;      /* 2 */
+    int    unk_token;      /* 3 */
+} NCTokenizer;
+
+/* ── Lifecycle ─────────────────────────────────────────── */
+
+NCTokenizer *nc_tokenizer_create(void);
+void         nc_tokenizer_free(NCTokenizer *tok);
+
+/* ── Training ──────────────────────────────────────────── */
+
+void nc_tokenizer_train(NCTokenizer *tok, const char **texts,
+                        int n_texts, int target_vocab);
+
+/* ── Encode / Decode ───────────────────────────────────── */
+
+int  nc_tokenizer_encode(const NCTokenizer *tok, const char *text,
+                         int *tokens, int max_len);
+int  nc_tokenizer_decode(const NCTokenizer *tok, const int *tokens,
+                         int n_tokens, char *text, int max_len);
+
+/* ── Save / Load ───────────────────────────────────────── */
+
+int          nc_tokenizer_save(const NCTokenizer *tok, const char *path);
+NCTokenizer *nc_tokenizer_load(const char *path);
+
+#endif /* NC_TOKENIZER_H */
+
+// ─── nc_metal.h ───
+/*
+ * nc_metal.h — Metal GPU acceleration for NC model operations.
+ *
+ * Uses Apple Metal Performance Shaders (MPS) for GPU-accelerated
+ * matrix multiplication on macOS/iOS with Apple Silicon.
+ *
+ * Falls back gracefully to CPU BLAS when Metal is unavailable.
+ */
+
+#ifndef NC_METAL_H
+#define NC_METAL_H
+
+#include <stdbool.h>
+
+/* Initialize Metal GPU compute pipeline. Returns true if GPU available. */
+bool nc_metal_init(void);
+
+/* Shutdown Metal and release GPU resources. */
+void nc_metal_shutdown(void);
+
+/* Check if Metal GPU is available and initialized. */
+bool nc_metal_available(void);
+
+/* GPU-accelerated matrix multiply: C = A @ B
+ * A: [M, K]  B: [K, N]  C: [M, N]
+ * All arrays must be host (CPU) memory — data is copied to/from GPU.
+ * Returns true on success, false on failure (caller should fallback to CPU). */
+bool nc_metal_sgemm(int M, int K, int N,
+                    const float *A, const float *B, float *C);
+
+/* GPU-accelerated batched matmul: C[b] = A[b] @ B[b] for b in [0, batch) */
+bool nc_metal_sgemm_batched(int batch, int M, int K, int N,
+                            const float *A, const float *B, float *C);
+
+/* GPU element-wise add: C = A + B (same size) */
+bool nc_metal_vadd(const float *A, const float *B, float *C, int n);
+
+/* GPU scalar multiply: B = A * scalar */
+bool nc_metal_vsmul(const float *A, float scalar, float *B, int n);
+
+#endif /* NC_METAL_H */
+
+// ─── nc_model.c ───
+/*
+ * nc_model.c — Transformer neural network for NC code generation.
+ *
+ * A complete decoder-only transformer implemented from scratch in C.
+ * Includes tensor operations, multi-head attention, feed-forward layers,
+ * layer normalization, weight initialization, and autoregressive generation.
+ *
+ * Uses Apple Accelerate (BLAS/vDSP) on macOS for hardware-optimized
+ * matrix multiply and vector ops — 50-100x faster than naive loops.
+ *
+ * This is NC's own AI brain — trained on NC code, generates NC code.
+ */
+
+#include "nc_model.h"
+
+/* ═══════════════════════════════════════════════════════════
+ *  SIMD / Hardware Acceleration
+ *
+ *  macOS:  Apple Accelerate (cblas_sgemm + vDSP)
+ *  Linux:  OpenBLAS if available, else scalar fallback
+ * ═══════════════════════════════════════════════════════════ */
+#ifdef __APPLE__
+  #include <Accelerate/Accelerate.h>
+  #define NC_HAS_BLAS 1
+#elif defined(__linux__)
+  /* Try OpenBLAS — link with -lopenblas if available */
+  #if __has_include(<cblas.h>)
+    #include <cblas.h>
+    #define NC_HAS_BLAS 1
+  #endif
+#endif
+
+#ifndef NC_HAS_BLAS
+  #define NC_HAS_BLAS 0
+#endif
+
+/* Metal GPU acceleration (macOS Apple Silicon) */
+#include "nc_metal.h"
+
+/* ═══════════════════════════════════════════════════════════
+ *  Random number utilities
+ * ═══════════════════════════════════════════════════════════ */
+
+static int nc_rand_initialized = 0;
+
+static void nc_rand_init(void) {
+    if (!nc_rand_initialized) {
+        srand((unsigned int)time(NULL));
+        nc_rand_initialized = 1;
+    }
+}
+
+/* Uniform random in [lo, hi) */
+static float nc_rand_uniform(float lo, float hi) {
+    float r = (float)rand() / ((float)RAND_MAX + 1.0f);
+    return lo + r * (hi - lo);
+}
+
+/* Xavier/Glorot uniform: range = sqrt(6 / (fan_in + fan_out)) */
+static float nc_xavier_range(int fan_in, int fan_out) {
+    return sqrtf(6.0f / (float)(fan_in + fan_out));
+}
+
+/* ═══════════════════════════════════════════════════════════
+ *  Tensor — creation, free, copy
+ * ═══════════════════════════════════════════════════════════ */
+
+NCTensor ncm_tensor_create(int *shape, int ndim) {
+    NCTensor t;
+    t.ndim = ndim;
+    t.shape = (int *)malloc(ndim * sizeof(int));
+    t.size = 1;
+    for (int i = 0; i < ndim; i++) {
+        t.shape[i] = shape[i];
+        t.size *= shape[i];
+    }
+    t.data = (float *)calloc(t.size, sizeof(float));
+    return t;
+}
+
+void ncm_tensor_free(NCTensor *t) {
+    if (t->data) { free(t->data); t->data = NULL; }
+    if (t->shape) { free(t->shape); t->shape = NULL; }
+    t->ndim = 0;
+    t->size = 0;
+}
+
+void ncm_tensor_copy(const NCTensor *src, NCTensor *dst) {
+    if (dst->data && dst->size != src->size) {
+        free(dst->data);
+        dst->data = (float *)malloc(src->size * sizeof(float));
+    } else if (!dst->data) {
+        dst->data = (float *)malloc(src->size * sizeof(float));
+    }
+    if (dst->shape) free(dst->shape);
+    dst->shape = (int *)malloc(src->ndim * sizeof(int));
+    memcpy(dst->shape, src->shape, src->ndim * sizeof(int));
+    memcpy(dst->data, src->data, src->size * sizeof(float));
+    dst->ndim = src->ndim;
+    dst->size = src->size;
+}
+
+/* ═══════════════════════════════════════════════════════════
+ *  Tensor — matrix multiply
+ *
+ *  a: [M, K]  b: [K, N]  out: [M, N]
+ *  Also handles batched: a: [B, M, K]  b: [B, K, N]  out: [B, M, N]
+ * ═══════════════════════════════════════════════════════════ */
+
+/* Hardware-accelerated sgemm: GPU (Metal) → CPU BLAS → tiled scalar */
+static void ncm_sgemm(int M, int K, int N,
+                       const float *A, const float *B, float *C) {
+    /* Try Metal GPU first (big matrices only) */
+    if (nc_metal_sgemm(M, K, N, A, B, C)) return;
+
+#if NC_HAS_BLAS
+    /* cblas_sgemm: C = 1.0 * A @ B + 0.0 * C
+       Row-major: lda=K, ldb=N, ldc=N */
+    cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans,
+                M, N, K, 1.0f, A, K, B, N, 0.0f, C, N);
+#else
+    /* Scalar fallback with cache-friendly tiling */
+    memset(C, 0, M * N * sizeof(float));
+    /* Tile size for L1 cache (~32KB) */
+    enum { TILE = 32 };
+    for (int m0 = 0; m0 < M; m0 += TILE) {
+        int m1 = m0 + TILE < M ? m0 + TILE : M;
+        for (int k0 = 0; k0 < K; k0 += TILE) {
+            int k1 = k0 + TILE < K ? k0 + TILE : K;
+            for (int n0 = 0; n0 < N; n0 += TILE) {
+                int n1 = n0 + TILE < N ? n0 + TILE : N;
+                for (int m = m0; m < m1; m++) {
+                    for (int k = k0; k < k1; k++) {
+                        float a_mk = A[m * K + k];
+                        for (int n = n0; n < n1; n++) {
+                            C[m * N + n] += a_mk * B[k * N + n];
+                        }
+                    }
+                }
+            }
+        }
+    }
+#endif
+}
+
+void ncm_tensor_matmul(const NCTensor *a, const NCTensor *b, NCTensor *out) {
+    if (a->ndim == 2 && b->ndim == 2) {
+        /* Standard 2D matmul: [M,K] x [K,N] -> [M,N] */
+        int M = a->shape[0];
+        int K = a->shape[1];
+        int N = b->shape[1];
+        ncm_sgemm(M, K, N, a->data, b->data, out->data);
+    } else if (a->ndim == 3 && b->ndim == 3) {
+        /* Batched matmul: [B,M,K] x [B,K,N] -> [B,M,N] */
+        int B = a->shape[0];
+        int M = a->shape[1];
+        int K = a->shape[2];
+        int N = b->shape[2];
+        for (int bx = 0; bx < B; bx++) {
+            ncm_sgemm(M, K, N,
+                       a->data + bx * M * K,
+                       b->data + bx * K * N,
+                       out->data + bx * M * N);
+        }
+    } else if (a->ndim == 3 && b->ndim == 2) {
+        /* [B,M,K] x [K,N] -> [B,M,N] — broadcast b across batch */
+        int B = a->shape[0];
+        int M = a->shape[1];
+        int K = a->shape[2];
+        int N = b->shape[1];
+        for (int bx = 0; bx < B; bx++) {
+            ncm_sgemm(M, K, N,
+                       a->data + bx * M * K,
+                       b->data,
+                       out->data + bx * M * N);
+        }
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════
+ *  Tensor — element-wise add (with broadcasting)
+ * ═══════════════════════════════════════════════════════════ */
+
+void ncm_tensor_add(const NCTensor *a, const NCTensor *b, NCTensor *out) {
+    if (a->size == b->size) {
+#if NC_HAS_BLAS
+        vDSP_vadd(a->data, 1, b->data, 1, out->data, 1, a->size);
+#else
+        for (int i = 0; i < a->size; i++)
+            out->data[i] = a->data[i] + b->data[i];
+#endif
+    } else if (b->ndim == 1) {
+        /* Broadcast 1D bias across higher dims: a=[..., D], b=[D] */
+        int D = b->shape[0];
+        int outer = a->size / D;
+        for (int i = 0; i < outer; i++) {
+#if NC_HAS_BLAS
+            vDSP_vadd(a->data + i * D, 1, b->data, 1, out->data + i * D, 1, D);
+#else
+            for (int j = 0; j < D; j++)
+                out->data[i * D + j] = a->data[i * D + j] + b->data[j];
+#endif
+        }
+    } else {
+        int n = a->size < b->size ? a->size : b->size;
+#if NC_HAS_BLAS
+        vDSP_vadd(a->data, 1, b->data, 1, out->data, 1, n);
+#else
+        for (int i = 0; i < n; i++)
+            out->data[i] = a->data[i] + b->data[i];
+#endif
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════
+ *  Tensor — scalar multiplication
+ * ═══════════════════════════════════════════════════════════ */
+
+void ncm_tensor_scale(const NCTensor *t, float scalar, NCTensor *out) {
+#if NC_HAS_BLAS
+    vDSP_vsmul(t->data, 1, &scalar, out->data, 1, t->size);
+#else
+    for (int i = 0; i < t->size; i++)
+        out->data[i] = t->data[i] * scalar;
+#endif
+}
+
+/* ═══════════════════════════════════════════════════════════
+ *  Tensor — softmax over last dimension
+ *
+ *  For a tensor of shape [..., N], applies softmax over
+ *  each contiguous slice of length N.
+ * ═══════════════════════════════════════════════════════════ */
+
+void ncm_tensor_softmax(const NCTensor *t, NCTensor *out) {
+    int last_dim = t->shape[t->ndim - 1];
+    int outer = t->size / last_dim;
+
+    for (int i = 0; i < outer; i++) {
+        const float *src = t->data + i * last_dim;
+        float *dst = out->data + i * last_dim;
+
+        /* Find max for numerical stability */
+        float max_val = src[0];
+        for (int j = 1; j < last_dim; j++) {
+            if (src[j] > max_val) max_val = src[j];
+        }
+
+        /* exp and sum */
+        float sum = 0.0f;
+        for (int j = 0; j < last_dim; j++) {
+            dst[j] = expf(src[j] - max_val);
+            sum += dst[j];
+        }
+
+        /* normalize */
+        float inv_sum = 1.0f / (sum + 1e-9f);
+        for (int j = 0; j < last_dim; j++) {
+            dst[j] *= inv_sum;
+        }
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════
+ *  Tensor — GELU activation
+ *
+ *  GELU(x) = 0.5 * x * (1 + tanh(sqrt(2/pi) * (x + 0.044715 * x^3)))
+ * ═══════════════════════════════════════════════════════════ */
+
+void ncm_tensor_gelu(const NCTensor *t, NCTensor *out) {
+    const float SQRT_2_PI = 0.7978845608f; /* sqrt(2/pi) */
+    for (int i = 0; i < t->size; i++) {
+        float x = t->data[i];
+        float inner = SQRT_2_PI * (x + 0.044715f * x * x * x);
+        out->data[i] = 0.5f * x * (1.0f + tanhf(inner));
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════
+ *  Tensor — layer normalization
+ *
+ *  For each vector of length `dim` in the last dimension:
+ *    out = gamma * (x - mean) / sqrt(var + eps) + beta
+ * ═══════════════════════════════════════════════════════════ */
+
+void ncm_tensor_layer_norm(const NCTensor *t, const NCTensor *gamma,
+                          const NCTensor *beta, float eps, NCTensor *out) {
+    int dim = t->shape[t->ndim - 1];
+    int outer = t->size / dim;
+
+    for (int i = 0; i < outer; i++) {
+        const float *src = t->data + i * dim;
+        float *dst = out->data + i * dim;
+
+        /* Compute mean */
+        float mean = 0.0f;
+        for (int j = 0; j < dim; j++) {
+            mean += src[j];
+        }
+        mean /= (float)dim;
+
+        /* Compute variance */
+        float var = 0.0f;
+        for (int j = 0; j < dim; j++) {
+            float d = src[j] - mean;
+            var += d * d;
+        }
+        var /= (float)dim;
+
+        /* Normalize, scale, shift */
+        float inv_std = 1.0f / sqrtf(var + eps);
+        for (int j = 0; j < dim; j++) {
+            float norm = (src[j] - mean) * inv_std;
+            dst[j] = gamma->data[j] * norm + beta->data[j];
+        }
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════
+ *  Linear layer forward: out = x @ W + bias
+ *
+ *  x: [seq_len, in_dim]  (or [batch, seq_len, in_dim])
+ *  W: [in_dim, out_dim]
+ *  bias: [out_dim]
+ *  out: [seq_len, out_dim]
+ * ═══════════════════════════════════════════════════════════ */
+
+void ncm_linear_forward(const NCLinear *layer, const NCTensor *x, NCTensor *out) {
+    ncm_tensor_matmul(x, &layer->weights, out);
+    ncm_tensor_add(out, &layer->bias, out);
+}
+
+/* ═══════════════════════════════════════════════════════════
+ *  Multi-head self-attention
+ *
+ *  x: [seq_len, dim]
+ *  1. Project to Q, K, V  (each [seq_len, dim])
+ *  2. Reshape to [n_heads, seq_len, head_dim]
+ *  3. Scores = Q @ K^T / sqrt(head_dim)
+ *  4. Apply causal mask (lower triangular)
+ *  5. Weights = softmax(scores)
+ *  6. Context = weights @ V
+ *  7. Concat heads, project through W_o
+ * ═══════════════════════════════════════════════════════════ */
+
+void ncm_attention_forward(const NCAttention *attn, const NCTensor *x,
+                          int seq_len, NCTensor *out) {
+    int dim = attn->dim;
+    int n_heads = attn->n_heads;
+    int head_dim = attn->head_dim;
+
+    /* Allocate Q, K, V projections: [seq_len, dim] */
+    int shape2d[2] = {seq_len, dim};
+    NCTensor Q = ncm_tensor_create(shape2d, 2);
+    NCTensor K = ncm_tensor_create(shape2d, 2);
+    NCTensor V = ncm_tensor_create(shape2d, 2);
+
+    /* Project: Q = x @ W_q + b_q, etc. */
+    ncm_linear_forward(&attn->q_proj, x, &Q);
+    ncm_linear_forward(&attn->k_proj, x, &K);
+    ncm_linear_forward(&attn->v_proj, x, &V);
+
+    /* Allocate output accumulator: [seq_len, dim] */
+    int out_shape[2] = {seq_len, dim};
+    NCTensor attn_out = ncm_tensor_create(out_shape, 2);
+
+    /* Process each head independently */
+    /* Q/K/V are [seq_len, dim] laid out as [seq_len, n_heads * head_dim] */
+    /* For each head h, slice columns [h*head_dim .. (h+1)*head_dim] */
+
+    /* Allocate per-head temporaries */
+    int scores_shape[2] = {seq_len, seq_len};
+    NCTensor scores = ncm_tensor_create(scores_shape, 2);
+    NCTensor attn_weights = ncm_tensor_create(scores_shape, 2);
+
+    int head_shape[2] = {seq_len, head_dim};
+    NCTensor context = ncm_tensor_create(head_shape, 2);
+
+    float scale = 1.0f / sqrtf((float)head_dim);
+
+    for (int h = 0; h < n_heads; h++) {
+        int offset = h * head_dim;
+
+        /* Compute scores: Q_h @ K_h^T  (manual because we need column slicing) */
+        for (int i = 0; i < seq_len; i++) {
+            for (int j = 0; j < seq_len; j++) {
+                float sum = 0.0f;
+                for (int k = 0; k < head_dim; k++) {
+                    float q_val = Q.data[i * dim + offset + k];
+                    float k_val = K.data[j * dim + offset + k];
+                    sum += q_val * k_val;
+                }
+                scores.data[i * seq_len + j] = sum * scale;
+            }
+        }
+
+        /* Apply causal mask: positions j > i get -inf */
+        for (int i = 0; i < seq_len; i++) {
+            for (int j = i + 1; j < seq_len; j++) {
+                scores.data[i * seq_len + j] = -1e9f;
+            }
+        }
+
+        /* Softmax over last dim (key dimension) */
+        ncm_tensor_softmax(&scores, &attn_weights);
+
+        /* Context = attn_weights @ V_h */
+        for (int i = 0; i < seq_len; i++) {
+            for (int k = 0; k < head_dim; k++) {
+                float sum = 0.0f;
+                for (int j = 0; j < seq_len; j++) {
+                    sum += attn_weights.data[i * seq_len + j]
+                         * V.data[j * dim + offset + k];
+                }
+                context.data[i * head_dim + k] = sum;
+            }
+        }
+
+        /* Copy head output into concatenated result */
+        for (int i = 0; i < seq_len; i++) {
+            for (int k = 0; k < head_dim; k++) {
+                attn_out.data[i * dim + offset + k] = context.data[i * head_dim + k];
+            }
+        }
+    }
+
+    /* Output projection: out = attn_out @ W_o + b_o */
+    ncm_linear_forward(&attn->o_proj, &attn_out, out);
+
+    /* Cleanup */
+    ncm_tensor_free(&Q);
+    ncm_tensor_free(&K);
+    ncm_tensor_free(&V);
+    ncm_tensor_free(&scores);
+    ncm_tensor_free(&attn_weights);
+    ncm_tensor_free(&context);
+    ncm_tensor_free(&attn_out);
+}
+
+/* ═══════════════════════════════════════════════════════════
+ *  Feed-forward network: up_proj → GELU → down_proj
+ *
+ *  x: [seq_len, dim]
+ *  hidden = GELU(x @ W_up + b_up)   -> [seq_len, hidden_dim]
+ *  out = hidden @ W_down + b_down    -> [seq_len, dim]
+ * ═══════════════════════════════════════════════════════════ */
+
+void ncm_ffn_forward(const NCFFN *ffn, const NCTensor *x, NCTensor *out) {
+    int seq_len = x->shape[0];
+
+    /* Up projection */
+    int hidden_shape[2] = {seq_len, ffn->hidden_dim};
+    NCTensor hidden = ncm_tensor_create(hidden_shape, 2);
+    ncm_linear_forward(&ffn->up_proj, x, &hidden);
+
+    /* GELU activation (in-place) */
+    ncm_tensor_gelu(&hidden, &hidden);
+
+    /* Down projection */
+    ncm_linear_forward(&ffn->down_proj, &hidden, out);
+
+    ncm_tensor_free(&hidden);
+}
+
+/* ═══════════════════════════════════════════════════════════
+ *  Transformer block
+ *
+ *  x -> LN1 -> Attention -> + residual
+ *    -> LN2 -> FFN       -> + residual
+ * ═══════════════════════════════════════════════════════════ */
+
+void ncm_block_forward(const NCTransformerBlock *block, const NCTensor *x,
+                      int seq_len, NCTensor *out) {
+    int dim = block->ln1.dim;
+
+    int shape2d[2] = {seq_len, dim};
+    NCTensor normed = ncm_tensor_create(shape2d, 2);
+    NCTensor attn_out = ncm_tensor_create(shape2d, 2);
+    NCTensor residual1 = ncm_tensor_create(shape2d, 2);
+    NCTensor normed2 = ncm_tensor_create(shape2d, 2);
+    NCTensor ffn_out = ncm_tensor_create(shape2d, 2);
+
+    /* Pre-norm attention */
+    ncm_tensor_layer_norm(x, &block->ln1.gamma, &block->ln1.beta,
+                         block->ln1.eps, &normed);
+    ncm_attention_forward(&block->attn, &normed, seq_len, &attn_out);
+
+    /* Residual connection */
+    ncm_tensor_add(x, &attn_out, &residual1);
+
+    /* Pre-norm FFN */
+    ncm_tensor_layer_norm(&residual1, &block->ln2.gamma, &block->ln2.beta,
+                         block->ln2.eps, &normed2);
+    ncm_ffn_forward(&block->ffn, &normed2, &ffn_out);
+
+    /* Residual connection */
+    ncm_tensor_add(&residual1, &ffn_out, out);
+
+    ncm_tensor_free(&normed);
+    ncm_tensor_free(&attn_out);
+    ncm_tensor_free(&residual1);
+    ncm_tensor_free(&normed2);
+    ncm_tensor_free(&ffn_out);
+}
+
+/* ═══════════════════════════════════════════════════════════
+ *  Weight initialization
+ * ═══════════════════════════════════════════════════════════ */
+
+static void init_linear(NCLinear *layer, int in_dim, int out_dim) {
+    nc_rand_init();
+
+    layer->in_dim = in_dim;
+    layer->out_dim = out_dim;
+
+    int w_shape[2] = {in_dim, out_dim};
+    layer->weights = ncm_tensor_create(w_shape, 2);
+
+    int b_shape[1] = {out_dim};
+    layer->bias = ncm_tensor_create(b_shape, 1);
+
+    /* Xavier/Glorot uniform initialization */
+    float range = nc_xavier_range(in_dim, out_dim);
+    for (int i = 0; i < in_dim * out_dim; i++) {
+        layer->weights.data[i] = nc_rand_uniform(-range, range);
+    }
+
+    /* Zero-initialize biases */
+    memset(layer->bias.data, 0, out_dim * sizeof(float));
+}
+
+static void init_layer_norm(NCLayerNorm *ln, int dim) {
+    ln->dim = dim;
+    ln->eps = 1e-5f;
+
+    int shape[1] = {dim};
+    ln->gamma = ncm_tensor_create(shape, 1);
+    ln->beta = ncm_tensor_create(shape, 1);
+
+    /* gamma = 1, beta = 0 */
+    for (int i = 0; i < dim; i++) {
+        ln->gamma.data[i] = 1.0f;
+        ln->beta.data[i] = 0.0f;
+    }
+}
+
+static void init_attention(NCAttention *attn, int dim, int n_heads) {
+    attn->dim = dim;
+    attn->n_heads = n_heads;
+    attn->head_dim = dim / n_heads;
+
+    init_linear(&attn->q_proj, dim, dim);
+    init_linear(&attn->k_proj, dim, dim);
+    init_linear(&attn->v_proj, dim, dim);
+    init_linear(&attn->o_proj, dim, dim);
+}
+
+static void init_ffn(NCFFN *ffn, int dim, int hidden_dim) {
+    ffn->dim = dim;
+    ffn->hidden_dim = hidden_dim;
+    init_linear(&ffn->up_proj, dim, hidden_dim);
+    init_linear(&ffn->down_proj, hidden_dim, dim);
+}
+
+static void init_block(NCTransformerBlock *block, int dim, int n_heads,
+                       int hidden_dim) {
+    init_attention(&block->attn, dim, n_heads);
+    init_ffn(&block->ffn, dim, hidden_dim);
+    init_layer_norm(&block->ln1, dim);
+    init_layer_norm(&block->ln2, dim);
+}
+
+/* ═══════════════════════════════════════════════════════════
+ *  Model creation
+ * ═══════════════════════════════════════════════════════════ */
+
+NCModel *nc_model_create(NCModelConfig config) {
+    nc_rand_init();
+
+    NCModel *model = (NCModel *)calloc(1, sizeof(NCModel));
+    if (!model) return NULL;
+
+    model->n_layers   = config.n_layers;
+    model->dim        = config.dim;
+    model->vocab_size = config.vocab_size;
+    model->max_seq    = config.max_seq;
+
+    /* Token embeddings: [vocab_size, dim] */
+    int emb_shape[2] = {config.vocab_size, config.dim};
+    model->token_emb = ncm_tensor_create(emb_shape, 2);
+
+    /* Small random initialization for embeddings */
+    float emb_scale = 0.02f;
+    for (int i = 0; i < config.vocab_size * config.dim; i++) {
+        model->token_emb.data[i] = nc_rand_uniform(-emb_scale, emb_scale);
+    }
+
+    /* Positional embeddings: [max_seq, dim] */
+    int pos_shape[2] = {config.max_seq, config.dim};
+    model->pos_emb = ncm_tensor_create(pos_shape, 2);
+
+    for (int i = 0; i < config.max_seq * config.dim; i++) {
+        model->pos_emb.data[i] = nc_rand_uniform(-emb_scale, emb_scale);
+    }
+
+    /* Transformer layers */
+    model->layers = (NCTransformerBlock *)calloc(config.n_layers,
+                                                  sizeof(NCTransformerBlock));
+    for (int i = 0; i < config.n_layers; i++) {
+        init_block(&model->layers[i], config.dim, config.n_heads,
+                   config.hidden_dim);
+    }
+
+    /* Final layer norm */
+    init_layer_norm(&model->final_ln, config.dim);
+
+    /* LM head: [dim, vocab_size] */
+    init_linear(&model->lm_head, config.dim, config.vocab_size);
+
+    return model;
+}
+
+/* ═══════════════════════════════════════════════════════════
+ *  Forward pass
+ *
+ *  tokens: [seq_len] integer token IDs
+ *  logits: [seq_len * vocab_size] output logits
+ * ═══════════════════════════════════════════════════════════ */
+
+void nc_model_forward(const NCModel *model, const int *tokens,
+                      int seq_len, float *logits) {
+    int dim = model->dim;
+
+    /* Clamp seq_len to max */
+    if (seq_len > model->max_seq) seq_len = model->max_seq;
+
+    /* Embed tokens: look up token_emb + pos_emb */
+    int shape2d[2] = {seq_len, dim};
+    NCTensor x = ncm_tensor_create(shape2d, 2);
+
+    for (int i = 0; i < seq_len; i++) {
+        int tok = tokens[i];
+        if (tok < 0) tok = 0;
+        if (tok >= model->vocab_size) tok = model->vocab_size - 1;
+
+        for (int j = 0; j < dim; j++) {
+            x.data[i * dim + j] = model->token_emb.data[tok * dim + j]
+                                + model->pos_emb.data[i * dim + j];
+        }
+    }
+
+    /* Pass through transformer blocks */
+    NCTensor block_out = ncm_tensor_create(shape2d, 2);
+
+    for (int layer = 0; layer < model->n_layers; layer++) {
+        ncm_block_forward(&model->layers[layer], &x, seq_len, &block_out);
+
+        /* Swap x and block_out for next layer */
+        float *tmp_data = x.data;
+        x.data = block_out.data;
+        block_out.data = tmp_data;
+    }
+
+    /* Final layer norm */
+    NCTensor normed = ncm_tensor_create(shape2d, 2);
+    ncm_tensor_layer_norm(&x, &model->final_ln.gamma, &model->final_ln.beta,
+                         model->final_ln.eps, &normed);
+
+    /* LM head: project to vocab logits [seq_len, vocab_size] */
+    int logits_shape[2] = {seq_len, model->vocab_size};
+    NCTensor logits_tensor = ncm_tensor_create(logits_shape, 2);
+
+    ncm_linear_forward(&model->lm_head, &normed, &logits_tensor);
+
+    /* Copy to output */
+    memcpy(logits, logits_tensor.data, seq_len * model->vocab_size * sizeof(float));
+
+    ncm_tensor_free(&x);
+    ncm_tensor_free(&block_out);
+    ncm_tensor_free(&normed);
+    ncm_tensor_free(&logits_tensor);
+}
+
+/* ═══════════════════════════════════════════════════════════
+ *  Free linear layer
+ * ═══════════════════════════════════════════════════════════ */
+
+static void free_linear(NCLinear *layer) {
+    ncm_tensor_free(&layer->weights);
+    ncm_tensor_free(&layer->bias);
+}
+
+static void free_layer_norm(NCLayerNorm *ln) {
+    ncm_tensor_free(&ln->gamma);
+    ncm_tensor_free(&ln->beta);
+}
+
+static void free_attention(NCAttention *attn) {
+    free_linear(&attn->q_proj);
+    free_linear(&attn->k_proj);
+    free_linear(&attn->v_proj);
+    free_linear(&attn->o_proj);
+}
+
+static void free_ffn(NCFFN *ffn) {
+    free_linear(&ffn->up_proj);
+    free_linear(&ffn->down_proj);
+}
+
+static void free_block(NCTransformerBlock *block) {
+    free_attention(&block->attn);
+    free_ffn(&block->ffn);
+    free_layer_norm(&block->ln1);
+    free_layer_norm(&block->ln2);
+}
+
+void nc_model_free(NCModel *model) {
+    if (!model) return;
+
+    ncm_tensor_free(&model->token_emb);
+    ncm_tensor_free(&model->pos_emb);
+
+    for (int i = 0; i < model->n_layers; i++) {
+        free_block(&model->layers[i]);
+    }
+    free(model->layers);
+
+    free_layer_norm(&model->final_ln);
+    free_linear(&model->lm_head);
+
+    free(model);
+}
+
+/* ═══════════════════════════════════════════════════════════
+ *  Save / Load — binary format
+ *
+ *  Format:
+ *    [4 bytes] magic: "NCM1"
+ *    [4 ints]  n_layers, dim, vocab_size, max_seq
+ *    [floats]  token_emb data
+ *    [floats]  pos_emb data
+ *    For each layer:
+ *      [floats] q_proj weights, bias
+ *      [floats] k_proj weights, bias
+ *      [floats] v_proj weights, bias
+ *      [floats] o_proj weights, bias
+ *      [floats] up_proj weights, bias
+ *      [floats] down_proj weights, bias
+ *      [floats] ln1 gamma, beta
+ *      [floats] ln2 gamma, beta
+ *    [floats] final_ln gamma, beta
+ *    [floats] lm_head weights, bias
+ * ═══════════════════════════════════════════════════════════ */
+
+static int write_tensor(FILE *f, const NCTensor *t) {
+    size_t written = fwrite(t->data, sizeof(float), t->size, f);
+    return (int)written == t->size ? 0 : -1;
+}
+
+static int read_tensor(FILE *f, NCTensor *t) {
+    size_t rd = fread(t->data, sizeof(float), t->size, f);
+    return (int)rd == t->size ? 0 : -1;
+}
+
+static int write_linear(FILE *f, const NCLinear *layer) {
+    if (write_tensor(f, &layer->weights) != 0) return -1;
+    if (write_tensor(f, &layer->bias) != 0) return -1;
+    return 0;
+}
+
+static int read_linear(FILE *f, NCLinear *layer) {
+    if (read_tensor(f, &layer->weights) != 0) return -1;
+    if (read_tensor(f, &layer->bias) != 0) return -1;
+    return 0;
+}
+
+static int write_layer_norm(FILE *f, const NCLayerNorm *ln) {
+    if (write_tensor(f, &ln->gamma) != 0) return -1;
+    if (write_tensor(f, &ln->beta) != 0) return -1;
+    return 0;
+}
+
+static int read_layer_norm(FILE *f, NCLayerNorm *ln) {
+    if (read_tensor(f, &ln->gamma) != 0) return -1;
+    if (read_tensor(f, &ln->beta) != 0) return -1;
+    return 0;
+}
+
+int nc_model_save(const NCModel *model, const char *path) {
+    FILE *f = fopen(path, "wb");
+    if (!f) {
+        fprintf(stderr, "[nc_model] Error: cannot open '%s' for writing\n", path);
+        return -1;
+    }
+
+    /* Magic */
+    fwrite("NCM1", 1, 4, f);
+
+    /* Config */
+    int config[4] = {model->n_layers, model->dim, model->vocab_size, model->max_seq};
+    fwrite(config, sizeof(int), 4, f);
+
+    /* Embeddings */
+    write_tensor(f, &model->token_emb);
+    write_tensor(f, &model->pos_emb);
+
+    /* Layers */
+    for (int i = 0; i < model->n_layers; i++) {
+        const NCTransformerBlock *block = &model->layers[i];
+
+        write_linear(f, &block->attn.q_proj);
+        write_linear(f, &block->attn.k_proj);
+        write_linear(f, &block->attn.v_proj);
+        write_linear(f, &block->attn.o_proj);
+        write_linear(f, &block->ffn.up_proj);
+        write_linear(f, &block->ffn.down_proj);
+        write_layer_norm(f, &block->ln1);
+        write_layer_norm(f, &block->ln2);
+    }
+
+    /* Final LN and LM head */
+    write_layer_norm(f, &model->final_ln);
+    write_linear(f, &model->lm_head);
+
+    fclose(f);
+    printf("[nc_model] Saved model to '%s'\n", path);
+    return 0;
+}
+
+NCModel *nc_model_load(const char *path) {
+    FILE *f = fopen(path, "rb");
+    if (!f) {
+        fprintf(stderr, "[nc_model] Error: cannot open '%s' for reading\n", path);
+        return NULL;
+    }
+
+    /* Check magic */
+    char magic[4];
+    fread(magic, 1, 4, f);
+    if (memcmp(magic, "NCM1", 4) != 0) {
+        fprintf(stderr, "[nc_model] Error: invalid model file '%s'\n", path);
+        fclose(f);
+        return NULL;
+    }
+
+    /* Read config */
+    int config[4];
+    fread(config, sizeof(int), 4, f);
+
+    NCModelConfig cfg = nc_model_default_config();
+    cfg.n_layers   = config[0];
+    cfg.dim        = config[1];
+    cfg.vocab_size = config[2];
+    cfg.max_seq    = config[3];
+    cfg.n_heads    = cfg.dim / 32;  /* head_dim = 32 */
+    if (cfg.n_heads < 1) cfg.n_heads = 1;
+    cfg.hidden_dim = cfg.dim * 4;
+
+    /* Create model with correct structure */
+    NCModel *model = nc_model_create(cfg);
+    if (!model) {
+        fclose(f);
+        return NULL;
+    }
+
+    /* Read embeddings */
+    read_tensor(f, &model->token_emb);
+    read_tensor(f, &model->pos_emb);
+
+    /* Read layers */
+    for (int i = 0; i < model->n_layers; i++) {
+        NCTransformerBlock *block = &model->layers[i];
+
+        read_linear(f, &block->attn.q_proj);
+        read_linear(f, &block->attn.k_proj);
+        read_linear(f, &block->attn.v_proj);
+        read_linear(f, &block->attn.o_proj);
+        read_linear(f, &block->ffn.up_proj);
+        read_linear(f, &block->ffn.down_proj);
+        read_layer_norm(f, &block->ln1);
+        read_layer_norm(f, &block->ln2);
+    }
+
+    /* Final LN and LM head */
+    read_layer_norm(f, &model->final_ln);
+    read_linear(f, &model->lm_head);
+
+    fclose(f);
+    printf("[nc_model] Loaded model from '%s'\n", path);
+    return model;
+}
+
+/* ═══════════════════════════════════════════════════════════
+ *  Autoregressive generation with top-k sampling
+ *
+ *  Given prompt tokens, generate up to max_tokens new tokens.
+ *  Uses temperature scaling and top-k sampling (k=40).
+ *  Returns total length (prompt + generated).
+ * ═══════════════════════════════════════════════════════════ */
+
+/* Helper: find top-k indices from logits */
+static void top_k_indices(const float *logits, int vocab_size, int k,
+                          int *indices, float *values) {
+    /* Initialize with first k values */
+    for (int i = 0; i < k; i++) {
+        indices[i] = i;
+        values[i] = logits[i];
+    }
+
+    /* Find minimum in current top-k */
+    int min_idx = 0;
+    for (int i = 1; i < k; i++) {
+        if (values[i] < values[min_idx]) min_idx = i;
+    }
+
+    /* Scan remaining elements */
+    for (int i = k; i < vocab_size; i++) {
+        if (logits[i] > values[min_idx]) {
+            indices[min_idx] = i;
+            values[min_idx] = logits[i];
+
+            /* Find new minimum */
+            min_idx = 0;
+            for (int j = 1; j < k; j++) {
+                if (values[j] < values[min_idx]) min_idx = j;
+            }
+        }
+    }
+}
+
+/* Sample from probability distribution */
+static int sample_from_probs(const float *probs, int n) {
+    float r = (float)rand() / ((float)RAND_MAX + 1.0f);
+    float cumsum = 0.0f;
+    for (int i = 0; i < n; i++) {
+        cumsum += probs[i];
+        if (r < cumsum) return i;
+    }
+    return n - 1; /* fallback */
+}
+
+int nc_model_generate(const NCModel *model, const int *prompt_tokens,
+                      int prompt_len, int max_tokens, float temperature,
+                      int *output) {
+    nc_rand_init();
+
+    int max_seq = model->max_seq;
+    int vocab_size = model->vocab_size;
+    int top_k = 40;
+
+    /* Copy prompt to output buffer */
+    int total_len = prompt_len;
+    memcpy(output, prompt_tokens, prompt_len * sizeof(int));
+
+    /* Allocate logits buffer */
+    float *logits = (float *)malloc(max_seq * vocab_size * sizeof(float));
+    if (!logits) return prompt_len;
+
+    /* Allocate top-k buffers */
+    int *topk_idx = (int *)malloc(top_k * sizeof(int));
+    float *topk_vals = (float *)malloc(top_k * sizeof(float));
+    float *topk_probs = (float *)malloc(top_k * sizeof(float));
+
+    if (!topk_idx || !topk_vals || !topk_probs) {
+        free(logits);
+        free(topk_idx);
+        free(topk_vals);
+        free(topk_probs);
+        return prompt_len;
+    }
+
+    for (int step = 0; step < max_tokens; step++) {
+        if (total_len >= max_seq) break;
+
+        /* Forward pass on current sequence */
+        nc_model_forward(model, output, total_len, logits);
+
+        /* Get logits for last position */
+        float *last_logits = logits + (total_len - 1) * vocab_size;
+
+        /* Apply temperature */
+        if (temperature > 0.0f && temperature != 1.0f) {
+            float inv_temp = 1.0f / temperature;
+            for (int i = 0; i < vocab_size; i++) {
+                last_logits[i] *= inv_temp;
+            }
+        }
+
+        int next_token;
+
+        if (temperature <= 0.0f) {
+            /* Greedy: argmax */
+            next_token = 0;
+            float max_val = last_logits[0];
+            for (int i = 1; i < vocab_size; i++) {
+                if (last_logits[i] > max_val) {
+                    max_val = last_logits[i];
+                    next_token = i;
+                }
+            }
+        } else {
+            /* Top-k sampling */
+            int k = top_k < vocab_size ? top_k : vocab_size;
+            top_k_indices(last_logits, vocab_size, k, topk_idx, topk_vals);
+
+            /* Softmax over top-k values */
+            float max_val = topk_vals[0];
+            for (int i = 1; i < k; i++) {
+                if (topk_vals[i] > max_val) max_val = topk_vals[i];
+            }
+
+            float sum = 0.0f;
+            for (int i = 0; i < k; i++) {
+                topk_probs[i] = expf(topk_vals[i] - max_val);
+                sum += topk_probs[i];
+            }
+            float inv_sum = 1.0f / (sum + 1e-9f);
+            for (int i = 0; i < k; i++) {
+                topk_probs[i] *= inv_sum;
+            }
+
+            int sampled_idx = sample_from_probs(topk_probs, k);
+            next_token = topk_idx[sampled_idx];
+        }
+
+        /* Stop on EOS token (token 2) */
+        if (next_token == 2) break;
+
+        output[total_len] = next_token;
+        total_len++;
+    }
+
+    free(logits);
+    free(topk_idx);
+    free(topk_vals);
+    free(topk_probs);
+
+    return total_len;
+}
+
+// ─── nc_tokenizer.c ───
+/*
+ * nc_tokenizer.c — BPE tokenizer for the NC programming language.
+ *
+ * A Byte Pair Encoding tokenizer designed specifically for NC syntax.
+ * Starts with NC keywords as base vocabulary, then learns merges from
+ * NC code corpus to handle multi-character patterns efficiently.
+ */
+
+#include "nc_tokenizer.h"
+
+/* ═══════════════════════════════════════════════════════════
+ *  Base vocabulary — NC language keywords and tokens
+ * ═══════════════════════════════════════════════════════════ */
+
+static const char *NC_BASE_VOCAB[] = {
+    /* 0-3: Special tokens */
+    "<|pad|>", "<|begin|>", "<|end|>", "<|unk|>",
+
+    /* 4-31: NC backend keywords */
+    "service", "version", "to", "set", "respond", "show", "ask",
+    "if", "else", "repeat", "while", "import", "api", "behavior",
+    "middleware", "connect", "create", "read", "update", "delete",
+    "call", "store", "load", "return", "break", "continue", "match",
+    "catch",
+
+    /* 32-47: HTTP methods & API */
+    "GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS",
+    "request", "response", "headers", "body", "status", "endpoint",
+    "route", "path", "query",
+
+    /* 48-79: NC UI keywords */
+    "page", "theme", "section", "nav", "card", "grid", "button",
+    "heading", "text", "input", "form", "component", "state",
+    "action", "route", "animate", "style", "layout", "footer",
+    "header", "sidebar", "modal", "list", "table", "image",
+    "link", "icon", "badge", "tooltip", "dropdown", "tabs", "menu",
+
+    /* 80-99: Common patterns & values */
+    "with", "from", "in", "is", "as", "and", "or", "not",
+    "true", "false", "null", "none", "self", "this", "new",
+    "let", "const", "var", "fn", "async",
+
+    /* 100-119: Operators & punctuation */
+    "(", ")", "[", "]", "{", "}", ":", ",", ".", ";",
+    "+", "-", "*", "/", "%", "=", "==", "!=", "<", ">",
+
+    /* 120-139: More operators */
+    "<=", ">=", "&&", "||", "!", "->", "=>", "+=", "-=", "*=",
+    "/=", "..", "...", "@", "#", "|", "&", "^", "~", "?",
+
+    /* 140-159: String & number markers */
+    "\"", "'", "`", "\\n", "\\t", "\\r", " ", "  ", "    ", "        ",
+    "0", "1", "2", "3", "4", "5", "6", "7", "8", "9",
+
+    /* 160-185: Common NC identifiers */
+    "name", "value", "type", "id", "data", "result", "error",
+    "message", "title", "description", "content", "url", "port",
+    "host", "user", "password", "email", "token", "key", "secret",
+    "config", "settings", "options", "params", "args", "items",
+
+    /* 186-210: NC-specific patterns */
+    "dark", "light", "primary", "secondary", "success", "warning",
+    "danger", "info", "lg", "md", "sm", "xl", "xs",
+    "center", "left", "right", "top", "bottom", "flex", "block",
+    "inline", "hidden", "visible", "bold", "italic",
+
+    /* 211-255: Single characters a-z, A-Z (partial), digits */
+    "a", "b", "c", "d", "e", "f", "g", "h", "i", "j",
+    "k", "l", "m", "n", "o", "p", "q", "r", "s", "t",
+    "u", "v", "w", "x", "y", "z",
+    "A", "B", "C", "D", "E", "F", "G", "H", "I", "J",
+    "K", "L", "M", "N", "O", "P",
+
+    NULL  /* sentinel */
+};
+
+#define NC_BASE_VOCAB_SIZE 258  /* adjust to actual count above */
+
+/* ═══════════════════════════════════════════════════════════
+ *  Tokenizer creation — populate with NC base vocabulary
+ * ═══════════════════════════════════════════════════════════ */
+
+NCTokenizer *nc_tokenizer_create(void) {
+    NCTokenizer *tok = (NCTokenizer *)calloc(1, sizeof(NCTokenizer));
+    if (!tok) return NULL;
+
+    tok->vocab = (char **)calloc(NC_TOK_MAX_VOCAB, sizeof(char *));
+    tok->merges_a = (int *)calloc(NC_TOK_MAX_MERGES, sizeof(int));
+    tok->merges_b = (int *)calloc(NC_TOK_MAX_MERGES, sizeof(int));
+
+    if (!tok->vocab || !tok->merges_a || !tok->merges_b) {
+        nc_tokenizer_free(tok);
+        return NULL;
+    }
+
+    tok->vocab_size = 0;
+    tok->n_merges = 0;
+    tok->pad_token = NC_TOK_PAD;
+    tok->bos_token = NC_TOK_BOS;
+    tok->eos_token = NC_TOK_EOS;
+    tok->unk_token = NC_TOK_UNK;
+
+    /* Populate base vocabulary */
+    for (int i = 0; NC_BASE_VOCAB[i] != NULL; i++) {
+        if (tok->vocab_size >= NC_TOK_MAX_VOCAB) break;
+        tok->vocab[tok->vocab_size] = strdup(NC_BASE_VOCAB[i]);
+        tok->vocab_size++;
+    }
+
+    /* Fill remaining single bytes (those not already in vocab) */
+    for (int ch = 32; ch < 127; ch++) {
+        /* Check if this single char is already in vocab */
+        char single[2] = {(char)ch, '\0'};
+        bool found = false;
+        for (int j = 0; j < tok->vocab_size; j++) {
+            if (tok->vocab[j] && strlen(tok->vocab[j]) == 1
+                && tok->vocab[j][0] == (char)ch) {
+                found = true;
+                break;
+            }
+        }
+        if (!found && tok->vocab_size < NC_TOK_MAX_VOCAB) {
+            tok->vocab[tok->vocab_size] = strdup(single);
+            tok->vocab_size++;
+        }
+    }
+
+    return tok;
+}
+
+void nc_tokenizer_free(NCTokenizer *tok) {
+    if (!tok) return;
+    if (tok->vocab) {
+        for (int i = 0; i < tok->vocab_size; i++) {
+            free(tok->vocab[i]);
+        }
+        free(tok->vocab);
+    }
+    free(tok->merges_a);
+    free(tok->merges_b);
+    free(tok);
+}
+
+/* ═══════════════════════════════════════════════════════════
+ *  Helper: look up a string in the vocabulary
+ * ═══════════════════════════════════════════════════════════ */
+
+static int vocab_lookup(const NCTokenizer *tok, const char *str, int len) {
+    for (int i = 0; i < tok->vocab_size; i++) {
+        if (tok->vocab[i] && (int)strlen(tok->vocab[i]) == len
+            && memcmp(tok->vocab[i], str, len) == 0) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+/* Lookup by exact string */
+static int vocab_lookup_str(const NCTokenizer *tok, const char *str) {
+    return vocab_lookup(tok, str, (int)strlen(str));
+}
+
+/* ═══════════════════════════════════════════════════════════
+ *  BPE Training — learn merge pairs from NC code corpus
+ *
+ *  Algorithm:
+ *  1. Tokenize text into initial tokens (try keywords first, then chars)
+ *  2. Count all adjacent token pairs
+ *  3. Merge the most frequent pair into a new token
+ *  4. Repeat until target vocab size reached
+ * ═══════════════════════════════════════════════════════════ */
+
+/* Initial tokenization: greedily match longest vocab entry */
+static int initial_tokenize(const NCTokenizer *tok, const char *text,
+                            int *out_tokens, int max_tokens) {
+    int n = 0;
+    int text_len = (int)strlen(text);
+    int pos = 0;
+
+    while (pos < text_len && n < max_tokens) {
+        /* Try to match longest token in vocab */
+        int best_id = -1;
+        int best_len = 0;
+
+        /* Try keywords and multi-char tokens first (longer matches) */
+        for (int i = 4; i < tok->vocab_size; i++) {
+            if (!tok->vocab[i]) continue;
+            int tlen = (int)strlen(tok->vocab[i]);
+            if (tlen > best_len && pos + tlen <= text_len
+                && memcmp(text + pos, tok->vocab[i], tlen) == 0) {
+                best_id = i;
+                best_len = tlen;
+            }
+        }
+
+        if (best_id >= 0) {
+            out_tokens[n++] = best_id;
+            pos += best_len;
+        } else {
+            /* Single character — find or use UNK */
+            char single[2] = {text[pos], '\0'};
+            int id = vocab_lookup_str(tok, single);
+            out_tokens[n++] = (id >= 0) ? id : NC_TOK_UNK;
+            pos++;
+        }
+    }
+
+    return n;
+}
+
+/* Pair counting for BPE */
+typedef struct {
+    int a, b;
+    int count;
+} NCPairCount;
+
+#define MAX_PAIR_BUCKETS 16384
+
+static unsigned int pair_hash(int a, int b) {
+    return (unsigned int)((a * 7919) ^ (b * 104729)) % MAX_PAIR_BUCKETS;
+}
+
+void nc_tokenizer_train(NCTokenizer *tok, const char **texts,
+                        int n_texts, int target_vocab) {
+    if (target_vocab <= tok->vocab_size) return;
+
+    /* Tokenize all texts into initial token sequences */
+    int total_cap = 0;
+    for (int i = 0; i < n_texts; i++) {
+        total_cap += (int)strlen(texts[i]) + 1;
+    }
+    if (total_cap > 2000000) total_cap = 2000000;
+
+    int *all_tokens = (int *)malloc(total_cap * sizeof(int));
+    int *seq_starts = (int *)malloc(n_texts * sizeof(int));
+    int *seq_lens = (int *)malloc(n_texts * sizeof(int));
+    if (!all_tokens || !seq_starts || !seq_lens) {
+        free(all_tokens); free(seq_starts); free(seq_lens);
+        return;
+    }
+
+    int total_tokens = 0;
+    for (int i = 0; i < n_texts; i++) {
+        seq_starts[i] = total_tokens;
+        int remaining = total_cap - total_tokens;
+        if (remaining <= 0) { seq_lens[i] = 0; continue; }
+        int n = initial_tokenize(tok, texts[i],
+                                 all_tokens + total_tokens, remaining);
+        seq_lens[i] = n;
+        total_tokens += n;
+    }
+
+    /* Pair counting table */
+    NCPairCount *pairs = (NCPairCount *)calloc(MAX_PAIR_BUCKETS,
+                                                sizeof(NCPairCount));
+    if (!pairs) {
+        free(all_tokens); free(seq_starts); free(seq_lens);
+        return;
+    }
+
+    /* BPE iteration */
+    while (tok->vocab_size < target_vocab
+           && tok->n_merges < NC_TOK_MAX_MERGES) {
+
+        /* Count all adjacent pairs */
+        memset(pairs, 0, MAX_PAIR_BUCKETS * sizeof(NCPairCount));
+
+        for (int s = 0; s < n_texts; s++) {
+            int start = seq_starts[s];
+            int len = seq_lens[s];
+            for (int i = 0; i < len - 1; i++) {
+                int a = all_tokens[start + i];
+                int b = all_tokens[start + i + 1];
+                if (a < 0 || b < 0) continue;
+
+                unsigned int h = pair_hash(a, b);
+                /* Linear probing */
+                for (int probe = 0; probe < 64; probe++) {
+                    unsigned int idx = (h + probe) % MAX_PAIR_BUCKETS;
+                    if (pairs[idx].count == 0) {
+                        pairs[idx].a = a;
+                        pairs[idx].b = b;
+                        pairs[idx].count = 1;
+                        break;
+                    } else if (pairs[idx].a == a && pairs[idx].b == b) {
+                        pairs[idx].count++;
+                        break;
+                    }
+                }
+            }
+        }
+
+        /* Find most frequent pair */
+        int best_count = 0;
+        int best_a = -1, best_b = -1;
+        for (int i = 0; i < MAX_PAIR_BUCKETS; i++) {
+            if (pairs[i].count > best_count) {
+                best_count = pairs[i].count;
+                best_a = pairs[i].a;
+                best_b = pairs[i].b;
+            }
+        }
+
+        /* Stop if no more merges found or count too low */
+        if (best_count < 2 || best_a < 0) break;
+
+        /* Create merged token string */
+        const char *str_a = tok->vocab[best_a];
+        const char *str_b = tok->vocab[best_b];
+        if (!str_a || !str_b) break;
+
+        int len_a = (int)strlen(str_a);
+        int len_b = (int)strlen(str_b);
+        int merged_len = len_a + len_b;
+
+        if (merged_len >= NC_TOK_MAX_TOKEN_LEN) break;
+
+        char *merged = (char *)malloc(merged_len + 1);
+        memcpy(merged, str_a, len_a);
+        memcpy(merged + len_a, str_b, len_b);
+        merged[merged_len] = '\0';
+
+        /* Check if this token already exists */
+        int existing = vocab_lookup_str(tok, merged);
+        int new_id;
+        if (existing >= 0) {
+            new_id = existing;
+            free(merged);
+        } else {
+            new_id = tok->vocab_size;
+            tok->vocab[new_id] = merged;
+            tok->vocab_size++;
+        }
+
+        /* Record merge */
+        tok->merges_a[tok->n_merges] = best_a;
+        tok->merges_b[tok->n_merges] = best_b;
+        tok->n_merges++;
+
+        /* Apply merge to all sequences */
+        for (int s = 0; s < n_texts; s++) {
+            int start = seq_starts[s];
+            int len = seq_lens[s];
+            int write_pos = start;
+
+            for (int i = 0; i < len; i++) {
+                if (i < len - 1
+                    && all_tokens[start + i] == best_a
+                    && all_tokens[start + i + 1] == best_b) {
+                    all_tokens[write_pos++] = new_id;
+                    i++; /* skip next */
+                } else {
+                    all_tokens[write_pos++] = all_tokens[start + i];
+                }
+            }
+
+            seq_lens[s] = write_pos - start;
+        }
+    }
+
+    free(pairs);
+    free(all_tokens);
+    free(seq_starts);
+    free(seq_lens);
+}
+
+/* ═══════════════════════════════════════════════════════════
+ *  Encode: text -> token IDs
+ *
+ *  1. Initial tokenization (greedy longest match)
+ *  2. Apply learned merges in order
+ * ═══════════════════════════════════════════════════════════ */
+
+int nc_tokenizer_encode(const NCTokenizer *tok, const char *text,
+                        int *tokens, int max_len) {
+    if (!text || !tokens || max_len <= 0) return 0;
+
+    /* Initial tokenization */
+    int *work = (int *)malloc(max_len * 2 * sizeof(int));
+    if (!work) return 0;
+
+    int n = initial_tokenize(tok, text, work, max_len * 2);
+
+    /* Apply merges in order */
+    for (int m = 0; m < tok->n_merges; m++) {
+        int ma = tok->merges_a[m];
+        int mb = tok->merges_b[m];
+
+        /* Find merged token ID */
+        const char *str_a = tok->vocab[ma];
+        const char *str_b = tok->vocab[mb];
+        if (!str_a || !str_b) continue;
+
+        int len_a = (int)strlen(str_a);
+        int len_b = (int)strlen(str_b);
+        char merged_buf[NC_TOK_MAX_TOKEN_LEN];
+        if (len_a + len_b >= NC_TOK_MAX_TOKEN_LEN) continue;
+        memcpy(merged_buf, str_a, len_a);
+        memcpy(merged_buf + len_a, str_b, len_b);
+        merged_buf[len_a + len_b] = '\0';
+
+        int merged_id = vocab_lookup_str(tok, merged_buf);
+        if (merged_id < 0) continue;
+
+        /* Apply this merge to the token sequence */
+        int new_n = 0;
+        for (int i = 0; i < n; i++) {
+            if (i < n - 1 && work[i] == ma && work[i + 1] == mb) {
+                work[new_n++] = merged_id;
+                i++; /* skip next */
+            } else {
+                work[new_n++] = work[i];
+            }
+        }
+        n = new_n;
+    }
+
+    /* Copy to output, respecting max_len */
+    int out_len = n < max_len ? n : max_len;
+    memcpy(tokens, work, out_len * sizeof(int));
+    free(work);
+
+    return out_len;
+}
+
+/* ═══════════════════════════════════════════════════════════
+ *  Decode: token IDs -> text
+ * ═══════════════════════════════════════════════════════════ */
+
+int nc_tokenizer_decode(const NCTokenizer *tok, const int *tokens,
+                        int n_tokens, char *text, int max_len) {
+    if (!tokens || !text || max_len <= 0) return 0;
+
+    int pos = 0;
+    for (int i = 0; i < n_tokens; i++) {
+        int id = tokens[i];
+
+        /* Skip special tokens in decode */
+        if (id == NC_TOK_PAD || id == NC_TOK_BOS || id == NC_TOK_EOS) continue;
+
+        const char *tok_str;
+        if (id >= 0 && id < tok->vocab_size && tok->vocab[id]) {
+            tok_str = tok->vocab[id];
+        } else {
+            tok_str = "<|unk|>";
+        }
+
+        int tlen = (int)strlen(tok_str);
+        if (pos + tlen >= max_len - 1) break;
+
+        memcpy(text + pos, tok_str, tlen);
+        pos += tlen;
+    }
+
+    text[pos] = '\0';
+    return pos;
+}
+
+/* ═══════════════════════════════════════════════════════════
+ *  Save tokenizer to file
+ *
+ *  Format (text):
+ *    Line 1: "NCTOK1"
+ *    Line 2: vocab_size n_merges
+ *    Next vocab_size lines: id token_string
+ *    Next n_merges lines: merge_a merge_b
+ * ═══════════════════════════════════════════════════════════ */
+
+int nc_tokenizer_save(const NCTokenizer *tok, const char *path) {
+    FILE *f = fopen(path, "w");
+    if (!f) {
+        fprintf(stderr, "[nc_tokenizer] Error: cannot open '%s' for writing\n", path);
+        return -1;
+    }
+
+    fprintf(f, "NCTOK1\n");
+    fprintf(f, "%d %d\n", tok->vocab_size, tok->n_merges);
+
+    /* Write vocab — use hex escaping for special chars */
+    for (int i = 0; i < tok->vocab_size; i++) {
+        const char *s = tok->vocab[i] ? tok->vocab[i] : "";
+        fprintf(f, "%d ", i);
+
+        /* Write each char, escaping newlines/tabs */
+        for (int j = 0; s[j]; j++) {
+            if (s[j] == '\n') {
+                fprintf(f, "\\n");
+            } else if (s[j] == '\t') {
+                fprintf(f, "\\t");
+            } else if (s[j] == '\\') {
+                fprintf(f, "\\\\");
+            } else {
+                fputc(s[j], f);
+            }
+        }
+        fputc('\n', f);
+    }
+
+    /* Write merges */
+    for (int i = 0; i < tok->n_merges; i++) {
+        fprintf(f, "%d %d\n", tok->merges_a[i], tok->merges_b[i]);
+    }
+
+    fclose(f);
+    printf("[nc_tokenizer] Saved tokenizer to '%s'\n", path);
+    return 0;
+}
+
+/* ═══════════════════════════════════════════════════════════
+ *  Load tokenizer from file
+ * ═══════════════════════════════════════════════════════════ */
+
+NCTokenizer *nc_tokenizer_load(const char *path) {
+    FILE *f = fopen(path, "r");
+    if (!f) {
+        fprintf(stderr, "[nc_tokenizer] Error: cannot open '%s' for reading\n", path);
+        return NULL;
+    }
+
+    char magic[32];
+    if (!fgets(magic, sizeof(magic), f)) {
+        fclose(f);
+        return NULL;
+    }
+
+    if (strncmp(magic, "NCTOK1", 6) != 0) {
+        fprintf(stderr, "[nc_tokenizer] Error: invalid tokenizer file\n");
+        fclose(f);
+        return NULL;
+    }
+
+    int vocab_size, n_merges;
+    if (fscanf(f, "%d %d\n", &vocab_size, &n_merges) != 2) {
+        fclose(f);
+        return NULL;
+    }
+
+    NCTokenizer *tok = (NCTokenizer *)calloc(1, sizeof(NCTokenizer));
+    tok->vocab = (char **)calloc(NC_TOK_MAX_VOCAB, sizeof(char *));
+    tok->merges_a = (int *)calloc(NC_TOK_MAX_MERGES, sizeof(int));
+    tok->merges_b = (int *)calloc(NC_TOK_MAX_MERGES, sizeof(int));
+    tok->pad_token = NC_TOK_PAD;
+    tok->bos_token = NC_TOK_BOS;
+    tok->eos_token = NC_TOK_EOS;
+    tok->unk_token = NC_TOK_UNK;
+
+    /* Read vocab */
+    char line[512];
+    for (int i = 0; i < vocab_size; i++) {
+        if (!fgets(line, sizeof(line), f)) break;
+
+        int id;
+        char token_buf[256];
+        /* Parse "id token_string\n" */
+        char *space = strchr(line, ' ');
+        if (!space) continue;
+
+        id = atoi(line);
+        /* Rest of line is the token string */
+        char *tok_start = space + 1;
+        int tlen = (int)strlen(tok_start);
+        /* Remove trailing newline */
+        if (tlen > 0 && tok_start[tlen - 1] == '\n') {
+            tok_start[tlen - 1] = '\0';
+            tlen--;
+        }
+
+        /* Unescape */
+        int out_pos = 0;
+        for (int j = 0; j < tlen && out_pos < 255; j++) {
+            if (tok_start[j] == '\\' && j + 1 < tlen) {
+                if (tok_start[j + 1] == 'n') {
+                    token_buf[out_pos++] = '\n'; j++;
+                } else if (tok_start[j + 1] == 't') {
+                    token_buf[out_pos++] = '\t'; j++;
+                } else if (tok_start[j + 1] == '\\') {
+                    token_buf[out_pos++] = '\\'; j++;
+                } else {
+                    token_buf[out_pos++] = tok_start[j];
+                }
+            } else {
+                token_buf[out_pos++] = tok_start[j];
+            }
+        }
+        token_buf[out_pos] = '\0';
+
+        if (id >= 0 && id < NC_TOK_MAX_VOCAB) {
+            tok->vocab[id] = strdup(token_buf);
+        }
+    }
+    tok->vocab_size = vocab_size;
+
+    /* Read merges */
+    for (int i = 0; i < n_merges; i++) {
+        if (fscanf(f, "%d %d\n", &tok->merges_a[i], &tok->merges_b[i]) != 2) {
+            break;
+        }
+    }
+    tok->n_merges = n_merges;
+
+    fclose(f);
+    printf("[nc_tokenizer] Loaded tokenizer from '%s'\n", path);
+    return tok;
+}
+
+// ─── nc_training.c ───
+/*
+ * nc_training.c — Training pipeline for the NC transformer model.
+ *
+ * Implements backpropagation, Adam optimizer, cross-entropy loss,
+ * gradient clipping, learning rate scheduling, and a complete
+ * training loop with checkpointing.
+ *
+ * This trains NC's own AI on NC code.
+ */
+
+#include "nc_training.h"
+
+/* ═══════════════════════════════════════════════════════════
+ *  Cross-entropy loss
+ *
+ *  For language modeling, the target for position i is the
+ *  token at position i+1 (next-token prediction).
+ *
+ *  loss = -1/N * sum_i log(softmax(logits_i)[target_i])
+ * ═══════════════════════════════════════════════════════════ */
+
+float nc_loss_cross_entropy(const float *logits, const int *targets,
+                            int seq_len, int vocab_size) {
+    float total_loss = 0.0f;
+    int count = 0;
+
+    for (int i = 0; i < seq_len - 1; i++) {
+        const float *row = logits + i * vocab_size;
+        int target = targets[i + 1]; /* next token prediction */
+
+        if (target < 0 || target >= vocab_size) continue;
+
+        /* Numerically stable log-softmax */
+        float max_val = row[0];
+        for (int j = 1; j < vocab_size; j++) {
+            if (row[j] > max_val) max_val = row[j];
+        }
+
+        float log_sum_exp = 0.0f;
+        for (int j = 0; j < vocab_size; j++) {
+            log_sum_exp += expf(row[j] - max_val);
+        }
+        log_sum_exp = logf(log_sum_exp + 1e-9f) + max_val;
+
+        float log_prob = row[target] - log_sum_exp;
+        total_loss -= log_prob;
+        count++;
+    }
+
+    return count > 0 ? total_loss / (float)count : 0.0f;
+}
+
+/* ═══════════════════════════════════════════════════════════
+ *  Gradient allocation and management
+ * ═══════════════════════════════════════════════════════════ */
+
+static NCGrad grad_alloc(int size) {
+    NCGrad g;
+    g.size = size;
+    g.grad = (float *)calloc(size, sizeof(float));
+    return g;
+}
+
+static void grad_free(NCGrad *g) {
+    free(g->grad);
+    g->grad = NULL;
+    g->size = 0;
+}
+
+NCModelGrads *nc_grads_create(const NCModel *model) {
+    NCModelGrads *g = (NCModelGrads *)calloc(1, sizeof(NCModelGrads));
+    if (!g) return NULL;
+
+    g->n_layers = model->n_layers;
+
+    /* Embedding gradients */
+    g->token_emb_grad = grad_alloc(model->token_emb.size);
+    g->pos_emb_grad   = grad_alloc(model->pos_emb.size);
+
+    /* Per-layer gradients */
+    g->layer_grads = calloc(model->n_layers, sizeof(*g->layer_grads));
+
+    for (int i = 0; i < model->n_layers; i++) {
+        const NCTransformerBlock *block = &model->layers[i];
+        int dim = block->attn.dim;
+        int hidden_dim = block->ffn.hidden_dim;
+
+        /* Attention projections */
+        g->layer_grads[i].q_w = grad_alloc(dim * dim);
+        g->layer_grads[i].q_b = grad_alloc(dim);
+        g->layer_grads[i].k_w = grad_alloc(dim * dim);
+        g->layer_grads[i].k_b = grad_alloc(dim);
+        g->layer_grads[i].v_w = grad_alloc(dim * dim);
+        g->layer_grads[i].v_b = grad_alloc(dim);
+        g->layer_grads[i].o_w = grad_alloc(dim * dim);
+        g->layer_grads[i].o_b = grad_alloc(dim);
+
+        /* FFN */
+        g->layer_grads[i].up_w   = grad_alloc(dim * hidden_dim);
+        g->layer_grads[i].up_b   = grad_alloc(hidden_dim);
+        g->layer_grads[i].down_w = grad_alloc(hidden_dim * dim);
+        g->layer_grads[i].down_b = grad_alloc(dim);
+
+        /* Layer norms */
+        g->layer_grads[i].ln1_gamma = grad_alloc(dim);
+        g->layer_grads[i].ln1_beta  = grad_alloc(dim);
+        g->layer_grads[i].ln2_gamma = grad_alloc(dim);
+        g->layer_grads[i].ln2_beta  = grad_alloc(dim);
+    }
+
+    /* Final layer norm */
+    g->final_ln_gamma = grad_alloc(model->dim);
+    g->final_ln_beta  = grad_alloc(model->dim);
+
+    /* LM head */
+    g->lm_head_w = grad_alloc(model->lm_head.weights.size);
+    g->lm_head_b = grad_alloc(model->lm_head.bias.size);
+
+    return g;
+}
+
+void nc_grads_zero(NCModelGrads *grads) {
+    if (!grads) return;
+
+    memset(grads->token_emb_grad.grad, 0, grads->token_emb_grad.size * sizeof(float));
+    memset(grads->pos_emb_grad.grad, 0, grads->pos_emb_grad.size * sizeof(float));
+
+    for (int i = 0; i < grads->n_layers; i++) {
+        memset(grads->layer_grads[i].q_w.grad, 0, grads->layer_grads[i].q_w.size * sizeof(float));
+        memset(grads->layer_grads[i].q_b.grad, 0, grads->layer_grads[i].q_b.size * sizeof(float));
+        memset(grads->layer_grads[i].k_w.grad, 0, grads->layer_grads[i].k_w.size * sizeof(float));
+        memset(grads->layer_grads[i].k_b.grad, 0, grads->layer_grads[i].k_b.size * sizeof(float));
+        memset(grads->layer_grads[i].v_w.grad, 0, grads->layer_grads[i].v_w.size * sizeof(float));
+        memset(grads->layer_grads[i].v_b.grad, 0, grads->layer_grads[i].v_b.size * sizeof(float));
+        memset(grads->layer_grads[i].o_w.grad, 0, grads->layer_grads[i].o_w.size * sizeof(float));
+        memset(grads->layer_grads[i].o_b.grad, 0, grads->layer_grads[i].o_b.size * sizeof(float));
+        memset(grads->layer_grads[i].up_w.grad, 0, grads->layer_grads[i].up_w.size * sizeof(float));
+        memset(grads->layer_grads[i].up_b.grad, 0, grads->layer_grads[i].up_b.size * sizeof(float));
+        memset(grads->layer_grads[i].down_w.grad, 0, grads->layer_grads[i].down_w.size * sizeof(float));
+        memset(grads->layer_grads[i].down_b.grad, 0, grads->layer_grads[i].down_b.size * sizeof(float));
+        memset(grads->layer_grads[i].ln1_gamma.grad, 0, grads->layer_grads[i].ln1_gamma.size * sizeof(float));
+        memset(grads->layer_grads[i].ln1_beta.grad, 0, grads->layer_grads[i].ln1_beta.size * sizeof(float));
+        memset(grads->layer_grads[i].ln2_gamma.grad, 0, grads->layer_grads[i].ln2_gamma.size * sizeof(float));
+        memset(grads->layer_grads[i].ln2_beta.grad, 0, grads->layer_grads[i].ln2_beta.size * sizeof(float));
+    }
+
+    memset(grads->final_ln_gamma.grad, 0, grads->final_ln_gamma.size * sizeof(float));
+    memset(grads->final_ln_beta.grad, 0, grads->final_ln_beta.size * sizeof(float));
+    memset(grads->lm_head_w.grad, 0, grads->lm_head_w.size * sizeof(float));
+    memset(grads->lm_head_b.grad, 0, grads->lm_head_b.size * sizeof(float));
+}
+
+void nc_grads_free(NCModelGrads *grads) {
+    if (!grads) return;
+
+    grad_free(&grads->token_emb_grad);
+    grad_free(&grads->pos_emb_grad);
+
+    for (int i = 0; i < grads->n_layers; i++) {
+        grad_free(&grads->layer_grads[i].q_w);
+        grad_free(&grads->layer_grads[i].q_b);
+        grad_free(&grads->layer_grads[i].k_w);
+        grad_free(&grads->layer_grads[i].k_b);
+        grad_free(&grads->layer_grads[i].v_w);
+        grad_free(&grads->layer_grads[i].v_b);
+        grad_free(&grads->layer_grads[i].o_w);
+        grad_free(&grads->layer_grads[i].o_b);
+        grad_free(&grads->layer_grads[i].up_w);
+        grad_free(&grads->layer_grads[i].up_b);
+        grad_free(&grads->layer_grads[i].down_w);
+        grad_free(&grads->layer_grads[i].down_b);
+        grad_free(&grads->layer_grads[i].ln1_gamma);
+        grad_free(&grads->layer_grads[i].ln1_beta);
+        grad_free(&grads->layer_grads[i].ln2_gamma);
+        grad_free(&grads->layer_grads[i].ln2_beta);
+    }
+    free(grads->layer_grads);
+
+    grad_free(&grads->final_ln_gamma);
+    grad_free(&grads->final_ln_beta);
+    grad_free(&grads->lm_head_w);
+    grad_free(&grads->lm_head_b);
+
+    free(grads);
+}
+
+/* ═══════════════════════════════════════════════════════════
+ *  Backpropagation — compute gradients through entire model
+ *
+ *  Uses the stored activations from a forward pass.
+ *  Computes gradients of cross-entropy loss w.r.t. all params.
+ *
+ *  For a decoder-only transformer with next-token prediction:
+ *    loss = CrossEntropy(logits[i], tokens[i+1])
+ *
+ *  Chain rule through:
+ *    logits -> lm_head -> final_ln -> blocks -> embeddings
+ * ═══════════════════════════════════════════════════════════ */
+
+/* Helper: softmax a single row in-place */
+static void softmax_row(float *row, int n) {
+    float max_v = row[0];
+    for (int i = 1; i < n; i++) {
+        if (row[i] > max_v) max_v = row[i];
+    }
+    float sum = 0.0f;
+    for (int i = 0; i < n; i++) {
+        row[i] = expf(row[i] - max_v);
+        sum += row[i];
+    }
+    float inv = 1.0f / (sum + 1e-9f);
+    for (int i = 0; i < n; i++) {
+        row[i] *= inv;
+    }
+}
+
+/* Helper: GELU derivative */
+static float gelu_grad(float x) {
+    const float SQRT_2_PI = 0.7978845608f;
+    float x3 = x * x * x;
+    float inner = SQRT_2_PI * (x + 0.044715f * x3);
+    float tanh_val = tanhf(inner);
+    float sech2 = 1.0f - tanh_val * tanh_val;
+    float inner_grad = SQRT_2_PI * (1.0f + 3.0f * 0.044715f * x * x);
+    return 0.5f * (1.0f + tanh_val) + 0.5f * x * sech2 * inner_grad;
+}
+
+/* Helper: layer norm backward */
+static void layer_norm_backward(
+    const float *d_out,     /* [seq_len, dim] */
+    const float *x_in,      /* [seq_len, dim] input to LN */
+    const float *gamma,     /* [dim] */
+    float eps,
+    int seq_len, int dim,
+    float *d_x,             /* [seq_len, dim] grad w.r.t. input */
+    float *d_gamma,         /* [dim] grad w.r.t. gamma */
+    float *d_beta           /* [dim] grad w.r.t. beta  */
+) {
+    for (int i = 0; i < seq_len; i++) {
+        const float *x_row = x_in + i * dim;
+        const float *dout_row = d_out + i * dim;
+        float *dx_row = d_x + i * dim;
+
+        /* Recompute mean and var */
+        float mean = 0.0f;
+        for (int j = 0; j < dim; j++) mean += x_row[j];
+        mean /= (float)dim;
+
+        float var = 0.0f;
+        for (int j = 0; j < dim; j++) {
+            float d = x_row[j] - mean;
+            var += d * d;
+        }
+        var /= (float)dim;
+
+        float inv_std = 1.0f / sqrtf(var + eps);
+
+        /* Compute normalized values */
+        float *x_hat = (float *)malloc(dim * sizeof(float));
+        for (int j = 0; j < dim; j++) {
+            x_hat[j] = (x_row[j] - mean) * inv_std;
+        }
+
+        /* d_gamma, d_beta accumulate */
+        for (int j = 0; j < dim; j++) {
+            d_gamma[j] += dout_row[j] * x_hat[j];
+            d_beta[j]  += dout_row[j];
+        }
+
+        /* d_x: use the full layer norm gradient formula */
+        float *d_xhat = (float *)malloc(dim * sizeof(float));
+        for (int j = 0; j < dim; j++) {
+            d_xhat[j] = dout_row[j] * gamma[j];
+        }
+
+        /* sum(d_xhat) and sum(d_xhat * x_hat) */
+        float sum_dxhat = 0.0f, sum_dxhat_xhat = 0.0f;
+        for (int j = 0; j < dim; j++) {
+            sum_dxhat += d_xhat[j];
+            sum_dxhat_xhat += d_xhat[j] * x_hat[j];
+        }
+
+        float inv_dim = 1.0f / (float)dim;
+        for (int j = 0; j < dim; j++) {
+            dx_row[j] = inv_std * (d_xhat[j]
+                        - inv_dim * sum_dxhat
+                        - inv_dim * x_hat[j] * sum_dxhat_xhat);
+        }
+
+        free(x_hat);
+        free(d_xhat);
+    }
+}
+
+/* Helper: linear backward
+ *  forward: out = x @ W + b
+ *  backward: d_x = d_out @ W^T,  d_W = x^T @ d_out,  d_b = sum(d_out)
+ */
+static void linear_backward(
+    const float *d_out,   /* [seq_len, out_dim] */
+    const float *x_in,    /* [seq_len, in_dim]  */
+    const float *W,       /* [in_dim, out_dim]  */
+    int seq_len, int in_dim, int out_dim,
+    float *d_x,           /* [seq_len, in_dim]  */
+    float *d_W,           /* [in_dim, out_dim]  */
+    float *d_b            /* [out_dim]           */
+) {
+    /* d_x = d_out @ W^T */
+    if (d_x) {
+        for (int i = 0; i < seq_len; i++) {
+            for (int j = 0; j < in_dim; j++) {
+                float sum = 0.0f;
+                for (int k = 0; k < out_dim; k++) {
+                    sum += d_out[i * out_dim + k] * W[j * out_dim + k];
+                }
+                d_x[i * in_dim + j] = sum;
+            }
+        }
+    }
+
+    /* d_W = x^T @ d_out  (accumulate) */
+    for (int j = 0; j < in_dim; j++) {
+        for (int k = 0; k < out_dim; k++) {
+            float sum = 0.0f;
+            for (int i = 0; i < seq_len; i++) {
+                sum += x_in[i * in_dim + j] * d_out[i * out_dim + k];
+            }
+            d_W[j * out_dim + k] += sum;
+        }
+    }
+
+    /* d_b = sum over seq_len of d_out  (accumulate) */
+    for (int k = 0; k < out_dim; k++) {
+        float sum = 0.0f;
+        for (int i = 0; i < seq_len; i++) {
+            sum += d_out[i * out_dim + k];
+        }
+        d_b[k] += sum;
+    }
+}
+
+void nc_backward(NCModel *model, NCModelGrads *grads,
+                 const int *tokens, int seq_len) {
+    int dim = model->dim;
+    int vocab_size = model->vocab_size;
+
+    if (seq_len > model->max_seq) seq_len = model->max_seq;
+
+    /* ── Forward pass with activation caching ────────── */
+
+    /* We need to re-run forward and store intermediate results */
+    int n_layers = model->n_layers;
+
+    /* Embedding: x[0] = token_emb + pos_emb */
+    float **layer_inputs = (float **)malloc((n_layers + 1) * sizeof(float *));
+    for (int i = 0; i <= n_layers; i++) {
+        layer_inputs[i] = (float *)calloc(seq_len * dim, sizeof(float));
+    }
+
+    /* Compute embedding */
+    for (int i = 0; i < seq_len; i++) {
+        int tok = tokens[i];
+        if (tok < 0) tok = 0;
+        if (tok >= vocab_size) tok = vocab_size - 1;
+        for (int j = 0; j < dim; j++) {
+            layer_inputs[0][i * dim + j] =
+                model->token_emb.data[tok * dim + j]
+                + model->pos_emb.data[i * dim + j];
+        }
+    }
+
+    /* Forward through transformer blocks, storing inputs */
+    for (int layer = 0; layer < n_layers; layer++) {
+        int shape2d[2] = {seq_len, dim};
+        NCTensor x_tensor;
+        x_tensor.data = layer_inputs[layer];
+        x_tensor.shape = shape2d;
+        x_tensor.ndim = 2;
+        x_tensor.size = seq_len * dim;
+
+        NCTensor out_tensor;
+        out_tensor.data = layer_inputs[layer + 1];
+        out_tensor.shape = shape2d;
+        out_tensor.ndim = 2;
+        out_tensor.size = seq_len * dim;
+
+        ncm_block_forward(&model->layers[layer], &x_tensor, seq_len, &out_tensor);
+    }
+
+    /* Final layer norm */
+    float *normed = (float *)calloc(seq_len * dim, sizeof(float));
+    {
+        int shape2d[2] = {seq_len, dim};
+        NCTensor in_t = {layer_inputs[n_layers], shape2d, 2, seq_len * dim};
+        NCTensor gamma_t = model->final_ln.gamma;
+        NCTensor beta_t = model->final_ln.beta;
+        NCTensor out_t = {normed, shape2d, 2, seq_len * dim};
+        ncm_tensor_layer_norm(&in_t, &gamma_t, &beta_t, model->final_ln.eps, &out_t);
+    }
+
+    /* LM head: logits = normed @ lm_head.W + lm_head.b */
+    float *logits = (float *)calloc(seq_len * vocab_size, sizeof(float));
+    {
+        int shape_in[2] = {seq_len, dim};
+        int shape_out[2] = {seq_len, vocab_size};
+        NCTensor in_t = {normed, shape_in, 2, seq_len * dim};
+        NCTensor out_t = {logits, shape_out, 2, seq_len * vocab_size};
+        ncm_linear_forward(&model->lm_head, &in_t, &out_t);
+    }
+
+    /* ── Backward pass ───────────────────────────────── */
+
+    /* d_logits: gradient of cross-entropy loss w.r.t. logits */
+    float *d_logits = (float *)calloc(seq_len * vocab_size, sizeof(float));
+    float inv_count = 1.0f / (float)(seq_len - 1);
+
+    for (int i = 0; i < seq_len - 1; i++) {
+        float *row = logits + i * vocab_size;
+        float *d_row = d_logits + i * vocab_size;
+        int target = tokens[i + 1];
+
+        if (target < 0 || target >= vocab_size) continue;
+
+        /* softmax(logits) */
+        float probs[vocab_size]; /* VLA — ok for vocab_size ~2048 */
+        memcpy(probs, row, vocab_size * sizeof(float));
+        softmax_row(probs, vocab_size);
+
+        /* d_logits = probs - one_hot(target) */
+        for (int j = 0; j < vocab_size; j++) {
+            d_row[j] = (probs[j] - (j == target ? 1.0f : 0.0f)) * inv_count;
+        }
+    }
+
+    /* Backward through LM head */
+    float *d_normed = (float *)calloc(seq_len * dim, sizeof(float));
+    linear_backward(d_logits, normed,
+                    model->lm_head.weights.data,
+                    seq_len, dim, vocab_size,
+                    d_normed,
+                    grads->lm_head_w.grad,
+                    grads->lm_head_b.grad);
+
+    /* Backward through final layer norm */
+    float *d_block_out = (float *)calloc(seq_len * dim, sizeof(float));
+    layer_norm_backward(d_normed, layer_inputs[n_layers],
+                        model->final_ln.gamma.data,
+                        model->final_ln.eps,
+                        seq_len, dim,
+                        d_block_out,
+                        grads->final_ln_gamma.grad,
+                        grads->final_ln_beta.grad);
+
+    /* Backward through transformer blocks (reverse order) */
+    float *d_layer_in = d_block_out;  /* reuse pointer, chain gradients */
+
+    for (int layer = n_layers - 1; layer >= 0; layer--) {
+        const NCTransformerBlock *block = &model->layers[layer];
+        float *x_in = layer_inputs[layer];
+
+        /* The block does:
+         *   normed1 = LN1(x)
+         *   attn_out = Attention(normed1) + x
+         *   normed2 = LN2(attn_out)
+         *   out = FFN(normed2) + attn_out
+         *
+         * Backward:
+         *   d_attn_out = d_out (residual) + d_ffn_input
+         *   d_x = d_attn_out (residual) + d_attn_input
+         */
+
+        /* Recompute intermediate activations for this block */
+        float *normed1 = (float *)calloc(seq_len * dim, sizeof(float));
+        float *attn_out_val = (float *)calloc(seq_len * dim, sizeof(float));
+        float *residual1 = (float *)calloc(seq_len * dim, sizeof(float));
+        float *normed2 = (float *)calloc(seq_len * dim, sizeof(float));
+        float *ffn_hidden = (float *)calloc(seq_len * block->ffn.hidden_dim, sizeof(float));
+        float *ffn_out_val = (float *)calloc(seq_len * dim, sizeof(float));
+
+        /* Forward: LN1 */
+        {
+            int s2[2] = {seq_len, dim};
+            NCTensor xt = {x_in, s2, 2, seq_len * dim};
+            NCTensor ot = {normed1, s2, 2, seq_len * dim};
+            ncm_tensor_layer_norm(&xt, &block->ln1.gamma, &block->ln1.beta,
+                                 block->ln1.eps, &ot);
+        }
+
+        /* Forward: Attention */
+        {
+            int s2[2] = {seq_len, dim};
+            NCTensor nt = {normed1, s2, 2, seq_len * dim};
+            NCTensor at = {attn_out_val, s2, 2, seq_len * dim};
+            ncm_attention_forward(&block->attn, &nt, seq_len, &at);
+        }
+
+        /* Forward: Residual1 = attn_out + x */
+        for (int i = 0; i < seq_len * dim; i++) {
+            residual1[i] = attn_out_val[i] + x_in[i];
+        }
+
+        /* Forward: LN2 */
+        {
+            int s2[2] = {seq_len, dim};
+            NCTensor rt = {residual1, s2, 2, seq_len * dim};
+            NCTensor ot = {normed2, s2, 2, seq_len * dim};
+            ncm_tensor_layer_norm(&rt, &block->ln2.gamma, &block->ln2.beta,
+                                 block->ln2.eps, &ot);
+        }
+
+        /* Forward: FFN up projection (needed for backward) */
+        for (int i = 0; i < seq_len; i++) {
+            for (int h = 0; h < block->ffn.hidden_dim; h++) {
+                float sum = block->ffn.up_proj.bias.data[h];
+                for (int d = 0; d < dim; d++) {
+                    sum += normed2[i * dim + d]
+                         * block->ffn.up_proj.weights.data[d * block->ffn.hidden_dim + h];
+                }
+                ffn_hidden[i * block->ffn.hidden_dim + h] = sum;
+            }
+        }
+
+        /* Apply GELU to hidden (store pre-gelu for backward) */
+        float *ffn_pre_gelu = (float *)malloc(seq_len * block->ffn.hidden_dim * sizeof(float));
+        memcpy(ffn_pre_gelu, ffn_hidden, seq_len * block->ffn.hidden_dim * sizeof(float));
+        {
+            int hs[2] = {seq_len, block->ffn.hidden_dim};
+            NCTensor ht = {ffn_hidden, hs, 2, seq_len * block->ffn.hidden_dim};
+            ncm_tensor_gelu(&ht, &ht);
+        }
+
+        /* ── Backward through this block ── */
+
+        /* d_out is d_layer_in for this layer */
+        float *d_out = d_layer_in;
+
+        /* Residual: d_ffn_out = d_out, d_residual1_from_res = d_out */
+        float *d_ffn_out = (float *)calloc(seq_len * dim, sizeof(float));
+        memcpy(d_ffn_out, d_out, seq_len * dim * sizeof(float));
+
+        /* Backward through FFN down projection */
+        float *d_ffn_gelu = (float *)calloc(seq_len * block->ffn.hidden_dim, sizeof(float));
+        linear_backward(d_ffn_out, ffn_hidden,
+                        block->ffn.down_proj.weights.data,
+                        seq_len, block->ffn.hidden_dim, dim,
+                        d_ffn_gelu,
+                        grads->layer_grads[layer].down_w.grad,
+                        grads->layer_grads[layer].down_b.grad);
+
+        /* Backward through GELU */
+        float *d_ffn_pre = (float *)calloc(seq_len * block->ffn.hidden_dim, sizeof(float));
+        for (int i = 0; i < seq_len * block->ffn.hidden_dim; i++) {
+            d_ffn_pre[i] = d_ffn_gelu[i] * gelu_grad(ffn_pre_gelu[i]);
+        }
+
+        /* Backward through FFN up projection */
+        float *d_normed2 = (float *)calloc(seq_len * dim, sizeof(float));
+        linear_backward(d_ffn_pre, normed2,
+                        block->ffn.up_proj.weights.data,
+                        seq_len, dim, block->ffn.hidden_dim,
+                        d_normed2,
+                        grads->layer_grads[layer].up_w.grad,
+                        grads->layer_grads[layer].up_b.grad);
+
+        /* Backward through LN2 */
+        float *d_residual1 = (float *)calloc(seq_len * dim, sizeof(float));
+        layer_norm_backward(d_normed2, residual1,
+                            block->ln2.gamma.data, block->ln2.eps,
+                            seq_len, dim,
+                            d_residual1,
+                            grads->layer_grads[layer].ln2_gamma.grad,
+                            grads->layer_grads[layer].ln2_beta.grad);
+
+        /* Add residual gradient from d_out */
+        for (int i = 0; i < seq_len * dim; i++) {
+            d_residual1[i] += d_out[i];
+        }
+
+        /* Backward through attention output projection
+         * For simplicity, we approximate the attention backward by
+         * computing gradients through the output projection and
+         * distributing to Q, K, V projection weights. */
+
+        /* Backward through o_proj: d_attn_concat -> d_normed1 (simplified) */
+        /* The full attention backward is complex; we compute an approximation
+         * that captures the dominant gradient signal. */
+
+        /* d_attn_out = d_residual1 (from residual connection) */
+        float *d_attn_out = (float *)calloc(seq_len * dim, sizeof(float));
+        memcpy(d_attn_out, d_residual1, seq_len * dim * sizeof(float));
+
+        /* Backward through o_proj: out = attn_concat @ W_o + b_o */
+        /* We need the attn_concat value. For the approximation, we use normed1
+         * as a proxy (since attn_concat is a function of normed1). */
+        float *d_attn_concat = (float *)calloc(seq_len * dim, sizeof(float));
+        linear_backward(d_attn_out, normed1,  /* approximate with input */
+                        block->attn.o_proj.weights.data,
+                        seq_len, dim, dim,
+                        d_attn_concat,
+                        grads->layer_grads[layer].o_w.grad,
+                        grads->layer_grads[layer].o_b.grad);
+
+        /* Approximate Q, K, V projection gradients.
+         * Full attention backward requires storing all attention weights
+         * and is O(seq_len^2 * dim). For memory efficiency, we use
+         * the signal from the output projection gradients. */
+        float *d_normed1 = (float *)calloc(seq_len * dim, sizeof(float));
+
+        /* d through q_proj */
+        float *d_q_tmp = (float *)calloc(seq_len * dim, sizeof(float));
+        linear_backward(d_attn_concat, normed1,
+                        block->attn.q_proj.weights.data,
+                        seq_len, dim, dim,
+                        d_q_tmp,
+                        grads->layer_grads[layer].q_w.grad,
+                        grads->layer_grads[layer].q_b.grad);
+        for (int i = 0; i < seq_len * dim; i++) d_normed1[i] += d_q_tmp[i];
+
+        /* d through k_proj */
+        float *d_k_tmp = (float *)calloc(seq_len * dim, sizeof(float));
+        linear_backward(d_attn_concat, normed1,
+                        block->attn.k_proj.weights.data,
+                        seq_len, dim, dim,
+                        d_k_tmp,
+                        grads->layer_grads[layer].k_w.grad,
+                        grads->layer_grads[layer].k_b.grad);
+        for (int i = 0; i < seq_len * dim; i++) d_normed1[i] += d_k_tmp[i];
+
+        /* d through v_proj */
+        float *d_v_tmp = (float *)calloc(seq_len * dim, sizeof(float));
+        linear_backward(d_attn_concat, normed1,
+                        block->attn.v_proj.weights.data,
+                        seq_len, dim, dim,
+                        d_v_tmp,
+                        grads->layer_grads[layer].v_w.grad,
+                        grads->layer_grads[layer].v_b.grad);
+        for (int i = 0; i < seq_len * dim; i++) d_normed1[i] += d_v_tmp[i];
+
+        /* Backward through LN1 */
+        float *d_x_layer = (float *)calloc(seq_len * dim, sizeof(float));
+        layer_norm_backward(d_normed1, x_in,
+                            block->ln1.gamma.data, block->ln1.eps,
+                            seq_len, dim,
+                            d_x_layer,
+                            grads->layer_grads[layer].ln1_gamma.grad,
+                            grads->layer_grads[layer].ln1_beta.grad);
+
+        /* Add residual from d_residual1 */
+        for (int i = 0; i < seq_len * dim; i++) {
+            d_x_layer[i] += d_residual1[i];
+        }
+
+        /* If this is not the first layer, propagate to previous layer */
+        if (layer > 0) {
+            /* d_layer_in now points to gradients for the input of this layer */
+            memcpy(d_layer_in, d_x_layer, seq_len * dim * sizeof(float));
+        } else {
+            /* Accumulate embedding gradients */
+            for (int i = 0; i < seq_len; i++) {
+                int tok = tokens[i];
+                if (tok < 0 || tok >= model->vocab_size) continue;
+                for (int j = 0; j < dim; j++) {
+                    grads->token_emb_grad.grad[tok * dim + j] += d_x_layer[i * dim + j];
+                    grads->pos_emb_grad.grad[i * dim + j] += d_x_layer[i * dim + j];
+                }
+            }
+        }
+
+        /* Cleanup this layer's temporaries */
+        free(normed1);
+        free(attn_out_val);
+        free(residual1);
+        free(normed2);
+        free(ffn_hidden);
+        free(ffn_out_val);
+        free(ffn_pre_gelu);
+        free(d_ffn_out);
+        free(d_ffn_gelu);
+        free(d_ffn_pre);
+        free(d_normed2);
+        free(d_residual1);
+        free(d_attn_out);
+        free(d_attn_concat);
+        free(d_normed1);
+        free(d_q_tmp);
+        free(d_k_tmp);
+        free(d_v_tmp);
+        free(d_x_layer);
+    }
+
+    /* Cleanup */
+    for (int i = 0; i <= n_layers; i++) {
+        free(layer_inputs[i]);
+    }
+    free(layer_inputs);
+    free(normed);
+    free(logits);
+    free(d_logits);
+    free(d_normed);
+    free(d_block_out);
+}
+
+/* ═══════════════════════════════════════════════════════════
+ *  Gradient clipping (by global norm)
+ *
+ *  If ||grad|| > max_norm, scale all gradients by max_norm / ||grad||
+ * ═══════════════════════════════════════════════════════════ */
+
+static void accumulate_norm(const float *grad, int size, float *norm_sq) {
+    for (int i = 0; i < size; i++) {
+        *norm_sq += grad[i] * grad[i];
+    }
+}
+
+static void scale_grad(float *grad, int size, float scale) {
+    for (int i = 0; i < size; i++) {
+        grad[i] *= scale;
+    }
+}
+
+void nc_grad_clip(NCModelGrads *grads, float max_norm) {
+    float norm_sq = 0.0f;
+
+    /* Compute global norm */
+    accumulate_norm(grads->token_emb_grad.grad, grads->token_emb_grad.size, &norm_sq);
+    accumulate_norm(grads->pos_emb_grad.grad, grads->pos_emb_grad.size, &norm_sq);
+
+    for (int i = 0; i < grads->n_layers; i++) {
+        accumulate_norm(grads->layer_grads[i].q_w.grad, grads->layer_grads[i].q_w.size, &norm_sq);
+        accumulate_norm(grads->layer_grads[i].q_b.grad, grads->layer_grads[i].q_b.size, &norm_sq);
+        accumulate_norm(grads->layer_grads[i].k_w.grad, grads->layer_grads[i].k_w.size, &norm_sq);
+        accumulate_norm(grads->layer_grads[i].k_b.grad, grads->layer_grads[i].k_b.size, &norm_sq);
+        accumulate_norm(grads->layer_grads[i].v_w.grad, grads->layer_grads[i].v_w.size, &norm_sq);
+        accumulate_norm(grads->layer_grads[i].v_b.grad, grads->layer_grads[i].v_b.size, &norm_sq);
+        accumulate_norm(grads->layer_grads[i].o_w.grad, grads->layer_grads[i].o_w.size, &norm_sq);
+        accumulate_norm(grads->layer_grads[i].o_b.grad, grads->layer_grads[i].o_b.size, &norm_sq);
+        accumulate_norm(grads->layer_grads[i].up_w.grad, grads->layer_grads[i].up_w.size, &norm_sq);
+        accumulate_norm(grads->layer_grads[i].up_b.grad, grads->layer_grads[i].up_b.size, &norm_sq);
+        accumulate_norm(grads->layer_grads[i].down_w.grad, grads->layer_grads[i].down_w.size, &norm_sq);
+        accumulate_norm(grads->layer_grads[i].down_b.grad, grads->layer_grads[i].down_b.size, &norm_sq);
+        accumulate_norm(grads->layer_grads[i].ln1_gamma.grad, grads->layer_grads[i].ln1_gamma.size, &norm_sq);
+        accumulate_norm(grads->layer_grads[i].ln1_beta.grad, grads->layer_grads[i].ln1_beta.size, &norm_sq);
+        accumulate_norm(grads->layer_grads[i].ln2_gamma.grad, grads->layer_grads[i].ln2_gamma.size, &norm_sq);
+        accumulate_norm(grads->layer_grads[i].ln2_beta.grad, grads->layer_grads[i].ln2_beta.size, &norm_sq);
+    }
+
+    accumulate_norm(grads->final_ln_gamma.grad, grads->final_ln_gamma.size, &norm_sq);
+    accumulate_norm(grads->final_ln_beta.grad, grads->final_ln_beta.size, &norm_sq);
+    accumulate_norm(grads->lm_head_w.grad, grads->lm_head_w.size, &norm_sq);
+    accumulate_norm(grads->lm_head_b.grad, grads->lm_head_b.size, &norm_sq);
+
+    float norm = sqrtf(norm_sq);
+
+    if (norm > max_norm) {
+        float clip_scale = max_norm / (norm + 1e-9f);
+
+        scale_grad(grads->token_emb_grad.grad, grads->token_emb_grad.size, clip_scale);
+        scale_grad(grads->pos_emb_grad.grad, grads->pos_emb_grad.size, clip_scale);
+
+        for (int i = 0; i < grads->n_layers; i++) {
+            scale_grad(grads->layer_grads[i].q_w.grad, grads->layer_grads[i].q_w.size, clip_scale);
+            scale_grad(grads->layer_grads[i].q_b.grad, grads->layer_grads[i].q_b.size, clip_scale);
+            scale_grad(grads->layer_grads[i].k_w.grad, grads->layer_grads[i].k_w.size, clip_scale);
+            scale_grad(grads->layer_grads[i].k_b.grad, grads->layer_grads[i].k_b.size, clip_scale);
+            scale_grad(grads->layer_grads[i].v_w.grad, grads->layer_grads[i].v_w.size, clip_scale);
+            scale_grad(grads->layer_grads[i].v_b.grad, grads->layer_grads[i].v_b.size, clip_scale);
+            scale_grad(grads->layer_grads[i].o_w.grad, grads->layer_grads[i].o_w.size, clip_scale);
+            scale_grad(grads->layer_grads[i].o_b.grad, grads->layer_grads[i].o_b.size, clip_scale);
+            scale_grad(grads->layer_grads[i].up_w.grad, grads->layer_grads[i].up_w.size, clip_scale);
+            scale_grad(grads->layer_grads[i].up_b.grad, grads->layer_grads[i].up_b.size, clip_scale);
+            scale_grad(grads->layer_grads[i].down_w.grad, grads->layer_grads[i].down_w.size, clip_scale);
+            scale_grad(grads->layer_grads[i].down_b.grad, grads->layer_grads[i].down_b.size, clip_scale);
+            scale_grad(grads->layer_grads[i].ln1_gamma.grad, grads->layer_grads[i].ln1_gamma.size, clip_scale);
+            scale_grad(grads->layer_grads[i].ln1_beta.grad, grads->layer_grads[i].ln1_beta.size, clip_scale);
+            scale_grad(grads->layer_grads[i].ln2_gamma.grad, grads->layer_grads[i].ln2_gamma.size, clip_scale);
+            scale_grad(grads->layer_grads[i].ln2_beta.grad, grads->layer_grads[i].ln2_beta.size, clip_scale);
+        }
+
+        scale_grad(grads->final_ln_gamma.grad, grads->final_ln_gamma.size, clip_scale);
+        scale_grad(grads->final_ln_beta.grad, grads->final_ln_beta.size, clip_scale);
+        scale_grad(grads->lm_head_w.grad, grads->lm_head_w.size, clip_scale);
+        scale_grad(grads->lm_head_b.grad, grads->lm_head_b.size, clip_scale);
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════
+ *  Adam optimizer
+ *
+ *  m = beta1 * m + (1 - beta1) * grad
+ *  v = beta2 * v + (1 - beta2) * grad^2
+ *  m_hat = m / (1 - beta1^step)
+ *  v_hat = v / (1 - beta2^step)
+ *  param -= lr * m_hat / (sqrt(v_hat) + eps)
+ * ═══════════════════════════════════════════════════════════ */
+
+/* Count total parameters in model */
+static int count_params(const NCModel *model) {
+    int total = 0;
+
+    total += model->token_emb.size;
+    total += model->pos_emb.size;
+
+    for (int i = 0; i < model->n_layers; i++) {
+        const NCTransformerBlock *b = &model->layers[i];
+        total += b->attn.q_proj.weights.size + b->attn.q_proj.bias.size;
+        total += b->attn.k_proj.weights.size + b->attn.k_proj.bias.size;
+        total += b->attn.v_proj.weights.size + b->attn.v_proj.bias.size;
+        total += b->attn.o_proj.weights.size + b->attn.o_proj.bias.size;
+        total += b->ffn.up_proj.weights.size + b->ffn.up_proj.bias.size;
+        total += b->ffn.down_proj.weights.size + b->ffn.down_proj.bias.size;
+        total += b->ln1.gamma.size + b->ln1.beta.size;
+        total += b->ln2.gamma.size + b->ln2.beta.size;
+    }
+
+    total += model->final_ln.gamma.size + model->final_ln.beta.size;
+    total += model->lm_head.weights.size + model->lm_head.bias.size;
+
+    return total;
+}
+
+NCAdam *nc_adam_create(const NCModel *model) {
+    NCAdam *adam = (NCAdam *)calloc(1, sizeof(NCAdam));
+    if (!adam) return NULL;
+
+    adam->size = count_params(model);
+    adam->m = (float *)calloc(adam->size, sizeof(float));
+    adam->v = (float *)calloc(adam->size, sizeof(float));
+    adam->beta1 = 0.9f;
+    adam->beta2 = 0.999f;
+    adam->eps = 1e-8f;
+    adam->step = 0;
+
+    if (!adam->m || !adam->v) {
+        nc_adam_free(adam);
+        return NULL;
+    }
+
+    return adam;
+}
+
+/* Apply Adam update to a single parameter tensor */
+static void adam_update_param(float *param, const float *grad, int size,
+                              float *m, float *v, float lr,
+                              float beta1, float beta2, float eps,
+                              float bc1, float bc2) {
+    for (int i = 0; i < size; i++) {
+        m[i] = beta1 * m[i] + (1.0f - beta1) * grad[i];
+        v[i] = beta2 * v[i] + (1.0f - beta2) * grad[i] * grad[i];
+
+        float m_hat = m[i] / bc1;
+        float v_hat = v[i] / bc2;
+
+        param[i] -= lr * m_hat / (sqrtf(v_hat) + eps);
+    }
+}
+
+void nc_adam_step(NCAdam *adam, NCModel *model,
+                  NCModelGrads *grads, float lr) {
+    adam->step++;
+
+    float bc1 = 1.0f - powf(adam->beta1, (float)adam->step);
+    float bc2 = 1.0f - powf(adam->beta2, (float)adam->step);
+
+    int offset = 0;
+
+    /* Token embeddings */
+    adam_update_param(model->token_emb.data, grads->token_emb_grad.grad,
+                      model->token_emb.size,
+                      adam->m + offset, adam->v + offset,
+                      lr, adam->beta1, adam->beta2, adam->eps, bc1, bc2);
+    offset += model->token_emb.size;
+
+    /* Position embeddings */
+    adam_update_param(model->pos_emb.data, grads->pos_emb_grad.grad,
+                      model->pos_emb.size,
+                      adam->m + offset, adam->v + offset,
+                      lr, adam->beta1, adam->beta2, adam->eps, bc1, bc2);
+    offset += model->pos_emb.size;
+
+    /* Layers */
+    for (int l = 0; l < model->n_layers; l++) {
+        NCTransformerBlock *b = &model->layers[l];
+
+        #define ADAM_UPD(param_tensor, grad_field) do { \
+            adam_update_param((param_tensor).data, grads->layer_grads[l].grad_field.grad, \
+                              (param_tensor).size, \
+                              adam->m + offset, adam->v + offset, \
+                              lr, adam->beta1, adam->beta2, adam->eps, bc1, bc2); \
+            offset += (param_tensor).size; \
+        } while(0)
+
+        ADAM_UPD(b->attn.q_proj.weights, q_w);
+        ADAM_UPD(b->attn.q_proj.bias, q_b);
+        ADAM_UPD(b->attn.k_proj.weights, k_w);
+        ADAM_UPD(b->attn.k_proj.bias, k_b);
+        ADAM_UPD(b->attn.v_proj.weights, v_w);
+        ADAM_UPD(b->attn.v_proj.bias, v_b);
+        ADAM_UPD(b->attn.o_proj.weights, o_w);
+        ADAM_UPD(b->attn.o_proj.bias, o_b);
+        ADAM_UPD(b->ffn.up_proj.weights, up_w);
+        ADAM_UPD(b->ffn.up_proj.bias, up_b);
+        ADAM_UPD(b->ffn.down_proj.weights, down_w);
+        ADAM_UPD(b->ffn.down_proj.bias, down_b);
+        ADAM_UPD(b->ln1.gamma, ln1_gamma);
+        ADAM_UPD(b->ln1.beta, ln1_beta);
+        ADAM_UPD(b->ln2.gamma, ln2_gamma);
+        ADAM_UPD(b->ln2.beta, ln2_beta);
+
+        #undef ADAM_UPD
+    }
+
+    /* Final LN */
+    adam_update_param(model->final_ln.gamma.data, grads->final_ln_gamma.grad,
+                      model->final_ln.gamma.size,
+                      adam->m + offset, adam->v + offset,
+                      lr, adam->beta1, adam->beta2, adam->eps, bc1, bc2);
+    offset += model->final_ln.gamma.size;
+
+    adam_update_param(model->final_ln.beta.data, grads->final_ln_beta.grad,
+                      model->final_ln.beta.size,
+                      adam->m + offset, adam->v + offset,
+                      lr, adam->beta1, adam->beta2, adam->eps, bc1, bc2);
+    offset += model->final_ln.beta.size;
+
+    /* LM head */
+    adam_update_param(model->lm_head.weights.data, grads->lm_head_w.grad,
+                      model->lm_head.weights.size,
+                      adam->m + offset, adam->v + offset,
+                      lr, adam->beta1, adam->beta2, adam->eps, bc1, bc2);
+    offset += model->lm_head.weights.size;
+
+    adam_update_param(model->lm_head.bias.data, grads->lm_head_b.grad,
+                      model->lm_head.bias.size,
+                      adam->m + offset, adam->v + offset,
+                      lr, adam->beta1, adam->beta2, adam->eps, bc1, bc2);
+}
+
+void nc_adam_free(NCAdam *adam) {
+    if (!adam) return;
+    free(adam->m);
+    free(adam->v);
+    free(adam);
+}
+
+/* ═══════════════════════════════════════════════════════════
+ *  Single training step
+ *
+ *  forward -> loss -> backward -> clip -> adam update
+ *  Returns the loss value.
+ * ═══════════════════════════════════════════════════════════ */
+
+float nc_train_step(NCModel *model, NCAdam *adam, NCModelGrads *grads,
+                    const int *tokens, int seq_len, float lr) {
+    int vocab_size = model->vocab_size;
+
+    /* Forward pass */
+    float *logits = (float *)malloc(seq_len * vocab_size * sizeof(float));
+    if (!logits) return -1.0f;
+
+    nc_model_forward(model, tokens, seq_len, logits);
+
+    /* Compute loss */
+    float loss = nc_loss_cross_entropy(logits, tokens, seq_len, vocab_size);
+    free(logits);
+
+    /* Zero gradients */
+    nc_grads_zero(grads);
+
+    /* Backward pass */
+    nc_backward(model, grads, tokens, seq_len);
+
+    /* Gradient clipping */
+    nc_grad_clip(grads, 1.0f);
+
+    /* Adam update */
+    nc_adam_step(adam, model, grads, lr);
+
+    return loss;
+}
+
+/* ═══════════════════════════════════════════════════════════
+ *  Learning rate schedule: warmup + cosine decay
+ * ═══════════════════════════════════════════════════════════ */
+
+static float lr_schedule(float base_lr, int step, float warmup_steps,
+                         float total_steps) {
+    float s = (float)step;
+    if (s < warmup_steps) {
+        /* Linear warmup */
+        return base_lr * (s / warmup_steps);
+    } else {
+        /* Cosine decay */
+        float progress = (s - warmup_steps) / (total_steps - warmup_steps);
+        if (progress > 1.0f) progress = 1.0f;
+        return base_lr * 0.5f * (1.0f + cosf(3.14159265f * progress));
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════
+ *  Full training loop
+ *
+ *  Reads NC code from data files, tokenizes, and trains the
+ *  model with learning rate warmup + cosine decay.
+ * ═══════════════════════════════════════════════════════════ */
+
+/* Helper: read entire file into string */
+static char *read_file(const char *path) {
+    FILE *f = fopen(path, "r");
+    if (!f) return NULL;
+
+    fseek(f, 0, SEEK_END);
+    long len = ftell(f);
+    fseek(f, 0, SEEK_SET);
+
+    if (len <= 0) { fclose(f); return NULL; }
+    if (len > 10 * 1024 * 1024) len = 10 * 1024 * 1024; /* cap at 10MB */
+
+    char *buf = (char *)malloc(len + 1);
+    if (!buf) { fclose(f); return NULL; }
+
+    size_t rd = fread(buf, 1, len, f);
+    buf[rd] = '\0';
+    fclose(f);
+    return buf;
+}
+
+void nc_train(NCModel *model, NCTokenizer *tokenizer,
+              const char **data_files, int n_files,
+              NCTrainConfig config) {
+    fprintf(stderr, "[nc_train] Starting training...\n");
+    fprintf(stderr, "[nc_train] Model: dim=%d, layers=%d, vocab=%d\n",
+           model->dim, model->n_layers, model->vocab_size);
+    fprintf(stderr, "[nc_train] Config: lr=%.4f, batch=%d, steps=%.0f\n",
+           config.lr, config.batch_size, config.total_steps);
+    fflush(stderr);
+
+    /* Create optimizer and gradients */
+    NCAdam *adam = nc_adam_create(model);
+    NCModelGrads *grads = nc_grads_create(model);
+
+    if (!adam || !grads) {
+        fprintf(stderr, "[nc_train] Error: failed to allocate optimizer/gradients\n");
+        nc_adam_free(adam);
+        nc_grads_free(grads);
+        return;
+    }
+
+    /* Load and tokenize all data files */
+    int max_seq = model->max_seq;
+    int **all_sequences = NULL;
+    int *seq_lengths = NULL;
+    int n_sequences = 0;
+    int seq_capacity = 1024;
+
+    all_sequences = (int **)malloc(seq_capacity * sizeof(int *));
+    seq_lengths = (int *)malloc(seq_capacity * sizeof(int));
+
+    for (int fi = 0; fi < n_files; fi++) {
+        char *content = read_file(data_files[fi]);
+        if (!content) {
+            fprintf(stderr, "[nc_train] Warning: cannot read '%s'\n", data_files[fi]);
+            continue;
+        }
+
+        long content_len = (long)strlen(content);
+        fprintf(stderr, "[nc_train] Processing file %d/%d (%ld bytes)...\n",
+                fi + 1, n_files, content_len);
+        fflush(stderr);
+
+        /* Split content by double newlines (each example separated) */
+        char *ptr = content;
+        int file_seqs = 0;
+        while (*ptr) {
+            /* Find next example boundary */
+            char *end = strstr(ptr, "\n\n");
+            if (!end) end = ptr + strlen(ptr);
+
+            int example_len = (int)(end - ptr);
+            if (example_len > 10 && example_len < 8192) {
+                /* Temporarily null-terminate */
+                char saved = *end;
+                *end = '\0';
+
+                /* Tokenize */
+                int *tokens = (int *)malloc(max_seq * sizeof(int));
+                int n_tokens = nc_tokenizer_encode(tokenizer, ptr, tokens, max_seq);
+
+                if (n_tokens > 2) {
+                    /* Grow array if needed */
+                    if (n_sequences >= seq_capacity) {
+                        seq_capacity *= 2;
+                        all_sequences = realloc(all_sequences,
+                                                seq_capacity * sizeof(int *));
+                        seq_lengths = realloc(seq_lengths,
+                                              seq_capacity * sizeof(int));
+                    }
+
+                    all_sequences[n_sequences] = tokens;
+                    seq_lengths[n_sequences] = n_tokens;
+                    n_sequences++;
+                    file_seqs++;
+                } else {
+                    free(tokens);
+                }
+
+                *end = saved;
+            }
+
+            if (*end == '\0') break;
+            ptr = end + 1;
+            /* Skip additional newlines */
+            while (*ptr == '\n') ptr++;
+        }
+
+        fprintf(stderr, "[nc_train] File %d: %d sequences extracted\n", fi + 1, file_seqs);
+        fflush(stderr);
+        free(content);
+    }
+
+    fprintf(stderr, "[nc_train] Loaded %d training sequences from %d files\n",
+           n_sequences, n_files);
+    fflush(stderr);
+
+    if (n_sequences == 0) {
+        fprintf(stderr, "[nc_train] Error: no training data found\n");
+        nc_adam_free(adam);
+        nc_grads_free(grads);
+        free(all_sequences);
+        free(seq_lengths);
+        return;
+    }
+
+    /* Training loop */
+    int total_steps = (int)config.total_steps;
+    float running_loss = 0.0f;
+    int log_interval = 50;
+
+    for (int step = 1; step <= total_steps; step++) {
+        /* Pick a random sequence */
+        int idx = rand() % n_sequences;
+        int *tokens = all_sequences[idx];
+        int seq_len = seq_lengths[idx];
+
+        /* Compute learning rate */
+        float lr = lr_schedule(config.lr, step, config.warmup_steps,
+                               config.total_steps);
+
+        /* Training step */
+        float loss = nc_train_step(model, adam, grads, tokens, seq_len, lr);
+
+        running_loss += loss;
+
+        /* Logging */
+        if (step % log_interval == 0) {
+            float avg_loss = running_loss / (float)log_interval;
+            fprintf(stderr, "[nc_train] Step %d/%d  loss=%.4f  lr=%.6f\n",
+                   step, total_steps, avg_loss, lr);
+            fflush(stderr);
+            running_loss = 0.0f;
+        }
+
+        /* Checkpointing */
+        if (config.checkpoint_dir && step % config.checkpoint_interval == 0) {
+            char ckpt_path[512];
+            snprintf(ckpt_path, sizeof(ckpt_path), "%s/nc_model_step_%d.bin",
+                     config.checkpoint_dir, step);
+            nc_model_save(model, ckpt_path);
+        }
+    }
+
+    fprintf(stderr, "[nc_train] Training complete.\n");
+    fflush(stderr);
+
+    /* Cleanup */
+    nc_adam_free(adam);
+    nc_grads_free(grads);
+    for (int i = 0; i < n_sequences; i++) {
+        free(all_sequences[i]);
+    }
+    free(all_sequences);
+    free(seq_lengths);
+}
+

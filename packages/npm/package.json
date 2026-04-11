@@ -1,0 +1,49 @@
+{
+  "name": "nc-lang",
+  "version": "1.0.0",
+  "description": "NC — The AI Programming Language. Build AI-powered APIs in plain English.",
+  "keywords": [
+    "nc",
+    "ai",
+    "programming-language",
+    "api",
+    "natural-language",
+    "notation-as-code",
+    "devheal"
+  ],
+  "author": "DevHeal Labs AI <hello@devheallabs.in>",
+  "license": "Apache-2.0",
+  "homepage": "https://nc.devheallabs.in",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/devheal-labs/nc-lang.git"
+  },
+  "bugs": {
+    "url": "https://github.com/devheal-labs/nc-lang/issues"
+  },
+  "bin": {
+    "nc": "./bin/nc-wrapper.js"
+  },
+  "scripts": {
+    "postinstall": "node scripts/install.js",
+    "test": "node bin/nc-wrapper.js version"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "os": [
+    "darwin",
+    "linux",
+    "win32"
+  ],
+  "cpu": [
+    "x64",
+    "arm64"
+  ],
+  "files": [
+    "bin/",
+    "scripts/",
+    "README.md",
+    "LICENSE"
+  ]
+}

@@ -1,0 +1,50 @@
+# NC Developer Environment — Interactive dev container
+#
+# This is how a developer uses NC daily:
+#   docker build -f Dockerfile.dev -t nc:dev .
+#   docker run -it -v $(pwd):/workspace nc:dev
+#
+# Inside the container, you get:
+#   nc version          — check version
+#   nc run file.nc      — run any .nc file
+#   nc validate file.nc — syntax check
+#   nc test             — run all tests
+#   nc serve file.nc    — start HTTP server
+#   nc repl             — interactive mode (Debian only)
+
+FROM debian:bookworm-slim AS builder
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc libc6-dev make libcurl4-openssl-dev libreadline-dev ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /build/nc
+COPY engine/src/       src/
+COPY engine/include/   include/
+COPY engine/Makefile   Makefile
+COPY engine/tests/     tests/
+
+RUN make clean && make LDFLAGS="-lm -lcurl -lpthread -ldl -lreadline" && \
+    make test-unit 2>&1 | tail -3
+
+FROM debian:bookworm-slim
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libcurl4 libreadline8 ca-certificates git \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=builder /build/nc/build/nc /usr/local/bin/nc
+
+RUN mkdir -p /nc/lib /nc/packages /workspace
+COPY lib/ /nc/lib/
+COPY examples/ /nc/examples/
+COPY tests/ /nc/tests/
+
+ENV NC_LIB_PATH=/nc/lib
+ENV PATH="/usr/local/bin:${PATH}"
+
+WORKDIR /workspace
+
+HEALTHCHECK --interval=30s --timeout=5s CMD nc version || exit 1
+
+ENTRYPOINT ["/bin/bash"]

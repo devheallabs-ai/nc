@@ -1,0 +1,164 @@
+page "World Model AI Dashboard"
+theme "dark"
+accent "#00d4ff"
+font "Inter"
+
+state cpu is 85
+state memory is 72
+state errors is 12
+state decision is ""
+state decisionScore is 0
+state afterCpu is 0
+state afterMemory is 0
+state rootCause is ""
+state causalChain is ""
+state impactList is ""
+state severity is ""
+state showResult is false
+
+action runDecision:
+    set decision to "scale"
+    set decisionScore to 30
+    set afterCpu to cpu - 25
+    set afterMemory to memory - 10
+    set rootCause to "memory_leak"
+    set causalChain to "api_error > service_failure > memory_leak"
+    set impactList to "db_slow, api_error, user_complaint"
+    set severity to "high"
+    set showResult to true
+
+nav:
+    brand "World Model AI"
+    links:
+        link "Dashboard" to "#dashboard"
+        link "Benchmark" to "#benchmark"
+        link "About" to "#about"
+        button "NC Language" links to "https://nc.devheallabs.in" style "primary"
+
+section hero centered:
+    badge "Zero Cost. Zero Cloud. Zero GPU."
+    heading "World Model AI" style "gradient"
+    subheading "Formal Decision Intelligence — W = (S, A, T, R, M, Π)"
+    text "State + Memory + Simulation + Planning + Decision. Runs on your CPU."
+    animate "fade-up"
+
+section dashboard:
+    heading "Decision Engine" style "gradient"
+    text "Input your system state and get an AI-powered decision"
+
+    grid 3 columns:
+        card icon "cpu":
+            heading "CPU Usage"
+            stat cpu "%"
+            text "Current CPU utilization"
+        card icon "memory":
+            heading "Memory"
+            stat memory "%"
+            text "Current memory usage"
+        card icon "alert":
+            heading "Errors"
+            stat errors ""
+            text "Active error count"
+    animate "stagger"
+
+    card:
+        heading "Run Decision Pipeline"
+        text "Scores all actions → Picks best → Simulates transition → Root cause analysis"
+        button "Make Decision" on click runs runDecision style "primary"
+
+    if state.showResult:
+        grid 2 columns:
+            card icon "check":
+                heading "Decision"
+                text "Action: SCALE"
+                text "Score: 30 (highest)"
+                text "Source: swarm voting + memory"
+            card icon "chart":
+                heading "State Transition"
+                text "CPU: 85% → 60%"
+                text "Memory: 72% → 62%"
+                text "Improvement: -25% CPU, -10% Memory"
+
+        grid 2 columns:
+            card icon "search":
+                heading "Root Cause Analysis"
+                text "Root: memory_leak"
+                text "Chain: api_error > service_failure > memory_leak"
+                text "Depth: 3 hops"
+            card icon "warning":
+                heading "Impact Analysis"
+                text "Affected: db_slow, api_error, user_complaint"
+                text "Severity: HIGH"
+                text "Services at risk: 3"
+
+    animate "fade-up"
+
+section benchmark:
+    heading "NOVA vs Cloud AI" style "gradient"
+    text "Not capability comparison — COST and COMPUTE comparison"
+
+    grid 2 columns:
+        card:
+            heading "NOVA (NC AI)"
+            stat "$0" "/month"
+            list:
+                item "Runs on any CPU — no GPU needed"
+                item "800-5,000 tokens/sec inference"
+                item "<5ms first token latency"
+                item "$0 training cost — train on your laptop"
+                item "100% local — your data stays yours"
+                item "No internet required"
+                item "No API keys, no subscriptions"
+                item "~600KB binary — entire runtime"
+        card:
+            heading "Cloud AI (GPT-4, Claude, etc.)"
+            stat "$240" "+/year"
+            list:
+                item "$20/month subscription or per-token API fees"
+                item "30-100 tokens/sec (cloud latency)"
+                item "500-2000ms first token (network + queue)"
+                item "$10M-100M+ to train the model"
+                item "Data sent to cloud servers"
+                item "Internet always required"
+                item "API keys + credit card required"
+                item "N/A — cloud only, no local binary"
+
+    card:
+        heading "Run Your Own Benchmark"
+        text "nc ai benchmark"
+        text "Measures real latency, throughput, and cost on YOUR machine."
+
+    animate "fade-up"
+
+section about centered:
+    heading "How It Works"
+    text "The World Model architecture: W = (S, A, T, R, M, Π)"
+    grid 3 columns:
+        card icon "brain":
+            heading "State (S)"
+            text "Structured world state with CPU, memory, errors, and confidence tracking"
+        card icon "rocket":
+            heading "Transition (T)"
+            text "Simulate what happens if we take an action — with probabilistic noise"
+        card icon "chart":
+            heading "Reward (R)"
+            text "Score = reward - cost - risk. Each action has a measurable value."
+    grid 3 columns:
+        card icon "memory":
+            heading "Memory (M)"
+            text "Time-decayed experience store with Hebbian consolidation"
+        card icon "search":
+            heading "Graph (G)"
+            text "Bidirectional causal graph for root cause and impact analysis"
+        card icon "check":
+            heading "Policy (Π)"
+            text "Swarm voting: multiple agents explore and vote on the best action"
+    animate "stagger"
+
+footer:
+    text "Built with NC — Zero cost. Zero cloud. Zero GPU."
+    row centered:
+        link "NC Language" to "https://nc.devheallabs.in"
+        link "NC AI" to "https://ncai.devheallabs.in"
+        link "DevHeal Labs" to "https://devheallabs.in"
+    text "© 2026 DevHeal Labs AI. Patent filed — India."

@@ -1,0 +1,25 @@
+# Development files
+.git/
+.github/
+.vscode/
+.idea/
+
+# Test files
+test/
+tests/
+*.test.js
+*.spec.js
+
+# Build artifacts
+node_modules/
+coverage/
+.nyc_output/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Downloaded binaries (should be fetched fresh per-platform)
+bin/nc
+bin/nc.exe
+bin/*.tmp

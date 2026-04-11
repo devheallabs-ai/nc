@@ -1,0 +1,210 @@
+{
+  "scopeName": "source.nc",
+  "name": "Notation-as-Code",
+  "fileTypes": ["nc"],
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#strings" },
+    { "include": "#templates" },
+    { "include": "#behavior-definition" },
+    { "include": "#builtin-functions" },
+    { "include": "#ai-keywords" },
+    { "include": "#declarations" },
+    { "include": "#control-flow" },
+    { "include": "#action-keywords" },
+    { "include": "#synonym-keywords" },
+    { "include": "#comparison-operators" },
+    { "include": "#type-keywords" },
+    { "include": "#http-methods" },
+    { "include": "#constants" },
+    { "include": "#numbers" },
+    { "include": "#dot-access" },
+    { "include": "#middleware-names" }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        { "match": "//.*$", "name": "comment.line.double-slash.nc" },
+        { "match": "#.*$", "name": "comment.line.hash.nc" }
+      ]
+    },
+    "strings": {
+      "begin": "\"",
+      "end": "\"",
+      "name": "string.quoted.double.nc",
+      "patterns": [
+        { "match": "\\\\.", "name": "constant.character.escape.nc" },
+        {
+          "begin": "\\{\\{",
+          "end": "\\}\\}",
+          "name": "meta.template.nc",
+          "patterns": [
+            { "match": "[\\w]+", "name": "variable.other.template.nc" },
+            { "match": "\\.", "name": "punctuation.accessor.nc" }
+          ]
+        }
+      ]
+    },
+    "templates": {
+      "begin": "\\{\\{",
+      "end": "\\}\\}",
+      "name": "meta.template.nc",
+      "patterns": [
+        { "match": "[\\w]+", "name": "variable.other.template.nc" },
+        { "match": "\\.", "name": "punctuation.accessor.nc" }
+      ]
+    },
+    "numbers": {
+      "match": "\\b\\d+(\\.\\d+)?\\b",
+      "name": "constant.numeric.nc"
+    },
+    "behavior-definition": {
+      "match": "^\\s*(to)\\s+([\\w_]+)",
+      "captures": {
+        "1": { "name": "keyword.control.nc" },
+        "2": { "name": "entity.name.function.nc" }
+      }
+    },
+    "builtin-functions": {
+      "match": "\\b(len|str|int|float|type|print|keys|values|upper|lower|trim|split|join|contains|replace|starts_with|ends_with|abs|sqrt|ceil|floor|round|pow|min|max|random|sort|reverse|range|read_file|write_file|file_exists|json_encode|json_decode|env|time_now|time_ms|csv_parse|yaml_parse|xml_parse|toml_parse|chunk|top_k|token_count|load_model|predict|unload_model|memory_new|memory_add|memory_get|memory_clear|memory_summary|validate|ai_with_fallback|append|remove)\\s*\\(",
+      "captures": {
+        "1": { "name": "support.function.builtin.nc" }
+      }
+    },
+    "ai-keywords": {
+      "patterns": [
+        {
+          "match": "\\b(ask)\\s+(AI|ai)\\s+(to)\\b",
+          "captures": {
+            "1": { "name": "keyword.ai.nc" },
+            "2": { "name": "constant.language.ai.nc" },
+            "3": { "name": "keyword.ai.nc" }
+          }
+        },
+        {
+          "match": "\\b(gather|obtain|fetch|retrieve)\\s+(\\w+)\\s+(from)\\b",
+          "captures": {
+            "1": { "name": "keyword.ai.nc" },
+            "2": { "name": "variable.other.nc" },
+            "3": { "name": "keyword.ai.nc" }
+          }
+        },
+        {
+          "match": "\\b(save)\\s+(as)\\b",
+          "name": "keyword.ai.nc"
+        },
+        {
+          "match": "\\b(using)\\s+(model)\\b",
+          "captures": {
+            "1": { "name": "keyword.ai.nc" },
+            "2": { "name": "keyword.ai.nc" }
+          }
+        },
+        {
+          "match": "\\b(using|called|purpose)\\b",
+          "name": "keyword.ai.nc"
+        }
+      ]
+    },
+    "declarations": {
+      "patterns": [
+        {
+          "match": "^\\s*(service|version|author|description|model)\\s",
+          "captures": { "1": { "name": "keyword.declaration.nc" } }
+        },
+        {
+          "match": "^\\s*(define|create)\\s+(\\w+)\\s+(as)\\s*:",
+          "captures": {
+            "1": { "name": "keyword.declaration.nc" },
+            "2": { "name": "entity.name.type.nc" },
+            "3": { "name": "keyword.declaration.nc" }
+          }
+        },
+        {
+          "match": "^\\s*(configure|api|middleware|import)\\b",
+          "name": "keyword.declaration.nc"
+        }
+      ]
+    },
+    "control-flow": {
+      "match": "\\b(if|otherwise|repeat|for|each|in|while|match|when|try|on\\s+error|finally|stop|skip|with)\\b",
+      "name": "keyword.control.nc"
+    },
+    "action-keywords": {
+      "patterns": [
+        {
+          "match": "\\b(respond)\\s+(with)\\b",
+          "captures": {
+            "1": { "name": "keyword.control.return.nc" },
+            "2": { "name": "keyword.control.return.nc" }
+          }
+        },
+        {
+          "match": "\\b(set)\\s+(\\w+)\\s+(to)\\b",
+          "captures": {
+            "1": { "name": "keyword.operator.assignment.nc" },
+            "2": { "name": "variable.other.nc" },
+            "3": { "name": "keyword.operator.assignment.nc" }
+          }
+        },
+        {
+          "match": "\\b(run)\\s+(\\w+)",
+          "captures": {
+            "1": { "name": "keyword.action.nc" },
+            "2": { "name": "entity.name.function.nc" }
+          }
+        },
+        {
+          "match": "\\b(notify|send|wait|show|display|print|output|log|store|emit|apply|needs|approval|add|increase|decrease|remove)\\b",
+          "name": "keyword.action.nc"
+        }
+      ]
+    },
+    "synonym-keywords": {
+      "patterns": [
+        {
+          "match": "\\b(display|print|output)\\b",
+          "name": "keyword.action.nc"
+        },
+        {
+          "match": "\\b(define|create)\\b",
+          "name": "keyword.declaration.nc"
+        },
+        {
+          "match": "\\b(check|verify)\\b",
+          "name": "keyword.action.nc"
+        },
+        {
+          "match": "\\b(obtain|fetch|retrieve)\\b",
+          "name": "keyword.ai.nc"
+        }
+      ]
+    },
+    "comparison-operators": {
+      "match": "\\b(is|are|above|below|equal|equals|greater|less|than|at|least|most|not|and|or|between|empty|positive|negative)\\b",
+      "name": "keyword.operator.comparison.nc"
+    },
+    "type-keywords": {
+      "match": "\\b(text|number|yesno|list|record|optional)\\b",
+      "name": "storage.type.nc"
+    },
+    "http-methods": {
+      "match": "\\b(GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS)\\b",
+      "name": "constant.language.http-method.nc"
+    },
+    "constants": {
+      "match": "\\b(yes|no|true|false|nothing|none|null)\\b",
+      "name": "constant.language.nc"
+    },
+    "dot-access": {
+      "match": "\\.(\\w+)",
+      "captures": {
+        "1": { "name": "variable.other.property.nc" }
+      }
+    },
+    "middleware-names": {
+      "match": "^\\s+(auth|rate_limit|cors|authentication|rate-limit|log_requests)\\s*$",
+      "name": "support.other.middleware.nc"
+    }
+  }
+}

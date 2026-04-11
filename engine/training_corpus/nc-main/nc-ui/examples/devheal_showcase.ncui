@@ -1,0 +1,125 @@
+page "DevHeal Labs AI — Product Showcase"
+theme "dark"
+accent "#00d4ff"
+font "Inter"
+
+state activeProduct is "nc-lang"
+
+nav:
+    brand "DevHeal Labs AI"
+    links:
+        link "Products" to "#products"
+        link "NC Language" to "#nc-lang"
+        link "NC UI" to "#nc-ui"
+        link "NC AI" to "#nc-ai"
+        link "GitHub" to "https://github.com/DevHeal-Labs"
+        button "Get Started" links to "#get-started" style "primary"
+
+section hero centered:
+    badge "Patent Filed — India 2026"
+    heading "Six Products. One Language." style "gradient"
+    subheading "The NC ecosystem — from AI to UI, all in plain English"
+    text "Build AI agents, websites, and infrastructure with zero dependencies"
+    row centered:
+        button "Explore NC" links to "https://nc.devheallabs.in" style "primary"
+        button "View on GitHub" links to "https://github.com/DevHeal-Labs" style "outline"
+    animate "fade-up"
+
+section products:
+    heading "The NC Ecosystem" style "gradient"
+    text "Every product runs on NC — the world's first language with built-in AI and native agent support"
+    grid 3 columns:
+        card icon "code":
+            heading "NC Language"
+            text "Plain-English programming with built-in AI. Agent keyword, @tool decorator, run agent syntax. ~600KB binary, 91+ tests, 0 dependencies."
+            button "Learn More" links to "https://nc.devheallabs.in" style "outline"
+        card icon "design":
+            heading "NC UI"
+            text "Build websites in plain English. Compiles to HTML/CSS/JS. Responsive by default, theme support, animations, AI-powered generation."
+            button "Learn More" links to "https://ncui.devheallabs.in" style "outline"
+        card icon "brain":
+            heading "NC AI & NOVA LM"
+            text "Hybrid SSM-Graph-Template AI. Agentic tool-calling, web data fetching, CORTEX runtime. Trains in hours, not months."
+            button "Learn More" links to "https://ncai.devheallabs.in" style "outline"
+        card icon "shield":
+            heading "HiveANT"
+            text "12 AI agents that heal infrastructure autonomously. Ant Colony Optimization, 5-layer cognitive memory, digital twin simulation."
+            button "Learn More" links to "https://hiveant.devheallabs.in" style "outline"
+        card icon "globe":
+            heading "SwarmOps"
+            text "Intelligent DevOps with RL Q-learning, RAG knowledge base, automated remediation. Swarm intelligence for operations."
+            button "Learn More" links to "https://swarmops.devheallabs.in" style "outline"
+        card icon "chart":
+            heading "NeuralEdge"
+            text "30+ indicators, AI predictions, real-time market data. 21,000+ lines of NC. Institutional-grade financial intelligence."
+            button "Learn More" links to "https://neuraledge.devheallabs.in" style "outline"
+    animate "stagger"
+
+section nc-lang:
+    heading "NC Language — Agentic AI in 15 Lines"
+    text "The first programming language with native agent support. Replaces 500+ lines of Python (LangChain/CrewAI)."
+    grid 2 columns:
+        card:
+            heading "Agent Syntax"
+            text "@tool — Decorate behaviors as agent tools"
+            text "agent — Define autonomous AI agents"
+            text "run agent — Execute with Plan-Act-Observe loop"
+            text "tools: [search, analyze] — Tool registry"
+            text "max_steps: 8 — Safety limits"
+        card:
+            heading "By the Numbers"
+            stat "113+" "Tests Passing"
+            stat "~600" "KB Binary Size"
+            stat "0" "Dependencies"
+            stat "6" "Products on NC"
+            stat "1" "Patent Filed"
+    animate "fade-up"
+
+section nc-ai:
+    heading "NOVA LM — Not Just Another Model"
+    text "World Model AI = State + Memory + Simulation + Planning + Decision"
+    grid 2 columns:
+        card icon "brain":
+            heading "Architecture"
+            text "Hybrid SSM-Graph-Template with Hebbian Learning"
+            list:
+                item "O(n) complexity — not O(n^2) like transformers"
+                item "800-5,000 tok/s inference speed"
+                item "7 model sizes: Micro (500K) to 20B params"
+                item "Agentic JSON tool-calling trained"
+                item "Web data fetching for grounding"
+        card icon "rocket":
+            heading "CORTEX Runtime"
+            text "NC-native NOVA inference pipeline"
+            list:
+                item "Full inference in NC — no Python needed"
+                item "8 intent types: causal, procedural, math, diagnostic"
+                item "Rich prompt engineering built-in"
+                item "Train on your own data"
+                item "CPU-friendly — no GPU required"
+    animate "fade-up"
+
+section get-started centered:
+    heading "Ready to Build?" style "gradient"
+    text "Start building with NC in 30 seconds"
+    card:
+        heading "Quick Start"
+        text "curl -fsSL https://nc.devheallabs.in/install | sh"
+        text "nc run hello.nc"
+    row centered:
+        button "Install NC" links to "https://nc.devheallabs.in" style "primary"
+        button "Read Docs" links to "https://nc.devheallabs.in/docs" style "outline"
+        button "GitHub" links to "https://github.com/DevHeal-Labs" style "outline"
+    animate "fade-up"
+
+footer:
+    text "Built entirely in NC — Powered by NOVA LM"
+    row centered:
+        link "NC Language" to "https://nc.devheallabs.in"
+        link "NC UI" to "https://ncui.devheallabs.in"
+        link "NC AI" to "https://ncai.devheallabs.in"
+        link "HiveANT" to "https://hiveant.devheallabs.in"
+        link "SwarmOps" to "https://swarmops.devheallabs.in"
+        link "NeuralEdge" to "https://neuraledge.devheallabs.in"
+    text "© 2026 DevHeal Labs AI. All rights reserved. Patent filed — India."
+    text "Built in Hyderabad, India"

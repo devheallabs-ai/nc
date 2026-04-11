@@ -1,0 +1,403 @@
+{
+  "Service Declaration": {
+    "prefix": ["service", "new service"],
+    "body": [
+      "service \"${1:my-service}\"",
+      "version \"${2:1.0.0}\"",
+      "",
+      "configure:",
+      "    ai_model is \"${3:openai/gpt-4o-mini}\"",
+      "",
+      "to ${4:hello}:",
+      "    $0",
+      "    respond with \"Hello from NC!\""
+    ],
+    "description": "Create a new NC service with configure block"
+  },
+  "Behavior": {
+    "prefix": ["to", "behavior", "function"],
+    "body": [
+      "to ${1:behavior_name} with ${2:param}:",
+      "    purpose: \"${3:What this behavior does}\"",
+      "",
+      "    $0",
+      "",
+      "    respond with ${4:result}"
+    ],
+    "description": "Define a new behavior (like a function)"
+  },
+  "Ask AI": {
+    "prefix": ["ask", "ask AI", "ai"],
+    "body": [
+      "ask AI to \"${1:prompt}\" save as ${2:result}"
+    ],
+    "description": "Ask AI to do something — calls your configured LLM"
+  },
+  "Ask AI with context": {
+    "prefix": ["ask AI using", "ai using"],
+    "body": [
+      "ask AI to \"${1:prompt}\" using ${2:context_data} save as ${3:result}"
+    ],
+    "description": "Ask AI with context data"
+  },
+  "Ask AI with model": {
+    "prefix": ["ask AI model", "ask model"],
+    "body": [
+      "ask AI to \"${1:prompt}\" using model \"${2:openai/gpt-4o}\" save as ${3:result}"
+    ],
+    "description": "Ask AI using a specific model"
+  },
+  "Gather": {
+    "prefix": ["gather", "fetch"],
+    "body": [
+      "gather ${1:data} from ${2:source}"
+    ],
+    "description": "Gather data from a URL, database, or MCP tool"
+  },
+  "Set Variable": {
+    "prefix": ["set", "variable"],
+    "body": [
+      "set ${1:name} to ${2:value}"
+    ],
+    "description": "Set a variable"
+  },
+  "If Statement": {
+    "prefix": ["if", "condition"],
+    "body": [
+      "if ${1:condition}:",
+      "    ${0}"
+    ],
+    "description": "If condition block"
+  },
+  "If Otherwise": {
+    "prefix": ["if otherwise", "if else"],
+    "body": [
+      "if ${1:condition}:",
+      "    ${2}",
+      "otherwise:",
+      "    ${0}"
+    ],
+    "description": "If/otherwise (if/else) block"
+  },
+  "Repeat For Each": {
+    "prefix": ["repeat", "foreach", "loop"],
+    "body": [
+      "repeat for each ${1:item} in ${2:items}:",
+      "    ${0}"
+    ],
+    "description": "Loop over a list"
+  },
+  "While Loop": {
+    "prefix": ["while"],
+    "body": [
+      "while ${1:condition}:",
+      "    ${0}"
+    ],
+    "description": "While loop"
+  },
+  "Match/When": {
+    "prefix": ["match", "switch"],
+    "body": [
+      "match ${1:value}:",
+      "    when \"${2:case1}\":",
+      "        ${3}",
+      "    when \"${4:case2}\":",
+      "        ${5}",
+      "    otherwise:",
+      "        ${0}"
+    ],
+    "description": "Pattern matching (like switch/case)"
+  },
+  "Respond": {
+    "prefix": ["respond", "return"],
+    "body": [
+      "respond with ${1:result}"
+    ],
+    "description": "Return a value from a behavior"
+  },
+  "Log": {
+    "prefix": ["log", "print"],
+    "body": [
+      "log \"${1:message}\""
+    ],
+    "description": "Log a message"
+  },
+  "Show": {
+    "prefix": ["show", "display"],
+    "body": [
+      "show ${1:value}"
+    ],
+    "description": "Display a value"
+  },
+  "Store": {
+    "prefix": ["store", "save to db"],
+    "body": [
+      "store ${1:data} into \"${2:target}\""
+    ],
+    "description": "Store data to database"
+  },
+  "Notify": {
+    "prefix": ["notify", "alert", "send"],
+    "body": [
+      "notify \"${1:channel}\" \"${2:message}\""
+    ],
+    "description": "Send a notification"
+  },
+  "Wait": {
+    "prefix": ["wait"],
+    "body": [
+      "wait ${1:5} seconds"
+    ],
+    "description": "Wait/sleep for a duration"
+  },
+  "Try Error": {
+    "prefix": ["try", "error handling"],
+    "body": [
+      "try:",
+      "    ${1}",
+      "on error:",
+      "    log \"Error: {{error}}\"",
+      "    ${0}"
+    ],
+    "description": "Try/error handling block"
+  },
+  "Try Finally": {
+    "prefix": ["try finally"],
+    "body": [
+      "try:",
+      "    ${1}",
+      "on error:",
+      "    ${2}",
+      "finally:",
+      "    ${0}"
+    ],
+    "description": "Try/error/finally block"
+  },
+  "Configure Block": {
+    "prefix": ["configure", "config"],
+    "body": [
+      "configure:",
+      "    ai_url is \"${1:https://api.openai.com/v1/chat/completions}\"",
+      "    ai_key is \"env:${2:OPENAI_API_KEY}\"",
+      "    ai_model is \"${3:openai/gpt-4o-mini}\"",
+      "    ${0}"
+    ],
+    "description": "Configure block for AI, database, and service settings"
+  },
+  "API Routes": {
+    "prefix": ["api", "routes", "endpoints"],
+    "body": [
+      "api:",
+      "    ${1:POST} ${2:/path} runs ${3:behavior_name}",
+      "    ${0}"
+    ],
+    "description": "Define API routes"
+  },
+  "Define Type": {
+    "prefix": ["define", "type", "struct"],
+    "body": [
+      "define ${1:TypeName} as:",
+      "    ${2:field_name} is ${3:text}",
+      "    ${0}"
+    ],
+    "description": "Define a data type"
+  },
+  "Import": {
+    "prefix": ["import"],
+    "body": [
+      "import \"${1:module}\""
+    ],
+    "description": "Import another .nc file or package"
+  },
+  "Read File": {
+    "prefix": ["read_file", "readfile"],
+    "body": [
+      "set ${1:content} to read_file(\"${2:path}\")"
+    ],
+    "description": "Read a file's contents"
+  },
+  "Write File": {
+    "prefix": ["write_file", "writefile"],
+    "body": [
+      "write_file(\"${1:path}\", ${2:content})"
+    ],
+    "description": "Write content to a file"
+  },
+  "Load Model": {
+    "prefix": ["load_model", "model"],
+    "body": [
+      "set ${1:model} to load_model(\"${2:model.pkl}\")"
+    ],
+    "description": "Load a Python ML model (.pkl, .pt, .h5, .onnx)"
+  },
+  "Predict": {
+    "prefix": ["predict"],
+    "body": [
+      "set ${1:prediction} to predict(${2:model}, ${3:features})"
+    ],
+    "description": "Run prediction on a loaded model"
+  },
+  "Memory New": {
+    "prefix": ["memory", "conversation"],
+    "body": [
+      "set ${1:memory} to memory_new(${2:50})"
+    ],
+    "description": "Create conversation memory for chatbots"
+  },
+  "Memory Add": {
+    "prefix": ["memory_add"],
+    "body": [
+      "memory_add(${1:memory}, \"${2:user}\", ${3:message})"
+    ],
+    "description": "Add a message to conversation memory"
+  },
+  "Validate Response": {
+    "prefix": ["validate"],
+    "body": [
+      "set ${1:check} to validate(${2:response}, [\"${3:field1}\", \"${4:field2}\"])"
+    ],
+    "description": "Validate AI response has required fields"
+  },
+  "AI with Fallback": {
+    "prefix": ["fallback", "ai_with_fallback"],
+    "body": [
+      "set ${1:models} to [\"${2:openai/gpt-4o}\", \"${3:openai/gpt-4o-mini}\"]",
+      "set ${4:result} to ai_with_fallback(\"${5:prompt}\", {}, ${1:models})"
+    ],
+    "description": "Try multiple AI models with automatic fallback"
+  },
+  "RAG Pattern": {
+    "prefix": ["rag", "document qa"],
+    "body": [
+      "set ${1:document} to read_file(\"${2:data.txt}\")",
+      "set ${3:chunks} to chunk(${1:document}, ${4:500})",
+      "ask AI to \"Based on this document, answer: ${5:question}. Document: {{${1:document}}}\" save as ${6:answer}"
+    ],
+    "description": "RAG pattern -- read document, chunk, ask AI"
+  },
+  "Chatbot Pattern": {
+    "prefix": ["chatbot", "chat pattern"],
+    "body": [
+      "set memory to memory_new(${1:30})",
+      "memory_add(memory, \"user\", ${2:message})",
+      "set history to memory_summary(memory)",
+      "ask AI to \"Conversation: {{history}}. Respond to the latest message.\" save as reply",
+      "memory_add(memory, \"assistant\", reply)",
+      "respond with reply"
+    ],
+    "description": "Multi-turn chatbot pattern with conversation memory"
+  },
+  "HTTP Status Response": {
+    "prefix": ["status", "http status", "error response"],
+    "body": [
+      "respond with {\"_status\": ${1:400}, \"error\": \"${2:Bad request}\"}"
+    ],
+    "description": "Respond with a custom HTTP status code"
+  },
+  "Classify Pattern": {
+    "prefix": ["classify", "classification"],
+    "body": [
+      "ask AI to \"Classify this into: ${1:category1, category2}. Return JSON with category and confidence. Input: {{${2:input}}}\" save as ${3:result}",
+      "respond with ${3:result}"
+    ],
+    "description": "AI classification pattern"
+  },
+  "Middleware": {
+    "prefix": ["middleware"],
+    "body": [
+      "middleware:",
+      "    ${1:auth}",
+      "    ${0}"
+    ],
+    "description": "Add middleware (auth, rate_limit, cors)"
+  },
+  "Event Handler": {
+    "prefix": ["on event", "event"],
+    "body": [
+      "on event \"${1:event_name}\":",
+      "    ${0}"
+    ],
+    "description": "Handle an event"
+  },
+  "Schedule": {
+    "prefix": ["every", "schedule", "cron"],
+    "body": [
+      "every ${1:60} seconds:",
+      "    ${0}"
+    ],
+    "description": "Run something on a schedule"
+  },
+  "For Key Value": {
+    "prefix": ["for key", "key value"],
+    "body": [
+      "repeat for each ${1:key}, ${2:value} in ${3:map}:",
+      "    ${0}"
+    ],
+    "description": "Iterate over map with key-value pairs"
+  },
+  "Dot Assignment": {
+    "prefix": ["set field", "dot assign"],
+    "body": [
+      "set ${1:object}.${2:field} to ${3:value}"
+    ],
+    "description": "Set a field on a record/map"
+  },
+  "CRUD Service": {
+    "prefix": ["crud", "crud service"],
+    "body": [
+      "service \"${1:my-crud-service}\"",
+      "version \"1.0.0\"",
+      "",
+      "configure:",
+      "    ai_model is \"${2:openai/gpt-4o-mini}\"",
+      "    db_url is \"env:DATABASE_URL\"",
+      "",
+      "define ${3:Item} as:",
+      "    name is text",
+      "    description is text",
+      "",
+      "middleware:",
+      "    cors",
+      "    auth",
+      "",
+      "api:",
+      "    GET    /${4:items}      runs list_${4:items}",
+      "    GET    /${4:items}/:id  runs get_${4:items}",
+      "    POST   /${4:items}      runs create_${4:items}",
+      "    PUT    /${4:items}/:id  runs update_${4:items}",
+      "    DELETE /${4:items}/:id  runs delete_${4:items}",
+      "",
+      "to list_${4:items}:",
+      "    gather all_${4:items} from \"${4:items}\"",
+      "    respond with all_${4:items}",
+      "",
+      "to get_${4:items} with id:",
+      "    gather item from \"${4:items}\" where id equals id",
+      "    respond with item",
+      "",
+      "to create_${4:items} with data:",
+      "    store data into \"${4:items}\"",
+      "    respond with {\"status\": \"created\"}",
+      "",
+      "to update_${4:items} with id, data:",
+      "    store data into \"${4:items}\" where id equals id",
+      "    respond with {\"status\": \"updated\"}",
+      "",
+      "to delete_${4:items} with id:",
+      "    remove id from \"${4:items}\"",
+      "    respond with {\"status\": \"deleted\"}"
+    ],
+    "description": "Full CRUD service template with API routes"
+  },
+  "Middleware Configuration": {
+    "prefix": ["middleware config", "middleware setup"],
+    "body": [
+      "middleware:",
+      "    cors",
+      "    auth",
+      "    rate_limit",
+      "    log_requests"
+    ],
+    "description": "Middleware configuration with common middleware"
+  }
+}

@@ -1,0 +1,82 @@
+app "Enterprise Admin"
+description "Operations dashboard for finance, support, and platform teams."
+theme "dark"
+accent "#0ea5e9"
+font "Manrope"
+
+state alerts is []
+state accounts is []
+state audit_log is []
+
+auth:
+    type is "bearer"
+    login endpoint is "/api/auth/login"
+    logout endpoint is "/api/auth/logout"
+    refresh endpoint is "/api/auth/refresh"
+    verify endpoint is "/api/auth/verify"
+    token store is "session"
+    on login success navigate to is "/dashboard"
+    on logout navigate to is "/login"
+
+guard "ops-only":
+    require authenticated
+    require role "ops"
+    redirect to "/login"
+
+on mount:
+    fetch "/api/alerts" with auth save as alerts
+    fetch "/api/accounts" with auth save as accounts
+    fetch "/api/audit" with auth save as audit_log
+
+routes:
+    "/login" shows login public
+    "/dashboard" shows dashboard guard "ops-only"
+    "/accounts" shows accounts_page guard "ops-only"
+    "/audit" shows audit_page guard "ops-only"
+
+component login:
+    section hero centered:
+        heading "Enterprise Access" style "gradient"
+        text "Sign in to manage platform operations."
+        form action "/api/auth/login" method "POST" save response as user redirect to "/dashboard":
+            input "Email" type "email" bind email
+                validate required email
+            input "Password" type "password" bind password
+                validate required min-length 8 strong-password
+            button "Sign In" style "primary"
+
+component dashboard:
+    section hero:
+        heading "Operations Overview"
+        text "Track incidents, customer accounts, and compliance posture."
+        grid 3 columns:
+            card:
+                stat "14" "Open incidents"
+            card:
+                stat "128" "Managed accounts"
+            card:
+                stat "99.98%" "Monthly uptime"
+    section alerts:
+        heading "Active Alerts"
+        table alerts:
+            column "Service" shows item.service
+            column "Severity" shows item.severity
+            column "Owner" shows item.owner
+
+component accounts_page:
+    section hero:
+        heading "Accounts"
+        text "Review managed enterprise customers."
+        table accounts:
+            column "Customer" shows item.name
+            column "Plan" shows item.plan
+            column "Status" shows item.status
+
+component audit_page:
+    section hero:
+        heading "Audit Log"
+        text "Recent admin actions and policy changes."
+        table audit_log:
+            column "Actor" shows item.actor
+            column "Action" shows item.action
+            column "When" shows item.timestamp

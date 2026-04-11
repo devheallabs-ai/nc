@@ -1,0 +1,82 @@
+page "Dashboard — Analytics"
+theme "dark"
+accent "#10b981"
+
+nav:
+    brand "Analytics"
+    links:
+        link "Overview" to "#overview"
+        link "Reports" to "#reports"
+        link "Settings" to "#settings"
+
+section overview:
+    heading "Overview"
+    text "Your key metrics at a glance. Updated in real-time."
+    grid 4 columns:
+        card icon "users":
+            heading "Total Users"
+            stat "24,521" "Active accounts"
+        card icon "chart":
+            heading "Revenue"
+            stat "$142K" "This month"
+        card icon "globe":
+            heading "Page Views"
+            stat "1.2M" "Last 30 days"
+        card icon "clock":
+            heading "Avg. Session"
+            stat "4m 32s" "Per user"
+    animate "stagger"
+
+section reports:
+    heading "Performance"
+    text "Track your team's progress across all key areas."
+    grid 2 columns:
+        card:
+            heading "Conversion Rate"
+            progress "Landing Page" 78%
+            progress "Sign Up Flow" 64%
+            progress "Checkout" 45%
+            progress "Onboarding" 89%
+        card:
+            heading "Team Activity"
+            list:
+                item "Sarah pushed 12 commits today"
+                item "Alex closed 5 issues"
+                item "Jordan deployed v2.4.1 to production"
+                item "Morgan updated the design system"
+                item "Taylor reviewed 8 pull requests"
+    animate "fade-up"
+
+section metrics centered:
+    heading "Monthly Highlights"
+    grid 3 columns:
+        card icon "rocket":
+            heading "Deployments"
+            stat "342" "This month"
+            text "Up 23% from last month"
+        card icon "shield":
+            heading "Uptime"
+            stat "99.98%" "Last 90 days"
+            text "Zero critical incidents"
+        card icon "heart":
+            heading "NPS Score"
+            stat "72" "Industry avg: 44"
+            text "Customer satisfaction rising"
+    animate "stagger"
+
+section settings:
+    heading "Quick Settings"
+    text "Manage your dashboard preferences."
+    form action "/api/settings":
+        input "Display Name" required
+        input "Email" type "email" required
+        input "Timezone"
+        button "Save Changes" style "primary"
+    animate "fade-up"
+
+footer:
+    text "Analytics Dashboard v2.4 — Built with NC UI"
+    row:
+        link "Documentation" to "#"
+        link "Support" to "#"
+        link "Status" to "#"

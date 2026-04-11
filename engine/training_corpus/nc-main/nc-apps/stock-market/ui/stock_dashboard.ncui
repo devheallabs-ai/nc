@@ -1,0 +1,176 @@
+page "NeuralEdge — AI Stock Intelligence"
+theme "dark"
+accent "#10b981"
+font "Inter"
+
+nav:
+    brand "NeuralEdge"
+    links:
+        link "Dashboard" to "#dashboard"
+        link "Analysis" to "#analysis"
+        link "Predictions" to "#predictions"
+        link "Portfolio" to "#portfolio"
+        link "Alerts" to "#alerts"
+
+section dashboard:
+    heading "Market Intelligence"
+    text "AI-powered stock analysis and predictions — built entirely with NC"
+
+    grid 4 columns:
+        card icon "chart":
+            heading "AAPL"
+            stat "$189.42" "+2.4% today"
+            text "AI Signal: Strong Buy"
+        card icon "chart":
+            heading "MSFT"
+            stat "$421.17" "+1.8% today"
+            text "AI Signal: Buy"
+        card icon "chart":
+            heading "GOOGL"
+            stat "$175.23" "-0.6% today"
+            text "AI Signal: Hold"
+        card icon "chart":
+            heading "NVDA"
+            stat "$875.64" "+4.2% today"
+            text "AI Signal: Strong Buy"
+    animate "stagger"
+
+    grid 3 columns:
+        card icon "globe":
+            heading "Market Overview"
+            stat "S&P 500" "+0.8% today"
+            text "Bull market momentum continues"
+        card icon "shield":
+            heading "Portfolio Health"
+            stat "92/100" "Risk Score"
+            text "Well diversified across sectors"
+        card icon "rocket":
+            heading "AI Accuracy"
+            stat "84.7%" "7-day prediction accuracy"
+            text "Better than market average"
+    animate "fade-up"
+
+section analysis:
+    heading "Technical Analysis"
+    text "AI-computed indicators across all 30 tracked stocks"
+
+    grid 2 columns:
+        card:
+            heading "Top Performers"
+            list:
+                item "NVDA — RSI 68, MACD Bullish, Volume +42%"
+                item "AAPL — RSI 61, Golden Cross forming"
+                item "META — RSI 57, Breaking resistance"
+                item "TSLA — RSI 72, Overbought caution"
+                item "AMZN — RSI 54, Accumulation phase"
+        card:
+            heading "Risk Alerts"
+            list:
+                item "TSLA: High volatility — RSI overbought (72)"
+                item "BIDU: Geopolitical risk detected"
+                item "GME: Social sentiment spike (monitor closely)"
+                item "RIVN: Cash burn rate above threshold"
+    animate "fade-up"
+
+    grid 3 columns:
+        card:
+            heading "RSI Analysis"
+            progress "Overbought (>70)" 12%
+            progress "Neutral (30-70)" 76%
+            progress "Oversold (<30)" 12%
+        card:
+            heading "Trend Direction"
+            progress "Bullish" 61%
+            progress "Sideways" 24%
+            progress "Bearish" 15%
+        card:
+            heading "Volume Signal"
+            progress "High Volume" 38%
+            progress "Average Volume" 47%
+            progress "Low Volume" 15%
+    animate "stagger"
+
+section predictions:
+    heading "AI Price Predictions"
+    text "7-day forward price predictions powered by NC AI transformer model"
+
+    grid 2 columns:
+        card icon "rocket":
+            heading "Bullish Predictions"
+            stat "12 stocks" "Expected upside >5%"
+            list:
+                item "NVDA: $940 target (+7.4%)"
+                item "AAPL: $198 target (+4.5%)"
+                item "MSFT: $445 target (+5.7%)"
+                item "META: $540 target (+8.2%)"
+            button "View Full Analysis" style "primary"
+        card icon "shield":
+            heading "Risk Warnings"
+            stat "3 stocks" "Expected downside >5%"
+            list:
+                item "TSLA: $185 target (-6.8%) overbought"
+                item "COIN: $215 target (-5.1%) crypto exposure"
+                item "SNAP: $12 target (-8.9%) earnings risk"
+            button "View Risk Report" style "secondary"
+    animate "stagger"
+
+    card:
+        heading "AI Prediction Methodology"
+        text "The NC AI analyzes 47 technical indicators, earnings data, news sentiment, and macroeconomic signals. Model trained on 20 years of market data using the NC AI native transformer — written entirely in NC language."
+        button "Learn More About NC AI" style "secondary"
+    animate "fade-up"
+
+section portfolio:
+    heading "Portfolio Manager"
+    text "Track and optimize your holdings with AI recommendations"
+
+    grid 4 columns:
+        card icon "users":
+            heading "Total Value"
+            stat "$142,856" "All positions"
+        card icon "chart":
+            heading "Day P&L"
+            stat "+$2,341" "+1.67% today"
+        card icon "rocket":
+            heading "Total Return"
+            stat "+$31,200" "+28.0% all time"
+        card icon "globe":
+            heading "Risk Level"
+            stat "Moderate" "Score: 62/100"
+    animate "stagger"
+
+    form action "http://localhost:8000/api/v1/portfolio/analyze":
+        input "Stock Symbol (e.g. AAPL)" required
+        input "Number of Shares" type "number" required
+        input "Purchase Price" type "number"
+        button "Add to Portfolio" style "primary"
+    animate "fade-up"
+
+section alerts:
+    heading "Smart Alerts"
+    text "AI-generated alerts based on your portfolio and watchlist"
+
+    grid 2 columns:
+        card:
+            heading "Active Alerts"
+            list:
+                item "NVDA crossed $875 resistance level"
+                item "AAPL earnings report in 3 days"
+                item "Portfolio beta exceeded 1.2 threshold"
+                item "MSFT analyst upgrade: Morgan Stanley"
+        card:
+            heading "Set New Alert"
+            form action "http://localhost:8000/api/v1/alerts/create":
+                input "Stock Symbol" required
+                input "Price Target" type "number" required
+                input "Alert Condition (above/below)"
+                button "Create Alert" style "primary"
+    animate "fade-up"
+
+footer:
+    text "NeuralEdge — AI Stock Intelligence powered by NC Language"
+    row:
+        link "Backend Health" to "http://localhost:8000/health"
+        link "NC AI" to "#predictions"
+        link "DevHeal Labs" to "https://devheallabs.in"
+        link "GitHub" to "#"

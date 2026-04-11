@@ -1,0 +1,92 @@
+page "Release Operations Portal"
+theme "light"
+accent "#0f766e"
+
+nav:
+    brand "ReleaseOps"
+    links:
+        link "Overview" to "#overview"
+        link "Accounts" to "#accounts"
+        link "Release" to "#release"
+        link "Support" to "#support"
+
+section hero centered:
+    badge "Enterprise rollout workspace"
+    heading "Ship production releases with fewer surprises"
+    subheading "Track customer readiness, draft release notes, and keep support aligned before launch day."
+    text "Built for SDK teams, platform operators, and customer success leads who need one clear view of rollout risk."
+    row:
+        button "Review Release Gate" links to "#release" style "primary"
+        button "Open Support Queue" links to "#support" style "outline"
+    animate "fade-up"
+
+section overview centered:
+    heading "Production Readiness"
+    text "Use one page to review stability, adoption, and communication before enabling a new version."
+    grid 3 columns:
+        card icon "shield":
+            heading "Risk Review"
+            text "Surface failing checks, open incidents, and security exceptions before the rollout begins."
+        card icon "rocket":
+            heading "Release Planning"
+            text "Draft customer-facing release notes and internal migration steps from one workflow."
+        card icon "users":
+            heading "Customer Readiness"
+            text "Prioritize expansion accounts, renewal windows, and high-touch customers that need launch support."
+    animate "stagger"
+
+section accounts:
+    heading "Customer Rollout"
+    text "Focus first on accounts with active pilots, upcoming renewals, or open migration requests."
+    grid 2 columns:
+        card icon "chart":
+            heading "Adoption Watch"
+            list:
+                item "Track expansion accounts before enabling new features"
+                item "Highlight open tickets that could block launch"
+                item "Review upcoming renewals before changing default behavior"
+        card icon "file":
+            heading "Launch Checklist"
+            list:
+                item "Confirm notes are approved by product and support"
+                item "Verify migration steps cover every changed module"
+                item "Prepare rollback and escalation owners"
+    animate "fade-up"
+
+section release centered:
+    heading "Request Release Summary"
+    text "Draft a clean summary for internal teams and SDK consumers before you publish the changelog."
+    form action "/api/release-notes":
+        input "Version" required
+        input "Primary Theme" required
+        textarea "Highlights"
+        textarea "Breaking Changes"
+        row:
+            button "Generate Release Notes" style "primary"
+            button "Save Draft" style "outline"
+    animate "fade-up"
+
+section support:
+    heading "SDK Support Lane"
+    text "Keep launch-day questions organized so critical migration issues reach the right team fast."
+    grid 2 columns:
+        card icon "message":
+            heading "Ticket Classification"
+            text "Separate release blockers from usage questions and route them to platform, SDK, or support owners."
+        card icon "check":
+            heading "Response Playbooks"
+            text "Reuse migration steps, known fixes, and rollout reminders in every customer reply."
+
+section contact centered:
+    heading "Need a final review?"
+    text "Ask the release operations team to review the gate, customer list, and support plan before launch."
+    row:
+        button "Schedule Review" style "primary"
+        button "Share Checklist" style "outline"
+
+footer:
+    text "ReleaseOps keeps platform, SDK, and support teams aligned."
+    row:
+        link "Docs" to "https://docs.example.com"
+        link "Status" to "https://status.example.com"
+        link "Support" to "https://support.example.com"
