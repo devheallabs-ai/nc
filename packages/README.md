@@ -151,9 +151,8 @@ When releasing a new version of NC:
 
 2. **Create GitHub release** with platform binaries:
    - `nc-linux-x86_64`
-   - `nc-linux-aarch64`
-   - `nc-darwin-x86_64`
-   - `nc-darwin-arm64`
+   - `nc-macos-x86_64`
+   - `nc-macos-arm64`
    - `nc-windows-x86_64.exe`
 
 3. **Compute checksums** and update:

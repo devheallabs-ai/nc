@@ -13,15 +13,14 @@ const { execSync } = require("child_process");
 // Configuration
 // ---------------------------------------------------------------------------
 
-const VERSION = "1.0.0";
-const GITHUB_REPO = "sainarender2222/notation-as-code";
+const VERSION = "1.3.0";
+const GITHUB_REPO = "devheallabs-ai/nc";
 const BASE_URL = `https://github.com/${GITHUB_REPO}/releases/download/v${VERSION}`;
 
 const PLATFORM_MAP = {
   "linux-x64": { asset: "nc-linux-x86_64", sha256: "" },
-  "linux-arm64": { asset: "nc-linux-aarch64", sha256: "" },
-  "darwin-x64": { asset: "nc-darwin-x86_64", sha256: "" },
-  "darwin-arm64": { asset: "nc-darwin-arm64", sha256: "" },
+  "darwin-x64": { asset: "nc-macos-x86_64", sha256: "" },
+  "darwin-arm64": { asset: "nc-macos-arm64", sha256: "" },
   "win32-x64": { asset: "nc-windows-x86_64.exe", sha256: "" },
 };
 
@@ -124,6 +123,7 @@ async function main() {
   if (!info) {
     console.error(
       `nc-lang: unsupported platform "${key}".\n` +
+        "  Prebuilt binaries are currently published for linux-x64, darwin-x64, darwin-arm64, and win32-x64.\n" +
         "  Please build NC from source: https://nc.devheallabs.in/docs/install"
     );
     process.exit(1);
@@ -181,10 +181,7 @@ async function main() {
     }
     console.error(`nc-lang: installation failed: ${err.message}`);
     console.error("  You can install NC manually: https://nc.devheallabs.in/docs/install");
-    // Non-zero exit in postinstall would prevent the package from installing.
-    // We log the error but exit 0 so the package still installs — the wrapper
-    // will prompt the user to re-run install.js.
-    process.exit(0);
+    process.exit(1);
   }
 }
 

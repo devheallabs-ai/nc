@@ -34,7 +34,6 @@ No Python runtime is needed at execution time — the NC binary is a standalone 
 | Platform           | Architecture |
 |--------------------|-------------|
 | Linux              | x86_64      |
-| Linux              | aarch64     |
 | macOS              | x86_64      |
 | macOS              | arm64 (M1+) |
 | Windows            | x86_64      |
@@ -64,10 +63,9 @@ curl -fsSL https://nc.devheallabs.in/install.sh | bash
 
 - **Website**: https://nc.devheallabs.in
 - **Documentation**: https://nc.devheallabs.in/docs
-- **GitHub**: https://github.com/devheallabs-ai/nc-lang
-- **Issues**: https://github.com/devheallabs-ai/nc-lang/issues
+- **GitHub**: https://github.com/devheallabs-ai/nc
+- **Issues**: https://github.com/devheallabs-ai/nc/issues
 
 ## License
 
 Apache 2.0 — Copyright (c) DevHeal Labs AI
-

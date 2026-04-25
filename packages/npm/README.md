@@ -70,10 +70,9 @@ curl -fsSL https://nc.devheallabs.in/install.sh | bash
 
 - **Website**: https://nc.devheallabs.in
 - **Documentation**: https://nc.devheallabs.in/docs
-- **GitHub**: https://github.com/devheallabs-ai/nc-lang
-- **Issues**: https://github.com/devheallabs-ai/nc-lang/issues
+- **GitHub**: https://github.com/devheallabs-ai/nc
+- **Issues**: https://github.com/devheallabs-ai/nc/issues
 
 ## License
 
 Apache 2.0 — Copyright (c) DevHeal Labs AI
-

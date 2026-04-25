@@ -8,6 +8,7 @@
  */
 
 #include "nc_terminal_ui.h"
+#include "../include/nc_version.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -161,14 +162,14 @@ NcTerminalLogLevel nc_get_log_level(void) { return g_log_level; }
  *                  NC
  *                 _NC_
  *         ╔═══════════════╗
- *         ║  NC  v1.0.0   ║
+ *         ║  NC  vX.Y.Z   ║
  *         ╚═══════════════╝
  * ═══════════════════════════════════════════════════════════ */
 
 void nc_animate_startup(void) {
     nc_ui_init();
     if (!g_animation_enabled) {
-        printf("\n  NC v1.0.0\n  Notation-as-Code\n\n");
+        printf("\n  NC v%s\n  Notation-as-Code\n\n", NC_VERSION);
         return;
     }
     printf(HIDE_CURSOR);
@@ -225,7 +226,7 @@ void nc_animate_startup(void) {
     nc_sleep_ms(80);
     printf("\n");
     printf("  " BOLD FG_BRIGHT_WHITE "Notation-as-Code" RESET
-           DIM " v1.0.0" RESET "\n");
+           DIM " v%s" RESET "\n", NC_VERSION);
     printf("  " DIM "The fastest way to build AI APIs" RESET "\n");
     printf("  " DIM "─────────────────────────────────" RESET "\n\n");
 

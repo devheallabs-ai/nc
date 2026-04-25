@@ -29,5 +29,5 @@ Or use the convenience function:
 from nc_lang.runtime import NC, NCResult
 from nc_lang import workflow
 
-__version__ = "1.0.0"
+__version__ = "1.3.0"
 __all__ = ["NC", "NCResult", "workflow"]

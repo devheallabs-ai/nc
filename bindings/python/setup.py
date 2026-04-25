@@ -2,17 +2,17 @@
 
 setup(
     name="nc-lang",
-    version="1.0.0",
+    version="1.3.0",
     description="NC — The AI Language. Write AI APIs in plain English.",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
     author="DevHeal Labs AI",
     author_email="support@devheallabs.in",
-    url="https://github.com/devheallabs-ai/nc-lang",
+    url="https://github.com/devheallabs-ai/nc",
     project_urls={
-        "Documentation": "https://github.com/devheallabs-ai/nc-lang/blob/main/docs/NC_USER_MANUAL.md",
-        "Source": "https://github.com/devheallabs-ai/nc-lang",
-        "Issues": "https://github.com/devheallabs-ai/nc-lang/issues",
+        "Documentation": "https://github.com/devheallabs-ai/nc/blob/main/nc-lang/docs/NC_USER_MANUAL.md",
+        "Source": "https://github.com/devheallabs-ai/nc",
+        "Issues": "https://github.com/devheallabs-ai/nc/issues",
     },
     packages=find_packages(),
     python_requires=">=3.8",
@@ -32,4 +32,3 @@ setup(
     keywords="nc ai workflow llm openai anthropic gemini plain-english orchestration",
     license="Apache-2.0",
 )
-

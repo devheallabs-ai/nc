@@ -1,2 +1,0 @@
-component AuthStatus:
-  text "{{authenticated}}"

@@ -4885,7 +4885,7 @@ int nc_run_source(const char *source, const char *filename) {
         printf("  \033[36m║\033[0m  \033[1mVersion:\033[0m  \033[33m%-38s\033[0m\033[36m║\033[0m\n", program->as.program.version->chars);
     if (program->as.program.model)
         printf("  \033[36m║\033[0m  \033[1mModel:\033[0m    %-38s\033[36m║\033[0m\n", program->as.program.model->chars);
-    printf("  \033[36m║\033[0m  \033[1mRuntime:\033[0m  \033[90mNC (Notation-as-Code) v1.0.0       \033[0m\033[36m║\033[0m\n");
+    printf("  \033[36m║\033[0m  \033[1mRuntime:\033[0m  \033[90mNC (Notation-as-Code) v%s       \033[0m\033[36m║\033[0m\n", NC_VERSION);
     printf("  \033[36m╚══════════════════════════════════════════════════╝\033[0m\n");
 
     if (program->as.program.import_count > 0) {

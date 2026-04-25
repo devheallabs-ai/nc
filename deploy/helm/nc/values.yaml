@@ -1,0 +1,198 @@
+# NC Helm Chart — Default Values
+# Override these for your environment
+
+replicaCount: 2
+
+image:
+  repository: your-registry.example.com/nc
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""
+
+# NC application configuration
+nc:
+  serviceFile: /app/service.nc
+  port: 8080
+  logFormat: json
+  logLevel: info
+  maxWorkers: 64
+  maxRequestSize: 1048576
+  maxResponseSize: 4194304
+  listenBacklog: 512
+  requestQueueSize: 4096
+  keepaliveMax: 100
+  keepaliveTimeout: 30
+  queueTimeout: 5000
+  drainTimeout: 30
+
+  # Authentication
+  auth:
+    enabled: false
+    jwtSecret: ""
+    jwtSecretExistingSecret: ""
+    apiKeys: ""
+    oidcIssuer: ""
+    oidcClientId: ""
+
+  # Rate limiting
+  rateLimit:
+    enabled: false
+    rpm: 100
+    window: 60
+
+  # AI provider
+  ai:
+    url: ""
+    key: ""
+    model: ""
+    existingSecret: ""
+
+  # Observability
+  observability:
+    otelEndpoint: ""
+    auditFormat: json
+    auditFile: /var/log/nc/audit.jsonl
+
+  # Feature flags
+  featureFlags: {}
+
+# Pod configuration
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8080"
+  prometheus.io/path: "/metrics"
+
+podLabels: {}
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+service:
+  type: ClusterIP
+  port: 8080
+
+ingress:
+  enabled: false
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+  hosts:
+    - host: nc.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 256Mi
+  limits:
+    cpu: '1.0'
+    memory: 1Gi
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+livenessProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 3
+  periodSeconds: 5
+  timeoutSeconds: 2
+  failureThreshold: 3
+
+startupProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 2
+  periodSeconds: 3
+  failureThreshold: 10
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - nc
+          topologyKey: kubernetes.io/hostname
+
+# Pod Disruption Budget
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+# Network Policy
+networkPolicy:
+  enabled: true
+  ingress:
+    - from:
+        - namespaceSelector: {}
+      ports:
+        - port: 8080
+          protocol: TCP
+
+# Volume mounts for NC service files
+volumes:
+  - name: app-data
+    emptyDir: {}
+  - name: audit-logs
+    emptyDir: {}
+
+volumeMounts:
+  - name: app-data
+    mountPath: /app
+  - name: audit-logs
+    mountPath: /var/log/nc
+
+# ServiceMonitor for Prometheus Operator
+serviceMonitor:
+  enabled: false
+  interval: 15s
+  path: /metrics

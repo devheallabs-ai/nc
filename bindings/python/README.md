@@ -12,7 +12,7 @@ pip install nc-lang
 
 ```bash
 # macOS / Linux
-curl -fsSL https://raw.githubusercontent.com/DevHealLabs/nc-lang/main/install.sh | sh
+curl -fsSL https://nc.devheallabs.in/install.sh | sh
 
 # Or via Homebrew
 brew install nc-lang/tap/nc
@@ -89,5 +89,4 @@ Create a custom NC runtime instance.
 
 ## License
 
-Apache 2.0 — see [LICENSE](https://github.com/devheallabs-ai/nc-lang/blob/main/LICENSE)
-
+Apache 2.0 — see [LICENSE](https://github.com/devheallabs-ai/nc/blob/main/LICENSE)

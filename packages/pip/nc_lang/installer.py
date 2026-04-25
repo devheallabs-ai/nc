@@ -21,8 +21,8 @@ except ImportError:
 # Configuration
 # ---------------------------------------------------------------------------
 
-GITHUB_REPO = "sainarender2222/notation-as-code"
-VERSION = "1.0.0"
+GITHUB_REPO = "devheallabs-ai/nc"
+VERSION = "1.3.0"
 BASE_URL = f"https://github.com/{GITHUB_REPO}/releases/download/v{VERSION}"
 
 # Map (system, machine) to the release asset name and optional SHA-256 digest.
@@ -32,16 +32,12 @@ PLATFORM_MAP = {
         "asset": "nc-linux-x86_64",
         "sha256": "",
     },
-    ("Linux", "aarch64"): {
-        "asset": "nc-linux-aarch64",
-        "sha256": "",
-    },
     ("Darwin", "x86_64"): {
-        "asset": "nc-darwin-x86_64",
+        "asset": "nc-macos-x86_64",
         "sha256": "",
     },
     ("Darwin", "arm64"): {
-        "asset": "nc-darwin-arm64",
+        "asset": "nc-macos-arm64",
         "sha256": "",
     },
     ("Windows", "AMD64"): {
@@ -91,6 +87,8 @@ def _resolve_platform():
     if key not in PLATFORM_MAP:
         raise RuntimeError(
             f"Unsupported platform: {system} {machine}. "
+            "Prebuilt binaries are currently published for Linux x86_64, "
+            "macOS x86_64/arm64, and Windows x86_64. "
             "Please build NC from source: https://nc.devheallabs.in/docs/install"
         )
     return PLATFORM_MAP[key]

@@ -1,0 +1,16 @@
+apiVersion: v2
+name: nc
+description: NC (Notation-as-Code) — AI-powered API runtime
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+maintainers:
+  - name: NC Team
+keywords:
+  - nc
+  - ai
+  - api
+  - nc-lang
+home: https://github.com/example/nc
+sources:
+  - https://github.com/example/nc

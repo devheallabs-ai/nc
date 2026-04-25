@@ -698,8 +698,9 @@ static void handle_request(nc_socket_t client_fd, HttpRequest *req,
         !route_exists(routes, route_count, "GET", req->path)) {
         char body[512];
         snprintf(body, sizeof(body),
-            "{\"status\":\"healthy\",\"version\":\"1.0.0\","
+            "{\"status\":\"healthy\",\"version\":\"%s\","
             "\"active_connections\":%d,\"total_requests\":%d}",
+            NC_VERSION,
             nc_atomic_load(&nc_metrics_active_connections),
             nc_atomic_load(&nc_metrics_requests_total));
         build_response(response, resp_cap, 200, "OK", body);
@@ -782,7 +783,8 @@ static void handle_request(nc_socket_t client_fd, HttpRequest *req,
         pos += snprintf(body + pos, sizeof(body) - pos,
             "# HELP nc_info NC runtime information.\n"
             "# TYPE nc_info gauge\n"
-            "nc_info{version=\"1.0.0\",runtime=\"c\",concurrency=\"thread_pool\"} 1\n");
+            "nc_info{version=\"%s\",runtime=\"c\",concurrency=\"thread_pool\"} 1\n",
+            NC_VERSION);
         int body_len = (int)strlen(body);
         snprintf(response, resp_cap,
             "HTTP/1.1 200 OK\r\n"
@@ -806,7 +808,7 @@ static void handle_request(nc_socket_t client_fd, HttpRequest *req,
             program && program->as.program.service_name
                 ? program->as.program.service_name->chars : "NC Service",
             program && program->as.program.version
-                ? program->as.program.version->chars : "1.0.0");
+                ? program->as.program.version->chars : NC_VERSION);
         sp += snprintf(spec + sp, sizeof(spec) - sp,
             "\"servers\":[{\"url\":\"http://localhost:%d\"}],\"paths\":{",
             server_port > 0 ? server_port : 8080);
@@ -1942,7 +1944,7 @@ int nc_serve(const char *filename, int port) {
     printf("\n");
     printf("  \033[36m _  _  ___\033[0m\n");
     printf("  \033[36m| \\| |/ __|\033[0m   \033[1m\033[32mServer Running\033[0m\n");
-    printf("  \033[36m| .` | (__\033[0m    \033[90mNotation-as-Code v1.0.0\033[0m\n");
+    printf("  \033[36m| .` | (__\033[0m    \033[90mNotation-as-Code v%s\033[0m\n", NC_VERSION);
     printf("  \033[36m|_|\\_|\\___|\033[0m\n");
     printf("\n");
     printf("  \033[36m+------------------------------------------+\033[0m\n");

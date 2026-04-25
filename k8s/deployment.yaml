@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nc-service
+  namespace: nc-lang
+  labels:
+    app: nc
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nc
+  template:
+    metadata:
+      labels:
+        app: nc
+    spec:
+      containers:
+        - name: nc
+          image: nc-lang/nc:latest
+          ports:
+            - containerPort: 8000
+              name: http
+          env:
+            - name: NC_ALLOW_EXEC
+              value: "1"
+            - name: NC_ALLOW_FILE_WRITE
+              value: "1"
+            - name: NC_ACCEPT_LICENSE
+              value: "1"
+            - name: NC_AI_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: nc-config
+                  key: ai_url
+            - name: NC_AI_MODEL
+              valueFrom:
+                configMapKeyRef:
+                  name: nc-config
+                  key: ai_model
+            - name: NC_AI_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: nc-secrets
+                  key: ai_key
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 3
+            periodSeconds: 10

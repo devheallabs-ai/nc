@@ -1,8 +1,8 @@
 $ErrorActionPreference = 'Stop'
 
 $packageName = 'nc'
-$version = '1.0.0'
-$repo = 'nc-lang/nc'
+$version = '1.3.0'
+$repo = 'devheallabs-ai/nc'
 
 $arch = if ([Environment]::Is64BitOperatingSystem) { 'x86_64' } else { 'x86' }
 $url = "https://github.com/$repo/releases/download/v$version/nc-windows-$arch.exe"

@@ -1,8 +1,8 @@
-﻿# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-#  NC — Windows PowerShell Installer (Zero-Config, like Python/Rust)
+# ----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 #
 #  One-line install:
-#    irm https://raw.githubusercontent.com/devheallabs-ai/nc/main/install.ps1 | iex
+#    irm https://nc.devheallabs.in/install.ps1 | iex
 #
 #  Or:
 #    powershell -ExecutionPolicy Bypass -File install.ps1
@@ -12,11 +12,11 @@
 #    $env:NC_INSTALL_DIR = "<path>"  Custom install directory
 #
 #  After install, nc works from ANY terminal (CMD, PowerShell, Windows Terminal).
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# ----------------------------------------------------------------------
 
 $ErrorActionPreference = "Continue"
 
-$NC_VERSION     = "1.0.0"
+$NC_VERSION     = "1.3.0"
 $REPO           = "devheallabs-ai/nc"
 $INSTALL_DIR    = if ($env:NC_INSTALL_DIR) { $env:NC_INSTALL_DIR } else { "$env:LOCALAPPDATA\nc" }
 $BIN_DIR        = "$INSTALL_DIR\bin"
@@ -25,14 +25,14 @@ $W64DEVKIT_VER  = "2.6.0"
 $W64DEVKIT_URL  = "https://github.com/skeeto/w64devkit/releases/download/v$W64DEVKIT_VER/w64devkit-x64-$W64DEVKIT_VER.7z.exe"
 $W64DEVKIT_DIR  = "$INSTALL_DIR\w64devkit"
 
-# â”€â”€ Colored output helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ----------------------------------------------------------------------
 function Write-Step    { param([string]$msg) Write-Host "  ==> $msg" -ForegroundColor Blue }
 function Write-Info    { param([string]$msg) Write-Host "  [*] $msg" -ForegroundColor Cyan }
 function Write-Ok      { param([string]$msg) Write-Host "  [+] $msg" -ForegroundColor Green }
 function Write-Warn    { param([string]$msg) Write-Host "  [!] $msg" -ForegroundColor Yellow }
 function Write-Err     { param([string]$msg) Write-Host "  [x] $msg" -ForegroundColor Red }
 
-# â”€â”€ Banner â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ----------------------------------------------------------------------
 function Show-Banner {
     Write-Host ""
     Write-Host "  ==============================================" -ForegroundColor Cyan
@@ -45,7 +45,7 @@ function Show-Banner {
     Write-Host ""
 }
 
-# â”€â”€ License acceptance â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ----------------------------------------------------------------------
 function Confirm-License {
     if ($env:NC_ACCEPT_LICENSE -in @("1", "yes", "true", "TRUE", "YES")) {
         Write-Ok "License accepted via NC_ACCEPT_LICENSE"
@@ -85,7 +85,7 @@ Select Yes to continue installation.
 
     # Console fallback
     Write-Host "  License Agreement" -ForegroundColor Cyan
-    Write-Host "  â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€" -ForegroundColor Cyan
+    Write-Host "  ----------------------------------------" -ForegroundColor Cyan
     Write-Host "  NC is licensed under the Apache License 2.0."
     Write-Host "  By installing NC, you agree to the license terms."
     Write-Host "  Review:" -ForegroundColor Gray
@@ -107,7 +107,7 @@ Select Yes to continue installation.
     Write-Ok "License accepted"
 }
 
-# â”€â”€ Write consent marker â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ----------------------------------------------------------------------
 function Write-ConsentMarker {
     $consentDir = if ($env:LOCALAPPDATA) { "$env:LOCALAPPDATA\nc" } elseif ($env:APPDATA) { "$env:APPDATA\nc" } else { return }
     if (!(Test-Path $consentDir)) { New-Item -ItemType Directory -Path $consentDir -Force | Out-Null }
@@ -120,7 +120,7 @@ function Write-ConsentMarker {
     ) | Set-Content -Path "$consentDir\license.accepted" -Encoding ASCII
 }
 
-# â”€â”€ Check for C compiler â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ----------------------------------------------------------------------
 function Find-Compiler {
     # Check MSYS2 MinGW
     $msys2Gcc = @(
@@ -155,7 +155,7 @@ function Find-Compiler {
     return $null
 }
 
-# â”€â”€ Check for make â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ----------------------------------------------------------------------
 function Find-Make {
     param([string]$CompilerDir)
 
@@ -179,7 +179,7 @@ function Find-Make {
     return $null
 }
 
-# â”€â”€ Download w64devkit â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ----------------------------------------------------------------------
 function Install-W64Devkit {
     Write-Step "Downloading w64devkit (portable GCC for Windows)"
     Write-Info "URL: $W64DEVKIT_URL"
@@ -222,7 +222,7 @@ function Install-W64Devkit {
     return $null
 }
 
-# â”€â”€ Try downloading pre-built binary â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ----------------------------------------------------------------------
 function Try-PrebuiltBinary {
     $arch = if ([Environment]::Is64BitOperatingSystem) { "x86_64" } else { "x86" }
     $assetName = "nc-windows-$arch.exe"
@@ -247,7 +247,7 @@ function Try-PrebuiltBinary {
     return $false
 }
 
-# â”€â”€ Build from source â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ----------------------------------------------------------------------
 function Build-FromSource {
     param(
         [hashtable]$Compiler,
@@ -257,7 +257,13 @@ function Build-FromSource {
 
     Write-Step "Building NC from source"
 
-    $ncSrc = Join-Path $SourceDir "nc"
+    $ncSrc = Join-Path $SourceDir "nc-lang\engine"
+    if (!(Test-Path (Join-Path $ncSrc "Makefile"))) {
+        $ncSrc = Join-Path $SourceDir "engine"
+    }
+    if (!(Test-Path (Join-Path $ncSrc "Makefile"))) {
+        $ncSrc = Join-Path $SourceDir "nc"
+    }
     if (!(Test-Path (Join-Path $ncSrc "Makefile"))) {
         Write-Err "Makefile not found at $ncSrc"
         return $false
@@ -326,7 +332,7 @@ function Build-FromSource {
     return $true
 }
 
-# â”€â”€ Add to PATH â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ----------------------------------------------------------------------
 function Set-NcPath {
     Write-Step "Configuring PATH"
 
@@ -346,7 +352,7 @@ function Set-NcPath {
     [Environment]::SetEnvironmentVariable("NC_LIB_PATH", $LIB_DIR, "User")
 }
 
-# â”€â”€ Verify installation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ----------------------------------------------------------------------
 function Test-Installation {
     Write-Step "Verifying installation"
 
@@ -378,7 +384,7 @@ function Test-Installation {
     return $true
 }
 
-# â”€â”€ Print success â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ----------------------------------------------------------------------
 function Show-Success {
     Write-Host ""
     Write-Host "  ==============================================" -ForegroundColor Green
@@ -397,13 +403,13 @@ function Show-Success {
     Write-Host "  Other install methods:" -ForegroundColor Gray
     Write-Host "    pip install nc-lang        Python package"
     Write-Host "    choco install nc           Chocolatey"
-    Write-Host "    docker pull nc-lang/nc     Docker"
+    Write-Host "    docker pull devheallabs/nc:latest     Docker"
     Write-Host ""
     Write-Warn "Restart your terminal for PATH changes to take effect."
     Write-Host ""
 }
 
-# â”€â”€ Print failure â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ----------------------------------------------------------------------
 function Show-Failure {
     Write-Host ""
     Write-Err "Installation failed"
@@ -428,9 +434,9 @@ function Show-Failure {
     exit 1
 }
 
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# ----------------------------------------------------------------------
 #  Main
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# ----------------------------------------------------------------------
 
 Show-Banner
 Confirm-License
@@ -445,8 +451,12 @@ foreach ($dir in @($INSTALL_DIR, $BIN_DIR, $LIB_DIR)) {
 # Detect source directory
 $SOURCE_DIR = $null
 if ($PSScriptRoot) {
-    $ncMakefile = Join-Path $PSScriptRoot "nc\Makefile"
-    if (Test-Path $ncMakefile) {
+    $makefileCandidates = @(
+        (Join-Path $PSScriptRoot "engine\Makefile"),
+        (Join-Path $PSScriptRoot "nc-lang\engine\Makefile"),
+        (Join-Path $PSScriptRoot "nc\Makefile")
+    )
+    if ($makefileCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1) {
         $SOURCE_DIR = $PSScriptRoot
         Write-Info "Source code found at $SOURCE_DIR"
     }
@@ -498,7 +508,9 @@ if (!$installed) {
         if ($git) {
             $tmpDir = "$env:TEMP\nc-build-$(Get-Random)"
             & git clone --depth 1 "https://github.com/$REPO.git" $tmpDir 2>&1 | Out-Null
-            if (Test-Path "$tmpDir\nc\Makefile") {
+            if ((Test-Path "$tmpDir\nc-lang\engine\Makefile") -or
+                (Test-Path "$tmpDir\engine\Makefile") -or
+                (Test-Path "$tmpDir\nc\Makefile")) {
                 $SOURCE_DIR = $tmpDir
                 Write-Ok "Downloaded source code"
             }
@@ -508,7 +520,7 @@ if (!$installed) {
     if (!$SOURCE_DIR) {
         Write-Err "Source code not found. Clone the repo first:"
         Write-Host "    git clone https://github.com/$REPO.git" -ForegroundColor Yellow
-        Write-Host "    cd nc && powershell -File install.ps1" -ForegroundColor Yellow
+        Write-Host "    cd nc\nc-lang && powershell -File install.ps1" -ForegroundColor Yellow
         Show-Failure
     }
 
@@ -523,7 +535,10 @@ if (!$installed) {
 
 # Install standard library
 if ($SOURCE_DIR) {
-    $libSource = Join-Path $SOURCE_DIR "Lib"
+    $libSource = Join-Path $SOURCE_DIR "lib"
+    if (!(Test-Path $libSource)) {
+        $libSource = Join-Path $SOURCE_DIR "nc-lang\lib"
+    }
     if (Test-Path $libSource) {
         Write-Info "Installing standard library..."
         Copy-Item -Path "$libSource\*" -Destination $LIB_DIR -Recurse -Force -ErrorAction SilentlyContinue

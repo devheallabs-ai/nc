@@ -13,11 +13,11 @@
 set -euo pipefail
 
 # ── Defaults ──────────────────────────────────────────────────────
-REPO="devheallabs/nc"
+REPO="devheallabs-ai/nc"
 VERSION="latest"
 DEST_DIR="${NC_MODEL_DIR:-$(pwd)}"
 MODEL_FILE="nc_ai_model_prod.bin"
-TOKEN_FILE="nc_ai_model_prod.nctok"
+TOKEN_FILE="nc_ai_tokenizer.bin"
 VERIFY=true
 
 # ── Colours ───────────────────────────────────────────────────────

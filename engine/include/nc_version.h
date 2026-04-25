@@ -8,9 +8,9 @@
 #ifndef NC_VERSION_H
 #define NC_VERSION_H
 
-#define NC_VERSION       "1.0.0"
+#define NC_VERSION       "1.3.0"
 #define NC_VERSION_MAJOR  1
-#define NC_VERSION_MINOR  0
+#define NC_VERSION_MINOR  3
 #define NC_VERSION_PATCH  0
 
 /* Project homepage â€” used in generated READMEs and error messages */

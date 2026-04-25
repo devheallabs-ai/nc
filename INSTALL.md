@@ -10,18 +10,18 @@ The installers require license acceptance before installation. On supported desk
 
 **macOS / Linux:**
 ```bash
-curl -sSL https://raw.githubusercontent.com/DevHealLabs/nc-lang/main/install.sh | bash
+curl -fsSL https://nc.devheallabs.in/install.sh | bash
 
 # Non-interactive
-curl -sSL https://raw.githubusercontent.com/DevHealLabs/nc-lang/main/install.sh | NC_ACCEPT_LICENSE=1 bash
+curl -fsSL https://nc.devheallabs.in/install.sh | NC_ACCEPT_LICENSE=1 bash
 ```
 
 **Windows (PowerShell):**
 ```powershell
-irm https://raw.githubusercontent.com/DevHealLabs/nc-lang/main/install.ps1 | iex
+irm https://nc.devheallabs.in/install.ps1 | iex
 
 # Non-interactive
-$env:NC_ACCEPT_LICENSE=1; irm https://raw.githubusercontent.com/DevHealLabs/nc-lang/main/install.ps1 | iex
+$env:NC_ACCEPT_LICENSE=1; irm https://nc.devheallabs.in/install.ps1 | iex
 ```
 
 **Docker:**
@@ -35,7 +35,7 @@ docker run -it nc:latest version
 nc version
 ```
 
-You should see `NC v1.0.0`.
+You should see `NC v1.3.0`.
 
 ---
 
@@ -106,7 +106,7 @@ export NC_JWT_SECRET="your-secret"    # enable JWT auth
 
 ```
 $ nc repl
-NC v1.0.0 — type "help" or "quit"
+NC v1.3.0 — type "help" or "quit"
 >>> show "hello"
 hello
 >>> set x to 42
@@ -295,24 +295,25 @@ If you want to build NC yourself (for contributing or custom builds):
 ### Build
 
 ```bash
-git clone https://github.com/devheallabs-ai/nc-lang.git
-cd nc/engine
+git clone https://github.com/devheallabs-ai/nc.git
+cd nc/nc-lang/engine
 make
 ```
 
 ### Test
 
 ```bash
-./build/nc test                       # 85 language tests (947 behaviors)
+./build/nc test                       # run the NC language test suite
 make test-unit                        # runtime unit tests
-python3 tests/validate_nc.py          # 67 external validation tests
-python3 tests/validate_nc_deep.py     # 45 deep integration tests (HTTP, build, REPL)
+cd ..
+python3 tests/validate_nc.py --nc engine/build/nc
+python3 tests/validate_nc_deep.py --nc engine/build/nc
 ```
 
 ### Install
 
 ```bash
-sudo make install         # copies to /usr/local/bin/nc
+cd engine && sudo make install         # copies to /usr/local/bin/nc
 ```
 
 ### CMake (Windows/MSVC)
@@ -324,4 +325,3 @@ cmake --build . --config Release
 ```
 
 </details>
-

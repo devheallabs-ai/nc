@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>404 — NC Lang</title>
+<meta name="description" content="Page not found — NC, The AI Programming Language">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --bg: #0a0a0f;
+  --cyan: #00d4ff;
+  --purple: #7c3aed;
+  --purple-light: #a78bfa;
+  --text: #c8d1dc;
+  --text-dim: #6b7a8d;
+  --text-bright: #f0f4f8;
+  --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', Roboto, sans-serif;
+  --mono: 'SF Mono', 'Fira Code', 'Cascadia Code', 'JetBrains Mono', monospace;
+}
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+body::before {
+  content: '';
+  position: fixed;
+  top: -200px; right: -200px;
+  width: 600px; height: 600px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(0,212,255,0.06) 0%, transparent 70%);
+  pointer-events: none;
+}
+body::after {
+  content: '';
+  position: fixed;
+  bottom: -150px; left: -150px;
+  width: 500px; height: 500px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(124,58,237,0.05) 0%, transparent 70%);
+  pointer-events: none;
+}
+.container {
+  text-align: center;
+  padding: 24px;
+  position: relative;
+  z-index: 1;
+}
+.code {
+  font-size: clamp(6rem, 20vw, 12rem);
+  font-weight: 900;
+  letter-spacing: -4px;
+  line-height: 1;
+  background: linear-gradient(135deg, var(--cyan) 0%, var(--purple-light) 50%, var(--purple) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 16px;
+}
+.message {
+  font-size: clamp(1.1rem, 2.5vw, 1.5rem);
+  color: var(--text-dim);
+  margin-bottom: 8px;
+}
+.sub {
+  font-family: var(--mono);
+  font-size: 0.875rem;
+  color: rgba(0,212,255,0.5);
+  margin-bottom: 40px;
+}
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 32px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 1rem;
+  text-decoration: none;
+  transition: all 0.25s;
+  border: none;
+  cursor: pointer;
+  background: linear-gradient(135deg, var(--cyan), var(--purple));
+  color: #000;
+  margin-bottom: 48px;
+}
+.btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(0,212,255,0.25);
+}
+.links {
+  display: flex;
+  gap: 32px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.links a {
+  color: var(--text-dim);
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+.links a:hover { color: var(--cyan); }
+.brand {
+  margin-top: 48px;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  opacity: 0.6;
+}
+.brand span { color: var(--cyan); }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="code">404</div>
+  <p class="message">Page not found</p>
+  <p class="sub">// the route you requested does not exist</p>
+  <a href="/" class="btn">Back to Home</a>
+  <div class="links">
+    <a href="https://github.com/nfrfrz/nc">GitHub</a>
+    <a href="https://nc.devheallabs.in/#docs">Docs</a>
+    <a href="https://nc.devheallabs.in/#install">Install</a>
+  </div>
+  <p class="brand">Powered by <span>NC</span> &mdash; DevHeal Labs</p>
+</div>
+</body>
+</html>

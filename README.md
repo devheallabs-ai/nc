@@ -70,16 +70,16 @@ The installers show a license agreement before installation. On supported deskto
 
 ```bash
 # macOS / Linux
-curl -sSL https://raw.githubusercontent.com/DevHealLabs/nc-lang/main/install.sh | bash
+curl -fsSL https://nc.devheallabs.in/install.sh | bash
 
 # macOS / Linux (non-interactive)
-curl -sSL https://raw.githubusercontent.com/DevHealLabs/nc-lang/main/install.sh | NC_ACCEPT_LICENSE=1 bash
+curl -fsSL https://nc.devheallabs.in/install.sh | NC_ACCEPT_LICENSE=1 bash
 
 # Windows (PowerShell)
-irm https://raw.githubusercontent.com/DevHealLabs/nc-lang/main/install.ps1 | iex
+irm https://nc.devheallabs.in/install.ps1 | iex
 
 # Windows (non-interactive)
-$env:NC_ACCEPT_LICENSE=1; irm https://raw.githubusercontent.com/DevHealLabs/nc-lang/main/install.ps1 | iex
+$env:NC_ACCEPT_LICENSE=1; irm https://nc.devheallabs.in/install.ps1 | iex
 
 # Docker
 docker run -it nc:latest version
@@ -711,4 +711,3 @@ NC's runtime engine is written in C11 for speed and portability.
 - **See:** [Developer Internals](docs/NC_DEVELOPER_INTERNALS.md)
 
 </details>
-

@@ -1,27 +1,27 @@
-﻿#!/usr/bin/env bash
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-#  NC — Cross-Platform One-Line Installer (macOS / Linux / Windows+MSYS2)
+#!/usr/bin/env bash
+# ----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 #
 #  Install from the web:
 #    curl -sSL https://nc.devheallabs.in/install.sh | bash
 #    wget -qO- https://nc.devheallabs.in/install.sh | bash
 #
 #  Install from source checkout:
-#    git clone https://github.com/devheallabs-ai/nc.git && cd nc && bash install.sh
+#    git clone https://github.com/devheallabs-ai/nc.git && cd nc/nc-lang && bash install.sh
 #
 #  Environment variables:
 #    NC_ACCEPT_LICENSE=1    Skip license prompt
 #    NC_INSTALL_DIR=<path>  Custom binary install directory
 #    NC_LIB_DIR=<path>      Custom standard library directory
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# ----------------------------------------------------------------------
 set -euo pipefail
 
-NC_VERSION="1.0.0"
+NC_VERSION="1.3.0"
 REPO="devheallabs-ai/nc"
 INSTALL_DIR="${NC_INSTALL_DIR:-/usr/local/bin}"
 LIB_DIR="${NC_LIB_DIR:-/usr/local/lib/nc}"
 
-# â”€â”€ Colors & formatting â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ----------------------------------------------------------------------
 if [ -t 1 ] && command -v tput >/dev/null 2>&1 && [ "$(tput colors 2>/dev/null || echo 0)" -ge 8 ]; then
     BOLD=$(tput bold)
     RED=$(tput setaf 1)
@@ -41,7 +41,7 @@ warn()    { echo "${YELLOW}  [!]${RESET} $*"; }
 error()   { echo "${RED}  [x]${RESET} $*"; }
 step()    { echo "${BOLD}${BLUE}  ==> ${RESET}${BOLD}$*${RESET}"; }
 
-# â”€â”€ Platform detection â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ----------------------------------------------------------------------
 detect_platform() {
     local uname_s
     uname_s="$(uname -s 2>/dev/null || echo Unknown)"
@@ -107,19 +107,20 @@ detect_platform() {
     esac
 }
 
-# â”€â”€ Banner â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ----------------------------------------------------------------------
 print_banner() {
     echo ""
-    echo "${BOLD}${CYAN}  â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—${RESET}"
-    echo "${BOLD}${CYAN}  â•‘          NC Installer v${NC_VERSION}          â•‘${RESET}"
-    echo "${BOLD}${CYAN}  â•‘   The Notation Language Compiler      â•‘${RESET}"
-    echo "${BOLD}${CYAN}  â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•${RESET}"
+    echo "${BOLD}${CYAN}  +--------------------------------------+${RESET}"
+    echo "${BOLD}${CYAN}  |         NC Installer v${NC_VERSION}          |${RESET}"
+    echo "${BOLD}${CYAN}  |   The Notation Language Compiler     |${RESET}"
+    echo "${BOLD}${CYAN}  +--------------------------------------+${RESET}"
     echo ""
+
     info "Platform: ${BOLD}${PLATFORM}/${ARCH}${RESET} (${DISTRO})"
     echo ""
 }
 
-# â”€â”€ License acceptance â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ----------------------------------------------------------------------
 require_license_acceptance() {
     if [ "${NC_ACCEPT_LICENSE:-}" = "1" ] || [ "${NC_ACCEPT_LICENSE:-}" = "yes" ] || [ "${NC_ACCEPT_LICENSE:-}" = "true" ]; then
         success "License accepted via NC_ACCEPT_LICENSE"
@@ -153,7 +154,7 @@ require_license_acceptance() {
 
     # Terminal fallback
     echo "  ${BOLD}License Agreement${RESET}"
-    echo "  â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€"
+    echo "  --------------------------------------"
     echo "  NC is licensed under the Apache License 2.0."
     echo "  By installing NC, you agree to the license terms."
     echo "  Review: ${DIM}https://github.com/${REPO}/blob/main/LICENSE${RESET}"
@@ -176,7 +177,7 @@ require_license_acceptance() {
     exit 1
 }
 
-# â”€â”€ Write consent marker â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ----------------------------------------------------------------------
 write_consent_marker() {
     local consent_dir=""
     if [ -n "${XDG_STATE_HOME:-}" ]; then
@@ -192,7 +193,7 @@ write_consent_marker() {
         > "$consent_dir/license.accepted" 2>/dev/null || true
 }
 
-# â”€â”€ Prerequisite checking â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ----------------------------------------------------------------------
 check_compiler() {
     for cc in cc gcc clang; do
         if command -v "$cc" >/dev/null 2>&1; then
@@ -305,15 +306,33 @@ check_prerequisites() {
     echo ""
 }
 
-# â”€â”€ Strategy 1: Download pre-built binary â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ----------------------------------------------------------------------
+# Compute sha256 of a file using whichever tool is available.
+# Prints the hex digest to stdout; returns non-zero if no tool is found.
+compute_sha256() {
+    local f="$1"
+    if command -v sha256sum >/dev/null 2>&1; then
+        sha256sum "$f" | awk '{print $1}'
+    elif command -v shasum >/dev/null 2>&1; then
+        shasum -a 256 "$f" | awk '{print $1}'
+    elif command -v openssl >/dev/null 2>&1; then
+        openssl dgst -sha256 "$f" | awk '{print $NF}'
+    else
+        return 1
+    fi
+}
+
+# ----------------------------------------------------------------------
 try_prebuilt() {
     local asset_name="nc-${PLATFORM}-${ARCH}${BINARY_EXT}"
     local url="https://github.com/${REPO}/releases/download/v${NC_VERSION}/${asset_name}"
+    local sums_url="https://github.com/${REPO}/releases/download/v${NC_VERSION}/SHA256SUMS"
 
     step "Checking for pre-built binary"
     info "Looking for ${asset_name}..."
 
     local tmp_bin="/tmp/nc-installer-$$${BINARY_EXT}"
+    local tmp_sums="/tmp/nc-installer-$$-SHA256SUMS"
     local http_code=""
 
     if command -v curl >/dev/null 2>&1; then
@@ -324,22 +343,81 @@ try_prebuilt() {
         fi
     fi
 
-    if [ "${http_code:-}" = "200" ] && [ -s "$tmp_bin" ]; then
-        chmod +x "$tmp_bin"
-        if "$tmp_bin" version >/dev/null 2>&1; then
-            success "Downloaded pre-built binary"
-            INSTALL_BINARY="$tmp_bin"
-            return 0
+    if [ "${http_code:-}" != "200" ] || [ ! -s "$tmp_bin" ]; then
+        rm -f "$tmp_bin"
+        warn "No pre-built binary available, will build from source"
+        echo ""
+        return 1
+    fi
+
+    # ----- SHA256 verification --------------------------------------------
+    # Fetch the SHA256SUMS sibling file and verify the binary's hash matches
+    # the expected value before we ever chmod +x or execute it. If the sums
+    # file is missing (older releases), refuse to run the binary unless the
+    # user explicitly opts out with NC_SKIP_CHECKSUM=1.
+    local sums_code=""
+    if command -v curl >/dev/null 2>&1; then
+        sums_code=$(curl -fsSL -o "$tmp_sums" -w "%{http_code}" "$sums_url" 2>/dev/null) || true
+    elif command -v wget >/dev/null 2>&1; then
+        if wget -q -O "$tmp_sums" "$sums_url" 2>/dev/null; then
+            sums_code="200"
         fi
     fi
 
+    if [ "${sums_code:-}" = "200" ] && [ -s "$tmp_sums" ]; then
+        local expected actual
+        expected=$(grep -E "(^| )${asset_name}\$" "$tmp_sums" | awk '{print $1}' | head -n1)
+        actual=$(compute_sha256 "$tmp_bin" 2>/dev/null || true)
+        rm -f "$tmp_sums"
+        if [ -z "$expected" ]; then
+            warn "SHA256SUMS found but has no entry for ${asset_name}"
+            rm -f "$tmp_bin"
+            return 1
+        fi
+        if [ -z "$actual" ]; then
+            warn "No sha256 tool available (sha256sum/shasum/openssl). Cannot verify download."
+            if [ "${NC_SKIP_CHECKSUM:-}" != "1" ]; then
+                rm -f "$tmp_bin"
+                error "Refusing to run unverified binary. Install a checksum tool or set NC_SKIP_CHECKSUM=1 to override."
+                return 1
+            fi
+        elif [ "$actual" != "$expected" ]; then
+            rm -f "$tmp_bin"
+            error "Checksum mismatch for ${asset_name}"
+            error "  expected: ${expected}"
+            error "  actual:   ${actual}"
+            error "Refusing to install. The download may be corrupted or tampered with."
+            return 1
+        else
+            success "SHA256 verified (${actual:0:16}...)"
+        fi
+    else
+        rm -f "$tmp_sums"
+        if [ "${NC_SKIP_CHECKSUM:-}" = "1" ]; then
+            warn "SHA256SUMS not published for v${NC_VERSION}. Skipping verification (NC_SKIP_CHECKSUM=1)."
+        else
+            rm -f "$tmp_bin"
+            error "SHA256SUMS not found at ${sums_url}"
+            error "Refusing to run an unverified binary. Build from source, or set NC_SKIP_CHECKSUM=1 to override."
+            return 1
+        fi
+    fi
+    # ---------------------------------------------------------------------
+
+    chmod +x "$tmp_bin"
+    if "$tmp_bin" version >/dev/null 2>&1; then
+        success "Downloaded pre-built binary"
+        INSTALL_BINARY="$tmp_bin"
+        return 0
+    fi
+
     rm -f "$tmp_bin"
-    warn "No pre-built binary available, will build from source"
+    warn "Pre-built binary failed smoke test, will build from source"
     echo ""
     return 1
 }
 
-# â”€â”€ Strategy 2: Build from source â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ----------------------------------------------------------------------
 build_from_source() {
     step "Building NC from source"
 
@@ -378,12 +456,18 @@ build_from_source() {
             exit 1
         fi
 
-        build_dir="$tmpdir/nc/engine"
-        src_dir="$tmpdir/nc"
+        build_dir="$tmpdir/nc/nc-lang/engine"
+        src_dir="$tmpdir/nc/nc-lang"
 
-        # Fallback to nc/ subdirectory for older repo layouts
+        # Fallback to older repo layouts
+        if [ ! -f "$build_dir/Makefile" ]; then
+            build_dir="$tmpdir/nc/engine"
+            src_dir="$tmpdir/nc"
+        fi
+
         if [ ! -f "$build_dir/Makefile" ]; then
             build_dir="$tmpdir/nc/nc"
+            src_dir="$tmpdir/nc"
         fi
 
         if [ ! -f "$build_dir/Makefile" ]; then
@@ -420,8 +504,8 @@ build_from_source() {
     INSTALL_BINARY="$tmp_bin"
 
     # Copy standard library
-    if [ -d "$src_dir/Lib" ]; then
-        INSTALL_LIB_SRC="$src_dir/Lib"
+    if [ -d "$src_dir/lib" ]; then
+        INSTALL_LIB_SRC="$src_dir/lib"
     fi
 
     if $need_cleanup; then
@@ -431,7 +515,7 @@ build_from_source() {
     echo ""
 }
 
-# â”€â”€ Install binary â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ----------------------------------------------------------------------
 install_binary() {
     step "Installing NC"
 
@@ -493,7 +577,7 @@ install_binary() {
     echo ""
 }
 
-# â”€â”€ Verify installation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ----------------------------------------------------------------------
 verify_installation() {
     step "Verifying installation"
 
@@ -519,11 +603,11 @@ verify_installation() {
     echo ""
 }
 
-# â”€â”€ Print success â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ----------------------------------------------------------------------
 print_success() {
-    echo "${GREEN}  â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—${RESET}"
-    echo "${GREEN}  â•‘     NC installed successfully!        â•‘${RESET}"
-    echo "${GREEN}  â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•${RESET}"
+    echo "${GREEN}  +--------------------------------------+${RESET}"
+    echo "${GREEN}  |    NC installed successfully!        |${RESET}"
+    echo "${GREEN}  +--------------------------------------+${RESET}"
     echo ""
     echo "  ${BOLD}Location:${RESET}  ${INSTALL_DIR}/nc${BINARY_EXT}"
     echo "  ${BOLD}Platform:${RESET}  ${PLATFORM}/${ARCH}"
@@ -538,7 +622,7 @@ print_success() {
     echo "  ${BOLD}Other install methods:${RESET}"
     echo "    ${DIM}pip install nc-lang${RESET}        Python package"
     echo "    ${DIM}brew install nc${RESET}            macOS Homebrew"
-    echo "    ${DIM}docker pull nc-lang/nc${RESET}     Docker"
+    echo "    ${DIM}docker pull devheallabs/nc:latest${RESET}     Docker"
     echo ""
 
     if [ "$PLATFORM" = "windows" ]; then
@@ -547,9 +631,9 @@ print_success() {
     fi
 }
 
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# ----------------------------------------------------------------------
 #  Main
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# ----------------------------------------------------------------------
 main() {
     detect_platform
     print_banner
@@ -569,4 +653,3 @@ main() {
 }
 
 main "$@"
-

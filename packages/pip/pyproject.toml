@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "nc-lang"
-version = "1.0.0"
+version = "1.3.0"
 description = "NC — The AI Programming Language. Build AI-powered APIs in plain English."
 readme = "README.md"
 license = "Apache-2.0"
@@ -56,4 +56,3 @@ include = ["nc_lang*"]
 
 [tool.setuptools.package-data]
 nc_lang = ["py.typed"]
-

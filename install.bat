@@ -16,7 +16,7 @@ REM  Set NC_ACCEPT_LICENSE=1 before running to skip license prompt.
 REM â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 setlocal enabledelayedexpansion
 
-set "NC_VERSION=1.0.0"
+set "NC_VERSION=1.3.0"
 set "INSTALL_DIR=%LOCALAPPDATA%\nc"
 set "BIN_DIR=%INSTALL_DIR%\bin"
 set "LIB_DIR=%INSTALL_DIR%\Lib"
@@ -45,7 +45,7 @@ echo   License Agreement
 echo   â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 echo   NC is licensed under the Apache License 2.0.
 echo   By installing NC, you agree to the license terms.
-echo   Review: https://github.com/devheallabs-ai/nc-lang/blob/main/LICENSE
+echo   Review: https://github.com/devheallabs-ai/nc/blob/main/LICENSE
 echo.
 set /p "ACCEPT=  Type 'yes' to accept and continue: "
 if /i not "%ACCEPT%"=="yes" (
@@ -79,7 +79,7 @@ if exist "%SCRIPT_DIR%engine\Makefile" (
 
 REM â”€â”€ Strategy 1: Try downloading pre-built binary â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 echo   ==^> Checking for pre-built binary
-set "BINARY_URL=https://github.com/devheallabs-ai/nc-lang/releases/download/v%NC_VERSION%/nc-windows-x86_64.exe"
+set "BINARY_URL=https://github.com/devheallabs-ai/nc/releases/download/v%NC_VERSION%/nc-windows-x86_64.exe"
 set "DOWNLOADED=0"
 
 where curl >nul 2>&1
@@ -215,8 +215,8 @@ echo   [+] Make: %FOUND_MAKE%
 REM â”€â”€ Build from source â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 if "%SOURCE_DIR%"=="" (
     echo   [x] Source code not found. Clone the repo first:
-    echo       git clone https://github.com/devheallabs-ai/nc-lang.git
-    echo       cd nc-lang ^&^& install.bat
+    echo       git clone https://github.com/devheallabs-ai/nc.git
+    echo       cd nc\nc-lang ^&^& install.bat
     goto :install_failed
 )
 
@@ -230,9 +230,18 @@ set "PATH=%CC_BIN_DIR%;%PATH%"
 pushd "%SOURCE_DIR%%ENGINE_SUBDIR%"
 if not exist build mkdir build
 
-REM Direct GCC compilation (most reliable on Windows)
-echo   [*] Compiling with GCC...
-gcc -o build\nc.exe -Iinclude -O2 -DNDEBUG -DNC_NO_REPL -w src\main.c src\nc_lexer.c src\nc_parser.c src\nc_compiler.c src\nc_vm.c src\nc_value.c src\nc_gc.c src\nc_json.c src\nc_http.c src\nc_server.c src\nc_stdlib.c src\nc_middleware.c src\nc_enterprise.c src\nc_async.c src\nc_module.c src\nc_optimizer.c src\nc_semantic.c src\nc_suggestions.c src\nc_migrate.c src\nc_repl.c src\nc_debug.c src\nc_lsp.c src\nc_tensor.c src\nc_autograd.c src\nc_llvm.c src\nc_jit.c src\nc_embed.c src\nc_plugin.c src\nc_pkg.c src\nc_distributed.c src\nc_database.c src\nc_websocket.c src\nc_polyglot.c src\nc_interp.c src\nc_crypto.c src\nc_generate.c src\nc_ai_router.c src\nc_ai_benchmark.c src\nc_ai_enterprise.c src\nc_nova_reasoning.c src\nc_ai_efficient.c src\nc_build.c src\nc_wasm.c src\nc_dataset.c src\nc_ui_compiler.c src\nc_ui_vm.c src\nc_model.c src\nc_training.c src\nc_tokenizer.c src\nc_cortex.c src\nc_nova.c -lws2_32 -lwinhttp
+REM Use the maintained Makefile source list so installer builds do not drift.
+set "MSYS_BASH="
+if exist "C:\msys64\usr\bin\bash.exe" set "MSYS_BASH=C:\msys64\usr\bin\bash.exe"
+if "%MSYS_BASH%"=="" if exist "%USERPROFILE%\msys64\usr\bin\bash.exe" set "MSYS_BASH=%USERPROFILE%\msys64\usr\bin\bash.exe"
+
+echo   [*] Compiling with make...
+if not "%MSYS_BASH%"=="" (
+    "%MSYS_BASH%" -lc "make clean 2>/dev/null; make"
+) else (
+    "%FOUND_MAKE%" clean >nul 2>&1
+    "%FOUND_MAKE%" CC="%FOUND_CC%"
+)
 if exist "build\nc.exe" (
     copy /y "build\nc.exe" "%BIN_DIR%\nc.exe" >nul
     echo   [+] Build successful
@@ -254,8 +263,8 @@ for %%D in (libgcc_s_seh-1.dll libwinpthread-1.dll libstdc++-6.dll) do (
 )
 
 REM Copy standard library
-if exist "%SOURCE_DIR%Lib" (
-    xcopy /s /y /q "%SOURCE_DIR%Lib\*" "%LIB_DIR%\" >nul 2>&1
+if exist "%SOURCE_DIR%lib" (
+    xcopy /s /y /q "%SOURCE_DIR%lib\*" "%LIB_DIR%\" >nul 2>&1
     echo   [+] Standard library installed
 )
 
@@ -331,7 +340,7 @@ echo.
 echo   Other install methods:
 echo     pip install nc-lang       Python package
 echo     choco install nc          Chocolatey
-echo     docker pull nc-lang/nc    Docker
+echo     docker pull devheallabs/nc:latest    Docker
 echo.
 goto :eof
 
@@ -350,12 +359,11 @@ echo     Option 2 - Install MSYS2 and build:
 echo       winget install MSYS2.MSYS2
 echo       :: In MSYS2 terminal:
 echo       pacman -S mingw-w64-x86_64-gcc make
-echo       cd nc ^&^& make
+echo       cd nc\nc-lang\engine ^&^& make
 echo.
 echo     Option 3 - Use w64devkit:
 echo       Download from https://github.com/skeeto/w64devkit/releases
 echo       Extract, open w64devkit.exe, then:
-echo       cd nc ^&^& make
+echo       cd nc\nc-lang\engine ^&^& make
 echo.
 exit /b 1
-

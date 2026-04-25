@@ -13,27 +13,23 @@ import subprocess
 import urllib.request
 import shutil
 
-NC_VERSION = "1.0.0"
-REPO = "nc-lang/nc"
+NC_VERSION = "1.3.0"
+REPO = "devheallabs-ai/nc"
 
 
 def _get_binary_name():
     system = platform.system().lower()
     machine = platform.machine().lower()
 
-    if machine in ("x86_64", "amd64"):
-        arch = "x86_64"
-    elif machine in ("aarch64", "arm64"):
-        arch = "arm64"
-    else:
-        arch = machine
-
-    if system == "windows":
-        return f"nc-windows-{arch}.exe"
-    elif system == "darwin":
-        return f"nc-macos-{arch}"
-    else:
-        return f"nc-linux-{arch}"
+    if system == "windows" and machine in ("x86_64", "amd64"):
+        return "nc-windows-x86_64.exe"
+    if system == "darwin" and machine in ("x86_64", "amd64"):
+        return "nc-macos-x86_64"
+    if system == "darwin" and machine in ("aarch64", "arm64"):
+        return "nc-macos-arm64"
+    if system == "linux" and machine in ("x86_64", "amd64"):
+        return "nc-linux-x86_64"
+    return None
 
 
 def _get_cache_dir():
@@ -55,6 +51,10 @@ def _download_binary():
         return nc_path
 
     binary_name = _get_binary_name()
+    if not binary_name:
+        print("  Unsupported platform for prebuilt NC binaries.", file=sys.stderr)
+        print("  Please build NC from source: https://nc.devheallabs.in/docs/install", file=sys.stderr)
+        return None
     url = f"https://github.com/{REPO}/releases/download/v{NC_VERSION}/{binary_name}"
 
     print(f"  Downloading NC v{NC_VERSION} for {platform.system()}...", file=sys.stderr)
@@ -70,7 +70,7 @@ def _download_binary():
             os.remove(nc_path)
         print(f"  Failed to download NC: {e}", file=sys.stderr)
         print(f"  URL: {url}", file=sys.stderr)
-        print(f"  You can install NC manually: https://github.com/{REPO}", file=sys.stderr)
+        print("  You can install NC manually: https://nc.devheallabs.in/docs/install", file=sys.stderr)
         return None
 
 
