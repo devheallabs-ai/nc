@@ -6,7 +6,8 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 
 option(NC_NO_REPL "Build without REPL (readline/libedit)" OFF)
 
-# Source files — core NC language engine
+# Source files — open-source NC language engine.
+# Proprietary NOVA sources are replaced by nc_generate_stubs.c in public builds.
 set(NC_SOURCES
     src/main.c
     src/nc_value.c
@@ -18,7 +19,6 @@ set(NC_SOURCES
     src/nc_http.c
     src/nc_compiler.c
     src/nc_llvm.c
-    src/nc_tensor.c
     src/nc_pkg.c
     src/nc_debug.c
     src/nc_lsp.c
@@ -27,13 +27,11 @@ set(NC_SOURCES
     src/nc_repl.c
     src/nc_stdlib.c
     src/nc_module.c
-    src/nc_autograd.c
     src/nc_optimizer.c
     src/nc_polyglot.c
     src/nc_migrate.c
     src/nc_jit.c
     src/nc_async.c
-    src/nc_distributed.c
     src/nc_enterprise.c
     src/nc_server.c
     src/nc_database.c
@@ -42,25 +40,18 @@ set(NC_SOURCES
     src/nc_suggestions.c
     src/nc_embed.c
     src/nc_plugin.c
-    # AI / ML engine (NC-AI + NOVA)
-    src/nc_model.c
-    src/nc_training.c
-    src/nc_tokenizer.c
-    src/nc_cortex.c
-    src/nc_nova.c
-    src/nc_nova_reasoning.c
     src/nc_crypto.c
-    src/nc_generate.c
     src/nc_ai_router.c
-    src/nc_ai_benchmark.c
     src/nc_ai_enterprise.c
     src/nc_ai_efficient.c
     src/nc_build.c
     src/nc_wasm.c
-    src/nc_dataset.c
+    src/nc_ui_html.c
     src/nc_terminal_ui.c
+    src/nc_cuda.c
     src/nc_ui_compiler.c
     src/nc_ui_vm.c
+    src/nc_generate_stubs.c
 )
 
 add_executable(nc ${NC_SOURCES})
