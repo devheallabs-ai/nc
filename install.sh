@@ -3,8 +3,8 @@
 # ----------------------------------------------------------------------
 #
 #  Install from the web:
-#    curl -sSL https://nc.devheallabs.in/install.sh | bash
-#    wget -qO- https://nc.devheallabs.in/install.sh | bash
+#    curl -sSL https://nc.devheallabs.com/install.sh | bash
+#    wget -qO- https://nc.devheallabs.com/install.sh | bash
 #
 #  Install from source checkout:
 #    git clone https://github.com/devheallabs-ai/nc.git && cd nc && bash install.sh
