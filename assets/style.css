@@ -664,3 +664,7 @@ footer{border-top:1px solid var(--line);padding:56px 0 32px;background:var(--bg-
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important}
 }
+
+/* Keep the complete company mark legible in both themes. */
+.nav-logo .logo-icon{width:64px;height:54px;max-height:none;padding:4px;object-fit:contain;object-position:center;flex:0 0 auto;background:#fff;border:1px solid var(--line, #ddd);border-radius:10px;filter:none!important}
+@media(max-width:600px){.nav-logo .logo-icon{width:54px;height:46px}.nav-logo{gap:6px}}
